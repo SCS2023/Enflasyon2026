@@ -30,7 +30,7 @@ st.set_page_config(
     initial_sidebar_state="expanded" 
 )
 
-# --- CSS MOTORU (TAMİR EDİLMİŞ VERSİYON) ---
+# --- CSS MOTORU (SİTE DARK - BOT PENCERESİ LIGHT) ---
 def apply_theme():
     st.session_state.plotly_template = "plotly_dark"
 
@@ -41,7 +41,7 @@ def apply_theme():
 
         :root {{ color-scheme: dark; }}
 
-        /* 1. BACKGROUND */
+        /* 1. BACKGROUND (SİTE GENELİ SİYAH) */
         [data-testid="stAppViewContainer"] {{
             background-color: #000000;
             background-image: radial-gradient(circle at 50% 0%, #111115 0%, #000000 80%);
@@ -49,11 +49,12 @@ def apply_theme():
             color: #e2e8f0 !important;
         }}
         
+        /* Genel Başlıklar Beyaz */
         h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, div, span {{
             color: #f1f5f9 !important;
         }}
 
-        /* 2. TICKER (KAYAN YAZI - KESİN ÇÖZÜM) */
+        /* 2. TICKER (KAYAN YAZI) */
         .ticker-wrap {{
             width: 100%;
             overflow: hidden;
@@ -71,7 +72,7 @@ def apply_theme():
             display: inline-block;
             white-space: nowrap;
             padding-left: 100%;
-            animation: marquee 40s linear infinite; /* Hızlandırdım */
+            animation: marquee 40s linear infinite;
             font-family: 'JetBrains Mono', monospace;
             font-size: 15px;
             font-weight: 600;
@@ -82,7 +83,11 @@ def apply_theme():
             100% {{ transform: translate(-100%, 0); }}
         }}
 
-        /* 3. KPI KARTLARI (SİYAH TEMA) */
+        /* Ticker Renkleri (Zorunlu) */
+        .t-up {{ color: #ff4d4d !important; }}
+        .t-down {{ color: #4ade80 !important; }}
+
+        /* 3. KPI KARTLARI */
         .kpi-card {{
             background: rgba(10, 10, 12, 0.95);
             border: 1px solid rgba(255,255,255,0.1);
@@ -120,59 +125,69 @@ def apply_theme():
         .pg-green {{ background: rgba(22, 163, 74, 0.2); color: #4ade80 !important; border: 1px solid rgba(22, 163, 74, 0.4); }}
         .pg-gray {{ background: #27272a; color: #a1a1aa !important; }}
 
-        /* 5. FLOATING CHAT BUTTON (SOL ALT KÖŞE - BEYAZ BAR SORUNU ÇÖZÜLDÜ) */
-        
-        /* Kapsayıcıyı ŞEFFAF ve DAR yapıyoruz ki bar oluşmasın */
+        /* 5. FLOATING CHAT BUTTON (SOL ALT KÖŞE) */
         [data-testid="stPopover"] {{ 
-            position: fixed !important; 
-            bottom: 30px !important; 
-            left: 30px !important; 
-            right: auto !important;
-            z-index: 999999 !important;
-            background-color: transparent !important; /* Beyaz barı yok et */
-            border: none !important;
-            width: auto !important;
-            height: auto !important;
+            position: fixed !important; bottom: 30px !important; left: 30px !important; right: auto !important;
+            z-index: 999999 !important; background-color: transparent !important; border: none !important;
+            width: auto !important; height: auto !important;
         }}
-        
-        /* Sadece Buton Görünsün */
         [data-testid="stPopover"] > button {{
             width: 60px !important; height: 60px !important; border-radius: 50% !important;
-            background: linear-gradient(135deg, #6366f1, #a855f7) !important; color: black !important;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important; color: white !important;
             border: 2px solid rgba(255,255,255,0.3) !important; 
-            box-shadow: 0 0 25px rgba(168, 85, 247, 0.5) !important;
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.7) !important;
             font-size: 28px !important; display: flex; justify-content: center; align-items: center;
         }}
-        [data-testid="stPopover"] > button:hover {{ transform: scale(1.1); box-shadow: 0 0 40px rgba(168, 85, 247, 0.8) !important; }}
+        [data-testid="stPopover"] > button:hover {{ transform: scale(1.1); box-shadow: 0 0 40px rgba(124, 58, 237, 0.9) !important; }}
 
-        /* POPOVER İÇERİĞİ (SİYAH YAPILDI) */
-        /* O beyaz kutuyu yok ediyoruz */
+        /* ============================================================ */
+        /* --- 6. POPOVER PENCERESİ (BEYAZ KUTU / SİYAH YAZI) --- */
+        /* ============================================================ */
+        
+        /* 6.1. Pencere Arka Planı BEYAZ */
         div[data-testid="stPopoverBody"] {{ 
-            background-color: #09090b !important; /* Arka plan SİYAH */
-            border: 1px solid #334155 !important; 
+            background-color: #ffffff !important; 
+            border: 1px solid #e2e8f0 !important; 
             border-radius: 12px !important; 
-            color: #09090b !important; /* Yazılar BEYAZ */
             min-width: 350px !important;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
         }}
         
-        /* İçerikteki Yazıları Zorla Beyaz Yap */
+        /* 6.2. İçerikteki Yazıların Hepsi SİYAH */
+        [data-testid="stPopoverBody"] h3, 
         [data-testid="stPopoverBody"] p, 
         [data-testid="stPopoverBody"] span, 
         [data-testid="stPopoverBody"] div,
-        [data-testid="stPopoverBody"] label {{
-            color: #e2e8f0 !important;
+        [data-testid="stPopoverBody"] label,
+        [data-testid="stPopoverBody"] .stMarkdown {{
+            color: #000000 !important;
         }}
 
-        /* İçerikteki Selectbox'ları Koyu Yap */
-        [data-testid="stPopoverBody"] [data-baseweb="select"] > div {{
-            background-color: #18181b !important;
-            color: white !important;
-            border-color: #3f3f46 !important;
+        /* 6.3. Selectbox (Seçim Kutusu) İçi Beyaz, Yazı Siyah */
+        [data-testid="stPopoverBody"] div[data-baseweb="select"] > div {{
+            background-color: #f8fafc !important; /* Açık gri zemin */
+            color: #000000 !important; /* Siyah yazı */
+            border-color: #cbd5e1 !important;
         }}
-        [data-testid="stPopoverBody"] [data-baseweb="popover"], 
-        [data-testid="stPopoverBody"] ul[data-baseweb="menu"] {{
-            background-color: #18181b !important;
+        
+        /* 6.4. Dropdown Seçenekleri Siyah */
+        [data-testid="stPopoverBody"] li[role="option"] {{
+            color: #000000 !important;
+            background-color: #ffffff !important;
         }}
+        [data-testid="stPopoverBody"] li[role="option"]:hover {{
+            background-color: #e2e8f0 !important;
+        }}
+        
+        /* 6.5. Selectbox içindeki seçili metin */
+        [data-testid="stPopoverBody"] div[data-baseweb="select"] span {{
+            color: #000000 !important;
+        }}
+        [data-testid="stPopoverBody"] div[data-baseweb="select"] svg {{
+            fill: #000000 !important;
+        }}
+
+        /* ============================================================ */
 
         /* DİĞER */
         section[data-testid="stSidebar"] {{ background-color: #000000 !important; border-right: 1px solid #1f2937; }}
@@ -965,7 +980,7 @@ def dashboard_modu():
                             st.success("✅ Rapor Hazırlandı!")
                             st.download_button("📥 PDF Raporunu İndir", data=pdf_data, file_name=f"Strateji_Raporu_{son}.pdf", mime="application/pdf")
 
-            # --- SİNYAL MERKEZİ BOTU (FLOAT POPUP - SOL ALT - KOYU TEMA) ---
+            # --- SİNYAL MERKEZİ BOTU (FLOAT POPUP - SOL ALT - BEYAZ PENCERE / SİYAH YAZI) ---
             with st.popover("💬"):
                 st.markdown("### 🤖 SİNYAL MERKEZİ")
                 st.caption("Veri analitiği asistanı (Offline)")
@@ -1045,9 +1060,9 @@ def dashboard_modu():
                                 cevap = "Bu kriterde ürün yok."
 
                     st.markdown(f"""
-                    <div style="background:#18181b; border:1px solid #3f3f46; border-left:3px solid #3b82f6; padding:12px; border-radius:8px; margin-top:10px;">
-                        <div style="font-size:10px; color:#3f3f46; margin-bottom:4px; text-transform:uppercase;">ANALİZ SONUCU:</div>
-                        <div style="color:#e2e8f0; font-size:13px; line-height:1.4;">{cevap}</div>
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-left:3px solid #3b82f6; padding:12px; border-radius:8px; margin-top:10px;">
+                        <div style="font-size:10px; color:#64748b; margin-bottom:4px; text-transform:uppercase;">ANALİZ SONUCU:</div>
+                        <div style="color:#0f172a; font-size:13px; line-height:1.4;">{cevap}</div>
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -1056,4 +1071,3 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
-
