@@ -53,14 +53,15 @@ def apply_theme():
             color-scheme: dark;
         }}
 
-        /* 1. BACKGROUND (DARK AURORA EFFECT) */
+        /* 1. BACKGROUND (DARK AURORA EFFECT - BLUE REMOVED) */
+        /* Lacivert tonlar kaldırıldı, Sidebar (#0b0f19) ile uyumlu siyah/füme geçiş eklendi */
         @keyframes aurora {{
             0% {{ background-position: 0% 50%; }}
             50% {{ background-position: 100% 50%; }}
             100% {{ background-position: 0% 50%; }}
         }}
         [data-testid="stAppViewContainer"] {{
-            background: linear-gradient(-45deg, #020617, #0f172a, #1e1b4b, #000000);
+            background: linear-gradient(-45deg, #0b0f19, #000000, #111111, #0b0f19);
             background-size: 400% 400%;
             animation: aurora 20s ease infinite;
             font-family: 'Inter', sans-serif !important;
@@ -75,24 +76,24 @@ def apply_theme():
         /* --- KRİTİK DÜZELTME: SELECTBOX MENÜSÜ --- */
         /* Seçim kutusunun kendisi (Kapalı hali) */
         div[data-baseweb="select"] > div {{
-            background-color: #0f172a !important; /* Koyu Lacivert Zemin */
+            background-color: #0b0f19 !important; /* Sidebar rengiyle uyumlu */
             color: #f8fafc !important; /* Beyaz Yazı */
             border-color: #334155 !important; /* Gri Çerçeve */
         }}
         
         /* Açılır Menü Konteynerı (Popover) */
         div[data-baseweb="popover"], div[data-baseweb="popover"] > div {{
-            background-color: #0f172a !important; /* Arka planı kesinlikle koyu yap */
+            background-color: #0b0f19 !important; /* Arka planı kesinlikle koyu yap */
         }}
 
         /* Liste Elemanları (Seçenekler) */
         ul[data-baseweb="menu"] {{
-            background-color: #0f172a !important;
+            background-color: #0b0f19 !important;
         }}
         
         li[role="option"] {{
             color: #cbd5e1 !important; /* Seçenek yazısı açık gri */
-            background-color: #0f172a !important; /* Seçenek zemini koyu */
+            background-color: #0b0f19 !important; /* Seçenek zemini koyu */
         }}
 
         /* Hover (Üzerine gelince) veya Seçili Durum */
@@ -142,7 +143,8 @@ def apply_theme():
 
         /* 4. KPI KARTLARI (DARK GLASS) */
         .kpi-card {{
-            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(20px);
+            background: rgba(11, 15, 25, 0.6); /* Sidebar rengi bazlı transparan */
+            backdrop-filter: blur(20px);
             border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
             padding: 24px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
             transition: transform 0.3s ease; position: relative; overflow: hidden;
