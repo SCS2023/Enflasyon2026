@@ -31,6 +31,7 @@ st.set_page_config(
 )
 
 # --- CSS MOTORU (SİTE DARK - BOT PENCERESİ LIGHT) ---
+# --- CSS MOTORU (FIXED: BEYAZ SEÇİM KUTULARI & SİYAH YAZI) ---
 def apply_theme():
     st.session_state.plotly_template = "plotly_dark"
 
@@ -41,7 +42,7 @@ def apply_theme():
 
         :root {{ color-scheme: dark; }}
 
-        /* 1. BACKGROUND (SİTE GENELİ SİYAH) */
+        /* 1. BACKGROUND */
         [data-testid="stAppViewContainer"] {{
             background-color: #000000;
             background-image: radial-gradient(circle at 50% 0%, #111115 0%, #000000 80%);
@@ -49,53 +50,31 @@ def apply_theme():
             color: #e2e8f0 !important;
         }}
         
-        /* Genel Başlıklar Beyaz */
         h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, div, span {{
             color: #f1f5f9 !important;
         }}
 
         /* 2. TICKER (KAYAN YAZI) */
         .ticker-wrap {{
-            width: 100%;
-            overflow: hidden;
-            background-color: #000000;
-            border-top: 1px solid #334155;
-            border-bottom: 1px solid #334155;
-            padding: 12px 0;
-            margin-bottom: 20px;
-            white-space: nowrap;
-            box-sizing: border-box;
-            position: relative;
+            width: 100%; overflow: hidden; background-color: #000000;
+            border-top: 1px solid #334155; border-bottom: 1px solid #334155;
+            padding: 12px 0; margin-bottom: 20px; white-space: nowrap;
+            box-sizing: border-box; position: relative;
         }}
-        
         .ticker-move {{
-            display: inline-block;
-            white-space: nowrap;
-            padding-left: 100%;
+            display: inline-block; white-space: nowrap; padding-left: 100%;
             animation: marquee 40s linear infinite;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 15px;
-            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 600;
         }}
-
-        @keyframes marquee {{
-            0% {{ transform: translate(0, 0); }}
-            100% {{ transform: translate(-100%, 0); }}
-        }}
-
-        /* Ticker Renkleri (Zorunlu) */
+        @keyframes marquee {{ 0% {{ transform: translate(0, 0); }} 100% {{ transform: translate(-100%, 0); }} }}
         .t-up {{ color: #ff4d4d !important; }}
         .t-down {{ color: #4ade80 !important; }}
 
         /* 3. KPI KARTLARI */
         .kpi-card {{
-            background: rgba(10, 10, 12, 0.95);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 16px;
-            padding: 24px;
-            position: relative;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-            transition: transform 0.3s ease;
+            background: rgba(10, 10, 12, 0.95); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px; padding: 24px; position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8); transition: transform 0.3s ease;
         }}
         .kpi-card:hover {{ transform: translateY(-5px); border-color: rgba(255,255,255,0.3); }}
         .kpi-title {{ font-size: 11px; font-weight: 800; color: #94a3b8 !important; text-transform: uppercase; margin-bottom: 5px; }}
@@ -119,7 +98,6 @@ def apply_theme():
         }}
         .tag-peak {{ background-color: #ffffff !important; color: #000000 !important; box-shadow: 0 0 10px rgba(255,255,255,0.2); }}
         .tag-dip {{ background-color: #3b82f6 !important; color: #ffffff !important; box-shadow: 0 0 10px rgba(59, 130, 246, 0.2); }}
-
         .pg-badge {{ padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 800; width: 100%; }}
         .pg-red {{ background: rgba(220, 38, 38, 0.2); color: #f87171 !important; border: 1px solid rgba(220, 38, 38, 0.4); }}
         .pg-green {{ background: rgba(22, 163, 74, 0.2); color: #4ade80 !important; border: 1px solid rgba(22, 163, 74, 0.4); }}
@@ -140,54 +118,53 @@ def apply_theme():
         }}
         [data-testid="stPopover"] > button:hover {{ transform: scale(1.1); box-shadow: 0 0 40px rgba(124, 58, 237, 0.9) !important; }}
 
-        /* ============================================================ */
-        /* --- 6. POPOVER PENCERESİ (BEYAZ KUTU / SİYAH YAZI) --- */
-        /* ============================================================ */
-        
-        /* 6.1. Pencere Arka Planı BEYAZ */
+        /* 6. POPOVER PENCERESİ */
         div[data-testid="stPopoverBody"] {{ 
-            background-color: #ffffff !important; 
-            border: 1px solid #e2e8f0 !important; 
+            background-color: #09090b !important; 
+            border: 1px solid #3f3f46 !important; 
             border-radius: 12px !important; 
             min-width: 350px !important;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
         }}
         
-        /* 6.2. İçerikteki Yazıların Hepsi SİYAH */
-        [data-testid="stPopoverBody"] h3, 
-        [data-testid="stPopoverBody"] p, 
-        [data-testid="stPopoverBody"] span, 
-        [data-testid="stPopoverBody"] div,
-        [data-testid="stPopoverBody"] label,
-        [data-testid="stPopoverBody"] .stMarkdown {{
-            color: #000000 !important;
-        }}
-
-        /* 6.3. Selectbox (Seçim Kutusu) İçi Beyaz, Yazı Siyah */
-        [data-testid="stPopoverBody"] div[data-baseweb="select"] > div {{
-            background-color: #f8fafc !important; /* Açık gri zemin */
-            color: #000000 !important; /* Siyah yazı */
-            border-color: #cbd5e1 !important;
-        }}
+        /* ----------------------------------------------------------- */
+        /* --- ÖNEMLİ DEĞİŞİKLİK: SELECTBOX (TÜM SİSTEM İÇİN) --- */
+        /* ----------------------------------------------------------- */
         
-        /* 6.4. Dropdown Seçenekleri Siyah */
-        [data-testid="stPopoverBody"] li[role="option"] {{
-            color: #000000 !important;
+        /* Kutunun Kendisi: BEYAZ Arka Plan, SİYAH Yazı */
+        div[data-baseweb="select"] > div {{
             background-color: #ffffff !important;
-        }}
-        [data-testid="stPopoverBody"] li[role="option"]:hover {{
-            background-color: #e2e8f0 !important;
+            color: #000000 !important;
+            border-color: #e2e8f0 !important;
         }}
         
-        /* 6.5. Selectbox içindeki seçili metin */
-        [data-testid="stPopoverBody"] div[data-baseweb="select"] span {{
+        /* Kutu içindeki yazı (Seçili olan) */
+        div[data-baseweb="select"] span {{
             color: #000000 !important;
         }}
-        [data-testid="stPopoverBody"] div[data-baseweb="select"] svg {{
+        
+        /* Ok İkonu */
+        div[data-baseweb="select"] svg {{
             fill: #000000 !important;
         }}
 
-        /* ============================================================ */
+        /* Açılan Liste (Dropdown Menü) */
+        ul[data-baseweb="menu"] {{
+            background-color: #ffffff !important;
+        }}
+        
+        /* Liste Elemanları (Seçenekler) */
+        li[role="option"] {{
+            color: #000000 !important;      /* SİYAH YAZI */
+            background-color: #ffffff !important; /* BEYAZ ZEMİN */
+        }}
+        
+        /* Üzerine gelince (Hover) */
+        li[role="option"]:hover, li[role="option"][aria-selected="true"] {{
+            background-color: #f1f5f9 !important; /* Açık gri */
+            color: #000000 !important;
+        }}
+        
+        /* ----------------------------------------------------------- */
 
         /* DİĞER */
         section[data-testid="stSidebar"] {{ background-color: #000000 !important; border-right: 1px solid #1f2937; }}
@@ -1071,3 +1048,4 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
+
