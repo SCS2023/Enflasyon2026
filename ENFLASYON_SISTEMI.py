@@ -30,7 +30,7 @@ st.set_page_config(
     initial_sidebar_state="expanded" 
 )
 
-# --- CSS MOTORU (CYBERPUNK EXECUTIVE) ---
+# --- CSS MOTORU (FIXED & FLOAT CHAT) ---
 def apply_theme():
     st.session_state.plotly_template = "plotly_dark"
 
@@ -41,159 +41,117 @@ def apply_theme():
 
         :root {{ color-scheme: dark; }}
 
-        /* 1. BACKGROUND & MAIN CONTAINER */
+        /* 1. BACKGROUND */
         [data-testid="stAppViewContainer"] {{
             background-color: #050505;
-            background-image: radial-gradient(circle at 50% 0%, #1a1a2e 0%, #000000 70%);
+            background-image: radial-gradient(circle at 50% 0%, #111115 0%, #000000 80%);
             font-family: 'Inter', sans-serif !important;
             color: #e2e8f0 !important;
         }}
         
-        h1, h2, h3, h4, h5, h6, p, div, span, label, .stMarkdown, [data-testid="stHeader"] {{
+        h1, h2, h3, h4, h5, h6, p, span, label, .stMarkdown {{
             color: #f1f5f9 !important;
         }}
 
-        /* 2. CUSTOM SCROLLBAR */
-        ::-webkit-scrollbar {{ width: 6px; height: 6px; }}
-        ::-webkit-scrollbar-track {{ background: #000; }}
-        ::-webkit-scrollbar-thumb {{ background: #333; border-radius: 3px; }}
-        ::-webkit-scrollbar-thumb:hover {{ background: #555; }}
-
-        /* 3. INPUTS & SELECTBOXES */
-        div[data-baseweb="select"] > div {{
-            background-color: #09090b !important;
-            color: #f8fafc !important;
-            border: 1px solid #27272a !important;
-            border-radius: 8px !important;
-            transition: all 0.3s ease;
-        }}
-        div[data-baseweb="select"] > div:hover {{ border-color: #52525b !important; box-shadow: 0 0 10px rgba(255,255,255,0.05); }}
-        
-        div[data-baseweb="popover"], ul[data-baseweb="menu"] {{ background-color: #09090b !important; border: 1px solid #27272a; }}
-        li[role="option"] {{ color: #a1a1aa !important; background-color: #09090b !important; }}
-        li[role="option"]:hover, li[role="option"][aria-selected="true"] {{ background-color: #27272a !important; color: #fff !important; }}
-        div[data-baseweb="select"] span, div[data-baseweb="select"] svg {{ color: #f8fafc !important; fill: #f8fafc !important; }}
-
-        /* 4. DATA EDITOR & TABLES */
-        [data-testid="stDataFrame"] {{ border: 1px solid #27272a; border-radius: 8px; overflow: hidden; }}
-        [data-testid="stDataFrame"] th {{
-            background-color: #18181b !important;
-            color: #a1a1aa !important;
-            font-weight: 700 !important;
-            text-transform: uppercase !important;
-            font-size: 11px !important;
-            letter-spacing: 0.5px;
-        }}
-
-        /* 5. SIDEBAR */
-        section[data-testid="stSidebar"] {{
-            background-color: #000000 !important;
-            border-right: 1px solid #27272a;
-        }}
-        [data-testid="stSidebar"] button[kind="header"] {{ display: none !important; }}
-
-        /* 6. BUTTONS (GLOW EFFECT) */
-        div.stButton > button, [data-testid="stDownloadButton"] button {{
-            width: 100% !important;
-            background: linear-gradient(180deg, #18181b 0%, #09090b 100%) !important;
-            color: #ffffff !important;
-            border: 1px solid #3f3f46 !important;
-            border-radius: 8px !important;
-            padding: 0.8rem !important;
-            font-weight: 700 !important;
-            font-size: 13px !important;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.3s ease !important;
-        }}
-        div.stButton > button:hover, [data-testid="stDownloadButton"] button:hover {{
-            border-color: #f8fafc !important;
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.15) !important;
-            transform: translateY(-2px);
-            color: #fff !important;
-        }}
-
-        /* 7. KPI CARDS (GLASS & NEON) */
+        /* 2. KPI KARTLARI (DÜZELTİLDİ: BEYAZ PERDE YOK) */
         .kpi-card {{
-            background: rgba(24, 24, 27, 0.6);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(20, 20, 25, 0.95); /* Çok koyu arka plan */
+            border: 1px solid rgba(255,255,255,0.1);
             border-radius: 16px;
             padding: 24px;
             position: relative;
-            overflow: hidden;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }}
-        .kpi-card::before {{
-            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(120deg, transparent, rgba(255,255,255,0.03), transparent);
-            transition: all 0.6s; opacity: 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease;
         }}
         .kpi-card:hover {{
-            transform: translateY(-4px);
-            border-color: rgba(255,255,255,0.2);
-            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.8);
+            transform: translateY(-5px);
+            border-color: rgba(255,255,255,0.3);
         }}
-        .kpi-card:hover::before {{ opacity: 1; }}
+        /* Başlıklar ve Değerler için Renk Zorlama */
+        .kpi-title {{ font-size: 11px; font-weight: 700; color: #94a3b8 !important; text-transform: uppercase; margin-bottom: 5px; }}
+        .kpi-value {{ font-size: 36px; font-weight: 900; color: #ffffff !important; letter-spacing: -1px; text-shadow: 0 0 10px rgba(255,255,255,0.1); }}
+        .kpi-sub   {{ font-size: 12px; font-weight: 600; opacity: 0.9; }}
 
-        /* 8. PRODUCT CARDS (BENTO STYLE) */
+        /* 3. ÜRÜN KARTLARI VE ETİKETLER (DÜZELTİLDİ: SİYAH YAZI) */
         .pg-card {{
-            background: #09090b;
+            background: #0f0f11;
             border: 1px solid #27272a;
-            border-radius: 12px;
+            border-radius: 14px;
             padding: 16px;
             height: 190px;
             display: flex; flex-direction: column; justify-content: space-between; align-items: center;
             text-align: center;
-            transition: all 0.3s ease;
             position: relative;
+            transition: all 0.3s;
         }}
-        .pg-card:hover {{
-            border-color: #52525b;
-            background: #101012;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            transform: scale(1.02);
-        }}
-        .pg-name {{
-            font-size: 13px; font-weight: 500; color: #a1a1aa; line-height: 1.4;
-            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-        }}
-        .pg-price {{
-            font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -0.5px;
-            text-shadow: 0 0 20px rgba(255,255,255,0.1);
-        }}
-        .pg-badge {{
-            padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; width: 100%;
-        }}
-        .pg-red {{ background: rgba(220, 38, 38, 0.15); color: #f87171; border: 1px solid rgba(220, 38, 38, 0.3); }}
-        .pg-green {{ background: rgba(22, 163, 74, 0.15); color: #4ade80; border: 1px solid rgba(22, 163, 74, 0.3); }}
-        .pg-gray {{ background: #18181b; color: #71717a; border: 1px solid #27272a; }}
-
-        /* 9. TICKER */
-        .ticker-wrap {{
-            width: 100%; overflow: hidden; background: #000;
-            border-top: 1px solid #27272a; border-bottom: 1px solid #27272a;
-            padding: 12px 0; margin-bottom: 30px; white-space: nowrap;
-        }}
-        .ticker-move {{ display: inline-block; padding-left: 100%; animation: marquee 60s linear infinite; font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; }}
-        @keyframes marquee {{ 0% {{ transform: translate(0, 0); }} 100% {{ transform: translate(-100%, 0); }} }}
-
-        /* TABS */
-        .stTabs [data-baseweb="tab-list"] {{ border-bottom: 1px solid #27272a; }}
-        .stTabs [data-baseweb="tab"] {{ color: #71717a; font-weight: 600; }}
-        .stTabs [data-baseweb="tab"][aria-selected="true"] {{ color: #fff !important; border-bottom: 2px solid #fff; }}
-
-        /* HIDE DEFAULT HEADER */
-        header[data-testid="stHeader"], [data-testid="stToolbar"] {{ display: none !important; }}
+        .pg-card:hover {{ border-color: #52525b; transform: scale(1.02); background: #18181b; }}
         
+        .pg-name {{ font-size: 13px; font-weight: 600; color: #cbd5e1 !important; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }}
+        .pg-price {{ font-size: 22px; font-weight: 800; color: #ffffff !important; }}
+        
+        /* ZİRVE / DİP ETİKETLERİ (ÖNEMLİ DÜZELTME) */
         .status-tag {{
-            position: absolute; top: 10px; right: 10px; font-size: 9px; font-weight: 800;
-            padding: 4px 8px; border-radius: 4px; text-transform: uppercase; z-index:2;
-            letter-spacing: 0.5px;
+            position: absolute; top: 8px; right: 8px; font-size: 10px; font-weight: 900;
+            padding: 4px 8px; border-radius: 4px; text-transform: uppercase; z-index: 5;
         }}
-        .tag-peak {{ background: #fff; color: #000; box-shadow: 0 0 10px rgba(255,255,255,0.4); }}
-        .tag-dip {{ background: #3b82f6; color: #fff; box-shadow: 0 0 10px rgba(59, 130, 246, 0.4); }}
+        .tag-peak {{ 
+            background-color: #ffffff !important; 
+            color: #000000 !important; /* SİYAH YAZI */
+            box-shadow: 0 0 10px rgba(255,255,255,0.3);
+        }}
+        .tag-dip {{ 
+            background-color: #3b82f6 !important; 
+            color: #ffffff !important; 
+        }}
+
+        .pg-badge {{ padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 800; width: 100%; }}
+        .pg-red {{ background: rgba(239, 68, 68, 0.2); color: #f87171 !important; border: 1px solid rgba(239, 68, 68, 0.3); }}
+        .pg-green {{ background: rgba(34, 197, 94, 0.2); color: #4ade80 !important; border: 1px solid rgba(34, 197, 94, 0.3); }}
+        .pg-gray {{ background: #27272a; color: #a1a1aa !important; }}
+
+        /* 4. FLOATING CHAT BUTTON (SAĞ ALT TOP) */
+        /* Streamlit Popover Butonunu Özelleştirme */
+        [data-testid="stPopover"] {{
+            position: fixed !important;
+            bottom: 30px !important;
+            right: 30px !important;
+            z-index: 99999 !important;
+        }}
+        [data-testid="stPopover"] > button {{
+            width: 65px !important;
+            height: 65px !important;
+            border-radius: 50% !important;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+            color: white !important;
+            border: none !important;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.6) !important;
+            font-size: 30px !important;
+            transition: transform 0.2s !important;
+            display: flex; justify-content: center; align-items: center;
+        }}
+        [data-testid="stPopover"] > button:hover {{
+            transform: scale(1.1) !important;
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.8) !important;
+        }}
+        /* Chat Penceresinin İçi */
+        div[data-testid="stPopoverBody"] {{
+            border: 1px solid #334155 !important;
+            background-color: #0f172a !important;
+            border-radius: 12px !important;
+            width: 350px !important;
+            max-height: 500px !important;
+        }}
+
+        /* 5. DİĞER BİLEŞENLER */
+        section[data-testid="stSidebar"] {{ background-color: #000000 !important; border-right: 1px solid #334155; }}
+        div.stButton > button {{ width: 100%; border-radius: 8px; font-weight: 700; background: #1e293b; color: #fff; border: 1px solid #334155; }}
+        div.stButton > button:hover {{ border-color: #fff; background: #000; }}
+        
+        /* Tablo Başlıkları */
+        [data-testid="stDataFrame"] th {{ background-color: #1e293b !important; color: #cbd5e1 !important; }}
+        
+        /* Gizleme */
+        header[data-testid="stHeader"], [data-testid="stToolbar"] {{ display: none !important; }}
     </style>
     """
     st.markdown(final_css, unsafe_allow_html=True)
@@ -688,9 +646,7 @@ def dashboard_modu():
         """
         components.html(all_stocks_html, height=600)
 
-    # ---------------------------------------------------------
-    # HEADER (DARK GLASSMORPHISM)
-    # ---------------------------------------------------------
+    # HEADER
     header_html_code = """
     <!DOCTYPE html>
     <html lang="tr">
@@ -700,24 +656,14 @@ def dashboard_modu():
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
             body { margin: 0; padding: 0; background: transparent; font-family: 'Inter', sans-serif; overflow: hidden; }
             .header-wrapper {
-                background: rgba(10, 10, 12, 0.6); /* Çok Koyu Cam */
-                backdrop-filter: blur(15px);
-                border-bottom: 1px solid rgba(255,255,255,0.1);
-                border-radius: 12px;
-                padding: 20px 30px;
-                display: flex; justify-content: space-between; align-items: center;
+                background: rgba(10, 10, 12, 0.6); backdrop-filter: blur(15px);
+                border-bottom: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+                padding: 20px 30px; display: flex; justify-content: space-between; align-items: center;
                 box-shadow: 0 4px 30px rgba(0,0,0,0.5);
             }
-            .app-title { 
-                font-size: 24px; font-weight: 800; color: #fff; letter-spacing: -0.5px;
-                text-shadow: 0 0 20px rgba(255,255,255,0.2); 
-            }
+            .app-title { font-size: 24px; font-weight: 800; color: #fff; letter-spacing: -0.5px; text-shadow: 0 0 20px rgba(255,255,255,0.2); }
             .app-subtitle { font-size: 12px; color: #71717a; font-weight: 600; margin-top: 4px; letter-spacing: 1px; text-transform: uppercase; }
-            .live-badge {
-                display: inline-flex; align-items: center; background: rgba(255,255,255,0.1);
-                color: #fff; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 700;
-                margin-left: 15px; vertical-align: middle; border: 1px solid rgba(255,255,255,0.1);
-            }
+            .live-badge { display: inline-flex; align-items: center; background: rgba(255,255,255,0.1); color: #fff; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; margin-left: 15px; border: 1px solid rgba(255,255,255,0.1); }
             .live-dot { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; margin-right: 6px; box-shadow: 0 0 8px #22c55e; animation: pulse 2s infinite; }
             @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
             .clock-container { text-align: right; }
@@ -748,7 +694,7 @@ def dashboard_modu():
     """
     components.html(header_html_code, height=130)
 
-    # BUTON (PREMIUM STYLE)
+    # BUTON
     if st.button("SİSTEMİ SENKRONİZE ET", type="primary", use_container_width=True):
         with st.status("Veri Akışı Sağlanıyor...", expanded=True) as status:
             st.write("📡 Uzak sunucu ile el sıkışılıyor...")
@@ -826,13 +772,10 @@ def dashboard_modu():
                 dec = df_analiz.sort_values('Gunluk_Degisim', ascending=True).head(5)
                 items = []
                 
-                # --- TICKER RENK FIX ---
                 for _, r in inc.iterrows():
-                    if r['Gunluk_Degisim'] > 0: 
-                        items.append(f"<span style='color:#f87171'>▲ {r[ad_col]} %{r['Gunluk_Degisim'] * 100:.1f}</span>")
+                    if r['Gunluk_Degisim'] > 0: items.append(f"<span style='color:#f87171'>▲ {r[ad_col]} %{r['Gunluk_Degisim'] * 100:.1f}</span>")
                 for _, r in dec.iterrows():
-                    if r['Gunluk_Degisim'] < 0: 
-                        items.append(f"<span style='color:#4ade80'>▼ {r[ad_col]} %{r['Gunluk_Degisim'] * 100:.1f}</span>")
+                    if r['Gunluk_Degisim'] < 0: items.append(f"<span style='color:#4ade80'>▼ {r[ad_col]} %{r['Gunluk_Degisim'] * 100:.1f}</span>")
                 
                 ticker_html_content = " &nbsp;&nbsp; • &nbsp;&nbsp; ".join(items) if items else "<span style='color:#94a3b8'>Piyasada yatay seyir izlenmektedir.</span>"
                 st.markdown(f"""<div class="ticker-wrap"><div class="ticker-move">{ticker_html_content}</div></div>""", unsafe_allow_html=True)
@@ -848,15 +791,12 @@ def dashboard_modu():
                     except: pass
 
                 def kpi_card(title, val, sub, sub_color, accent_color, icon):
-                      # METALLIC GRADIENT TEXT & NEON BORDER
                       st.markdown(f"""
                         <div class="kpi-card" style="border-left: 3px solid {accent_color};">
-                             <div style="position: absolute; right: 20px; top: 20px; opacity: 0.15; font-size: 32px; filter: grayscale(100%);">{icon}</div>
-                            <div style="font-size: 10px; font-weight: 700; color: #71717a; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 1px;">{title}</div>
-                            <div style="font-size: 32px; font-weight: 800; background: -webkit-linear-gradient(90deg, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -1px;">{val}</div>
-                            <div style="font-size: 11px; font-weight: 600; display: flex; align-items: center; margin-top: 6px; color: {sub_color}; opacity: 0.9;">
-                                {sub}
-                            </div>
+                             <div style="position: absolute; right: 20px; top: 20px; opacity: 0.1; font-size: 32px; filter: grayscale(100%);">{icon}</div>
+                            <div class="kpi-title">{title}</div>
+                            <div class="kpi-value">{val}</div>
+                            <div class="kpi-sub" style="color: {sub_color};">{sub}</div>
                         </div>
                     """, unsafe_allow_html=True)
 
@@ -882,7 +822,6 @@ def dashboard_modu():
                                  xaxis=dict(showgrid=False, zeroline=False), 
                                  yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.05)", zeroline=False)
                              ))
-                        
                         fig.update_layout(**layout_args)
                     return fig
 
@@ -917,7 +856,6 @@ def dashboard_modu():
                         r_pct = (rising / total) * 100
                         f_pct = (falling / total) * 100
                         n_pct = 100 - r_pct - f_pct
-                        
                         st.subheader("📊 Piyasa Derinliği")
                         st.markdown(f"""
                         <div style="display:flex; width:100%; height:8px; border-radius:4px; overflow:hidden; margin-bottom:15px; background:#18181b;">
@@ -996,20 +934,18 @@ def dashboard_modu():
                             st.success("✅ Rapor Hazırlandı!")
                             st.download_button("📥 PDF Raporunu İndir", data=pdf_data, file_name=f"Strateji_Raporu_{son}.pdf", mime="application/pdf")
 
-                # --- SİNYAL MERKEZİ BOTU ---
-                st.sidebar.markdown("---")
-                st.sidebar.markdown("### 🤖 SİNYAL MERKEZİ")
+            # --- SİNYAL MERKEZİ BOTU (FLOAT POPUP) ---
+            with st.popover("💬"):
+                st.markdown("### 🤖 SİNYAL MERKEZİ")
+                st.caption("Veri analitiği asistanı (Offline)")
                 
-                # 1. Kapsam Filtreleme
                 tum_kategoriler = ["TÜMÜ"] + sorted(df_analiz['Grup'].unique().tolist())
-                bot_kapsam = st.sidebar.selectbox("Kapsam Seç:", tum_kategoriler, key="bot_kapsam")
+                bot_kapsam = st.selectbox("Kapsam:", tum_kategoriler, key="bot_kapsam_float")
                 
-                # Veriyi Filtrele
                 df_bot = df_analiz.copy()
                 if bot_kapsam != "TÜMÜ":
                     df_bot = df_bot[df_bot['Grup'] == bot_kapsam]
 
-                # 2. Gelişmiş Sorular Havuzu
                 sorular = [
                     "Soru Seçiniz...",
                     "📈 En yüksek artış (Zam Şampiyonu)?",
@@ -1023,35 +959,30 @@ def dashboard_modu():
                     "🧊 %10'dan fazla düşen ürünler?"
                 ]
                 
-                bot_soru = st.sidebar.selectbox("Soru Sor:", sorular, key="bot_soru")
+                bot_soru = st.selectbox("Soru:", sorular, key="bot_soru_float")
                 
-                cevap = ""
                 if bot_soru != "Soru Seçiniz...":
+                    cevap = ""
                     if df_bot.empty:
                         cevap = "Seçilen kapsamda veri bulunamadı."
                     else:
                         if "Zam Şampiyonu" in bot_soru:
                             row = df_bot.sort_values('Fark', ascending=False).iloc[0]
                             cevap = f"Zirvedeki ürün: **{row[ad_col]}**.<br>Artış oranı: <span style='color:#f87171'>%{row['Fark']*100:.2f}</span>"
-                        
                         elif "İndirim Lideri" in bot_soru:
                             row = df_bot.sort_values('Fark', ascending=True).iloc[0]
                             renk = "#4ade80" if row['Fark'] < 0 else "#a1a1aa"
                             cevap = f"En dipteki ürün: **{row[ad_col]}**.<br>Değişim: <span style='color:{renk}'>%{row['Fark']*100:.2f}</span>"
-                            
                         elif "Ortalama değişim" in bot_soru:
                             ort = df_bot['Fark'].mean() * 100
                             renk = "#f87171" if ort > 0 else "#4ade80"
                             cevap = f"Bu kapsamdaki ({len(df_bot)} ürün) ortalama enflasyon: <span style='color:{renk}'>%{ort:.2f}</span>"
-                            
                         elif "En pahalı" in bot_soru:
                             row = df_bot.sort_values(son, ascending=False).iloc[0]
                             cevap = f"Etiket fiyatı en yüksek: **{row[ad_col]}**.<br>Fiyat: **{row[son]:.2f} TL**"
-
                         elif "En ucuz" in bot_soru:
                             row = df_bot.sort_values(son, ascending=True).iloc[0]
                             cevap = f"Etiket fiyatı en düşük: **{row[ad_col]}**.<br>Fiyat: **{row[son]:.2f} TL**"
-                            
                         elif "Sabit" in bot_soru:
                             sabitler = df_bot[df_bot['Fark'] == 0]
                             count = len(sabitler)
@@ -1060,13 +991,11 @@ def dashboard_modu():
                                 cevap = f"Toplam **{count}** ürünün fiyatı değişmedi.<br>Örnekler: {ornekler}..."
                             else:
                                 cevap = "Fiyatı sabit kalan ürün bulunmuyor."
-                                
                         elif "Kaç ürün" in bot_soru:
                             artan = len(df_bot[df_bot['Fark'] > 0])
                             dusen = len(df_bot[df_bot['Fark'] < 0])
                             sabit = len(df_bot[df_bot['Fark'] == 0])
                             cevap = f"🔺 Artan: **{artan}**<br>🔻 Düşen: **{dusen}**<br>➖ Sabit: **{sabit}**"
-                        
                         elif "%10'dan fazla artan" in bot_soru:
                             liste = df_bot[df_bot['Fark'] > 0.10]
                             count = len(liste)
@@ -1075,7 +1004,6 @@ def dashboard_modu():
                                 cevap = f"Toplam **{count}** üründe %10 üzeri artış var.<br>Lider: {ornek}"
                             else:
                                 cevap = "Bu kriterde ürün yok."
-
                         elif "%10'dan fazla düşen" in bot_soru:
                             liste = df_bot[df_bot['Fark'] < -0.10]
                             count = len(liste)
@@ -1085,14 +1013,13 @@ def dashboard_modu():
                             else:
                                 cevap = "Bu kriterde ürün yok."
 
-                    # Cevabı Yazdır (Cyberpunk Style Box)
-                    st.sidebar.markdown(f"""
-                    <div style="background:#18181b; border:1px solid #3f3f46; border-left:3px solid #8b5cf6; padding:12px; border-radius:8px; margin-top:10px;">
-                        <div style="font-size:10px; color:#a1a1aa; margin-bottom:4px; text-transform:uppercase;">SİSTEM ANALİZİ ({bot_kapsam}):</div>
+                    st.markdown(f"""
+                    <div style="background:#18181b; border:1px solid #3f3f46; border-left:3px solid #3b82f6; padding:12px; border-radius:8px; margin-top:10px;">
+                        <div style="font-size:10px; color:#a1a1aa; margin-bottom:4px; text-transform:uppercase;">ANALİZ SONUCU:</div>
                         <div style="color:#e2e8f0; font-size:13px; line-height:1.4;">{cevap}</div>
                     </div>
                     """, unsafe_allow_html=True)
-                
+
         except Exception as e: st.error(f"Sistem Hatası: {e}")
     st.markdown('<div style="text-align:center; color:#52525b; font-size:11px; margin-top:50px;">VALIDASYON MUDURLUGU © 2025 - CONFIDENTIAL</div>', unsafe_allow_html=True)
 
