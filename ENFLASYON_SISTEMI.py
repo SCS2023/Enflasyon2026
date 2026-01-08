@@ -138,7 +138,7 @@ def apply_theme():
         /* Sadece Buton Görünsün */
         [data-testid="stPopover"] > button {{
             width: 60px !important; height: 60px !important; border-radius: 50% !important;
-            background: linear-gradient(135deg, #6366f1, #a855f7) !important; color: white !important;
+            background: linear-gradient(135deg, #6366f1, #a855f7) !important; color: black !important;
             border: 2px solid rgba(255,255,255,0.3) !important; 
             box-shadow: 0 0 25px rgba(168, 85, 247, 0.5) !important;
             font-size: 28px !important; display: flex; justify-content: center; align-items: center;
@@ -151,7 +151,7 @@ def apply_theme():
             background-color: #09090b !important; /* Arka plan SİYAH */
             border: 1px solid #334155 !important; 
             border-radius: 12px !important; 
-            color: #f8fafc !important; /* Yazılar BEYAZ */
+            color: #09090b !important; /* Yazılar BEYAZ */
             min-width: 350px !important;
         }}
         
@@ -1046,7 +1046,7 @@ def dashboard_modu():
 
                     st.markdown(f"""
                     <div style="background:#18181b; border:1px solid #3f3f46; border-left:3px solid #3b82f6; padding:12px; border-radius:8px; margin-top:10px;">
-                        <div style="font-size:10px; color:#a1a1aa; margin-bottom:4px; text-transform:uppercase;">ANALİZ SONUCU:</div>
+                        <div style="font-size:10px; color:#3f3f46; margin-bottom:4px; text-transform:uppercase;">ANALİZ SONUCU:</div>
                         <div style="color:#e2e8f0; font-size:13px; line-height:1.4;">{cevap}</div>
                     </div>
                     """, unsafe_allow_html=True)
@@ -1056,3 +1056,4 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
+
