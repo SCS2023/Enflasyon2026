@@ -136,21 +136,27 @@ def apply_theme():
             color: #000000 !important;
         }}
 
-        /* CHAT BUTONU (Mavi Top - Sol Alt) */
+        /* 5. FLOATING CHAT BUTTON (SOL ALT KÖŞE - MAVİ FIX) */
         [data-testid="stPopover"] {{ 
             position: fixed !important; bottom: 30px !important; left: 30px !important; right: auto !important;
-            z-index: 999999 !important; width: auto !important; height: auto !important;
+            z-index: 999999 !important; background-color: transparent !important; border: none !important;
+            width: auto !important; height: auto !important;
         }}
-        [data-testid="stPopover"] > button {{
+        
+        /* ">" işaretini kaldırdık, artık direkt bulacak */
+        [data-testid="stPopover"] button {{
             width: 65px !important; height: 65px !important; border-radius: 50% !important;
-            background-color: #2563eb !important; /* PARLAK MAVİ */
+            background-color: #3b82f6 !important; /* MAVİ RENK ZORLAMA */
             color: white !important;
-            border: 2px solid rgba(255,255,255,0.2) !important;
-            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.6) !important;
-            display: flex; justify-content: center; align-items: center; font-size: 30px !important;
+            border: 2px solid rgba(255,255,255,0.2) !important; 
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.8) !important;
+            font-size: 28px !important; display: flex; justify-content: center; align-items: center;
         }}
-        [data-testid="stPopover"] > button:hover {{
-            background-color: #1d4ed8 !important; transform: scale(1.1);
+        
+        [data-testid="stPopover"] button:hover {{ 
+            background-color: #2563eb !important; /* KOYU MAVİ HOVER */
+            transform: scale(1.1); 
+            box-shadow: 0 0 40px rgba(59, 130, 246, 1) !important; 
         }}
 
         /* ----------------------------------------------------------- */
@@ -1078,3 +1084,4 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
+
