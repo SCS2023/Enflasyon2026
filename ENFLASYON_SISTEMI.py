@@ -1038,7 +1038,8 @@ def dashboard_modu():
                             pdf_data = create_pdf_report_advanced(text_content=rap_text, df_table=df_analiz.sort_values('Fark', ascending=False).head(20), figures=figs, manset_oran=enf_genel, metrics_dict=metrics, date_str_ignored="-")
                             st.success("✅ Rapor Hazırlandı!")
                             st.download_button("📥 PDF Raporunu İndir", data=pdf_data, file_name=f"Strateji_Raporu_{son}.pdf", mime="application/pdf")
-
+        
+        except Exception as e: st.error(f"Sistem Hatası: {e}")
     st.markdown('<div style="text-align:center; color:#52525b; font-size:11px; margin-top:50px;">VALIDASYON MUDURLUGU © 2026 - CONFIDENTIAL</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
