@@ -1227,14 +1227,14 @@ def dashboard_modu():
                     # Boş Durum (Placeholder) - SİYAH EKRAN DÜZELTMESİ
                     st.markdown(f"""
                     <div class="terminal-wrapper" style="background-color: #050505 !important; opacity: 1 !important; border: 1px solid #333;">
-                        <div class="terminal-header" style="color: #4ade80 !important; border-bottom: 1px solid #333; opacity: 1 !important; font-weight: bold;">
+                        <div class="terminal-header" style="color: #ffffff !important; border-bottom: 1px solid #333; opacity: 1 !important; font-weight: bold;">
                             <span>SYSTEM_STATUS</span>
                             <span>WAITING_INPUT</span>
                         </div>
                         <div class="cmd-response" style="color: #ffffff !important; opacity: 1 !important; font-size: 13px; padding-top: 15px;">
                             Sistem hazır. Analiz başlatmak için yukarıdan bir sorgu seçin.
                             <br><br>
-                            <span style="color: #22c55e !important; font-weight: 900;">root@basekonomist:~$</span> 
+                            <span style="color: #ffffff !important; font-weight: 900;">root@basekonomist:~$</span> 
                             <span style="color: #ffffff !important; font-weight: normal;">Awaiting command...</span> 
                             <span style="animation: blink 1s step-end infinite; color: #22c55e; font-weight: bold;">█</span>
                         </div>
@@ -1250,6 +1250,7 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
+
 
 
 
