@@ -176,7 +176,7 @@ def apply_theme():
 
         /* --- SİNYAL MERKEZİ & TERMİNAL STİLİ (YENİ EKLENEN KISIM) --- */
         .terminal-wrapper {{
-            background-color: #0c0c0c;
+            background-color: #000000;
             border: 1px solid #333;
             border-radius: 8px;
             padding: 15px;
@@ -196,31 +196,31 @@ def apply_theme():
             pointer-events: none;
         }}
         .terminal-header {{
-            color: #4ade80;
+            color: #ffffff;
             font-size: 10px;
             letter-spacing: 2px;
             margin-bottom: 10px;
-            border-bottom: 1px solid #1f2937;
+            border-bottom: 1px solid #000000;
             padding-bottom: 5px;
             display: flex; justify-content: space-between;
         }}
         .cmd-line {{
-            color: #e2e8f0;
+            color: #ffffff;
             font-size: 12px;
             margin-bottom: 8px;
         }}
         .cmd-response {{
-            color: #a7f3d0;
+            color: #ffffff;
             font-size: 13px;
             line-height: 1.5;
             text-shadow: 0 0 5px rgba(74, 222, 128, 0.3);
         }}
         .highlight-val {{ color: #fff; font-weight: bold; background: rgba(255,255,255,0.1); padding: 0 4px; border-radius: 3px; }}
-        .trend-up {{ color: #ef4444 !important; font-weight: bold; }}
-        .trend-down {{ color: #4ade80 !important; font-weight: bold; }}
+        .trend-up {{ color: #ff0000 !important; font-weight: bold; }}
+        .trend-down {{ color: #00ff5d !important; font-weight: bold; }}
         .mini-table {{ width: 100%; font-size: 11px; border-collapse: collapse; margin-top: 8px; z-index: 5; position: relative; }}
-        .mini-table td {{ padding: 4px; border-bottom: 1px solid #333; color: #9ca3af; }}
-        .mini-table th {{ text-align: left; color: #6b7280; padding-bottom: 4px; }}
+        .mini-table td {{ padding: 4px; border-bottom: 1px solid #333; color: #ffffff; }}
+        .mini-table th {{ text-align: left; color: #ffffff; padding-bottom: 4px; }}
     </style>
     """
     st.markdown(final_css, unsafe_allow_html=True)
@@ -1126,7 +1126,6 @@ def dashboard_modu():
                             "💎 En Pahalı Ürünler",
                             "🏷️ En Ucuz Ürünler",
                             "🧱 Fiyatı Sabit Kalanlar",
-                            "📈 Pazar Yönü (Artan/Azalan)"
                         ]
                         bot_soru = st.selectbox("Soru", sorular, label_visibility="collapsed", key="bot_soru_yeni")
                 
@@ -1194,21 +1193,6 @@ def dashboard_modu():
                                     else:
                                         html_out = "Baz döneme göre fiyatı değişmeyen ürün bulunamadı."
                 
-                                elif "Pazar Yönü" in bot_soru:
-                                    artan = len(df_bot[df_bot['Fark'] > 0])
-                                    dusen = len(df_bot[df_bot['Fark'] < 0])
-                                    sabit = len(df_bot[df_bot['Fark'] == 0])
-                                    html_out = f"""
-                                    Piyasa hareket özeti:<br>
-                                    <table class='mini-table'>
-                                    <tr><td>Yükselen</td><td style='text-align:right; color:#ef4444'>{artan}</td></tr>
-                                    <tr><td>Düşen</td><td style='text-align:right; color:#4ade80'>{dusen}</td></tr>
-                                    <tr><td>Değişmeyen</td><td style='text-align:right; color:#9ca3af'>{sabit}</td></tr>
-                                    </table>
-                                    """
-                            except Exception as e:
-                                html_out = f"<span style='color:red'>HESAPLAMA HATASI: {str(e)}</span>"
-                
                         # TERMİNAL ÇIKTISI GÖSTERİMİ
                         st.markdown(f"""
                         <div class="terminal-wrapper">
@@ -1241,6 +1225,7 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
+
 
 
 
