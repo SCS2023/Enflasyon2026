@@ -1016,22 +1016,73 @@ def dashboard_modu():
                             totals = {"marker":{"color":"#f8fafc"}}
                         ))
                         st.plotly_chart(style_chart(fig_water), use_container_width=True)
-
-                with t_veri:
-                      st.markdown("### 📋 Veri Seti")
-                      st.data_editor(
-                          df_analiz[['Grup', ad_col, 'Fark', baz_col, son]], 
-                          column_config={
-                              "Fark": st.column_config.ProgressColumn("Kümülatif Değişim (Geo. Ort)", format="%.2f", min_value=-0.5, max_value=0.5), 
-                              ad_col: "Ürün", "Grup": "Kategori",
-                              baz_col: st.column_config.NumberColumn(f"Fiyat ({baz_tanimi})", format="%.2f ₺"),
-                              son: st.column_config.NumberColumn(f"Fiyat ({son})", format="%.2f ₺")
-                          }, 
-                          hide_index=True, use_container_width=True, height=600
-                      )
-                      output = BytesIO()
-                      with pd.ExcelWriter(output, engine='openpyxl') as writer: df_analiz.to_excel(writer, index=False, sheet_name='Analiz')
-                      st.download_button("📥 Excel İndir", data=output.getvalue(), file_name=f"Rapor_{son}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    with t_veri:
+                        st.markdown("### 📋 Veri Seti ve Geçmiş Tarihli Analiz")
+                        
+                        # Kullanıcı arayüzünde hangi sütunların görüneceğini seçme opsiyonu
+                        gosterilecek_tarihler = st.multiselect(
+                            "Tabloya Geçmiş Tarihleri Ekle:", 
+                            options=sorted(gunler, reverse=True),
+                            default=[son, baz_col] if son != baz_col else [son]
+                        )
+                        
+                        # Tabloda gösterilecek ana sütunlar
+                        ana_sutunlar = ['Grup', ad_col, 'Fark']
+                        tablo_cols = ana_sutunlar + gosterilecek_tarihler
+                        
+                        # Data Editor (Ekranda Gösterim)
+                        st.data_editor(
+                            df_analiz[tablo_cols], 
+                            column_config={
+                                "Fark": st.column_config.ProgressColumn(
+                                    "Kümülatif Değişim", 
+                                    format="%.2f", 
+                                    min_value=-0.5, 
+                                    max_value=0.5
+                                ), 
+                                ad_col: "Ürün", 
+                                "Grup": "Kategori"
+                            }, 
+                            hide_index=True, 
+                            use_container_width=True, 
+                            height=600
+                        )
+                        
+                        # --- EXCEL HAZIRLIĞI ---
+                        # Excel çıktısı için sütunları düzenli bir sıraya sokuyoruz
+                        # 1. Kimlik Bilgileri (Kod, Ad, Grup vs.)
+                        # 2. Özet İstatistikler (Fark, Ortalama, Max, Min)
+                        # 3. Tarih Sütunları (Eskiden yeniye veya Yeniden eskiye sıralı)
+                        
+                        # Statik sütunları belirle
+                        statik_cols = [c for c in df_s.columns if c in df_analiz.columns]
+                        # Hesaplanan metrikler
+                        metric_cols = ['Fark', 'Aylik_Ortalama', 'Max_Fiyat', 'Min_Fiyat']
+                        # Tarih sütunları (gunler listesi zaten sıralıydı)
+                        date_cols = gunler 
+                        
+                        # Mevcut sütunlardan sadece df_analiz'de gerçekten var olanları al
+                        final_export_cols = []
+                        for c in statik_cols: 
+                            if c not in final_export_cols: final_export_cols.append(c)
+                        for c in metric_cols:
+                            if c in df_analiz.columns and c not in final_export_cols: final_export_cols.append(c)
+                        for c in date_cols:
+                            if c in df_analiz.columns and c not in final_export_cols: final_export_cols.append(c)
+                            
+                        df_export = df_analiz[final_export_cols].copy()
+    
+                        output = BytesIO()
+                        # XLSX formatında yazma işlemi
+                        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                            df_export.to_excel(writer, index=False, sheet_name='Fiyat_Gecmisi')
+                        
+                        st.download_button(
+                            label="📥 Tüm Geçmiş Verisiyle Excel (XLSX) İndir", 
+                            data=output.getvalue(), 
+                            file_name=f"Piyasa_Raporu_{son}.xlsx", 
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
 
                 with t_rapor:
                     st.markdown("### 📝 Stratejik Görünüm Raporu")
@@ -1149,5 +1200,6 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
+
 
 
