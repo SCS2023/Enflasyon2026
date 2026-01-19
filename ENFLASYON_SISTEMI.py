@@ -31,7 +31,7 @@ st.set_page_config(
     initial_sidebar_state="expanded" 
 )
 
-# --- CSS MOTORU (AGRESİF STİL - GÜNCELLENDİ) ---
+# --- CSS MOTORU (AGRESİF STİL) ---
 def apply_theme():
     st.session_state.plotly_template = "plotly_dark"
 
@@ -103,7 +103,7 @@ def apply_theme():
             box-shadow: 0 0 15px rgba(255, 255, 255, 0.1) !important;
         }}
 
-        /* --- GÜNCELLENEN KPI KARTLARI (NEON GLOW) --- */
+        /* --- KPI KARTLARI (NEON GLOW) --- */
         .kpi-card {{
             background: linear-gradient(145deg, rgba(24, 24, 27, 0.8), rgba(24, 24, 27, 0.4));
             backdrop-filter: blur(20px);
@@ -123,7 +123,6 @@ def apply_theme():
             border-color: rgba(255, 255, 255, 0.2); 
         }}
         
-        /* Kartın arkasında dönen hafif ışık efekti */
         .kpi-card::before {{
             content: '';
             position: absolute;
@@ -140,11 +139,10 @@ def apply_theme():
         .kpi-value {{ font-size: 38px; font-weight: 800; color: #ffffff !important; text-shadow: 0 0 20px rgba(255,255,255,0.1); position: relative; z-index: 1; }}
         .kpi-sub {{ font-size: 12px; font-weight: 500; margin-top: 8px; color: #d4d4d8 !important; display: flex; align-items: center; gap: 5px; position: relative; z-index: 1; }}
 
-        /* --- ÜRÜN KARTLARI (GÜNCELLENDİ) --- */
+        /* --- ÜRÜN KARTLARI --- */
         .pg-card {{ background: rgba(39, 39, 42, 0.4); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; height: 180px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; text-align: center; position: relative; transition: all 0.3s ease; }}
         .pg-card:hover {{ background: rgba(63, 63, 70, 0.6); border-color: rgba(255,255,255,0.2); transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); }}
         
-        /* Uzun İsimler İçin Düzenleme */
         .pg-name {{ 
             font-size: 13px; font-weight: 600; color: #e4e4e7 !important; line-height: 1.4; opacity: 0.9; 
             display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; min-height: 36px;
@@ -156,10 +154,6 @@ def apply_theme():
         .pg-green {{ background: rgba(34, 197, 94, 0.15); color: #86efac !important; border: 1px solid rgba(34, 197, 94, 0.2); }}
         .pg-gray {{ background: #27272a; color: #a1a1aa !important; }}
 
-        .status-tag {{ position: absolute; top: -8px; right: -8px; font-size: 9px; font-weight: 800; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; z-index: 5; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }}
-        .tag-peak {{ background: #ffffff !important; color: #000000 !important; border: 2px solid #000; }}
-        .tag-dip {{ background: #3b82f6 !important; color: #ffffff !important; border: 2px solid #1e3a8a; }}
-
         .ticker-wrap {{ width: 100%; overflow: hidden; background-color: rgba(0,0,0,0.3); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); padding: 8px 0; margin-bottom: 25px; backdrop-filter: blur(5px); white-space: nowrap; }}
         .ticker-move {{ display: inline-block; padding-left: 100%; animation: marquee 60s linear infinite; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; letter-spacing: -0.5px; }}
         .ticker-move:hover {{ animation-play-state: paused; }}
@@ -167,7 +161,6 @@ def apply_theme():
 
         section[data-testid="stSidebar"] {{ background-color: #000000 !important; border-right: 1px solid #27272a; }}
         
-        /* --- YENİ BUTON STİLİ (CYBERPUNK) --- */
         div.stButton > button {{ 
             width: 100%; border-radius: 8px; font-weight: 600; 
             background: linear-gradient(to bottom, #27272a, #18181b); 
@@ -183,7 +176,6 @@ def apply_theme():
         }}
         div.stButton > button:active {{ transform: scale(0.98); }}
         
-        /* Scrollbar */
         ::-webkit-scrollbar {{ width: 6px; height: 6px; }}
         ::-webkit-scrollbar-track {{ background: transparent; }}
         ::-webkit-scrollbar-thumb {{ background: #3f3f46; border-radius: 3px; }}
@@ -645,7 +637,7 @@ def dashboard_modu():
 
     # SIDEBAR (HABER AKIŞI)
     with st.sidebar:
-        # --- GÜNCELLENDİ: SIDEBAR LOGO/ICON ---
+        # SIDEBAR LOGO/ICON
         st.markdown("""
             <div style="text-align: center; padding-bottom: 20px;">
                 <div style="font-size: 60px; filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.5));">💎</div>
@@ -1011,10 +1003,8 @@ def dashboard_modu():
                         if fark > 0: badge_cls = "pg-red"; symbol = "▲"
                         elif fark < 0: badge_cls = "pg-green"; symbol = "▼"
                         else: badge_cls = "pg-gray"; symbol = "-"
-                        smart_tag = ""
-                        if fiyat >= row['Max_Fiyat']: smart_tag = "<div class='status-tag tag-peak'>🔥 ZİRVE</div>"
-                        elif fiyat <= row['Min_Fiyat'] and fiyat > 0: smart_tag = "<div class='status-tag tag-dip'>💎 FIRSAT</div>"
-                        card_html = f"""<div class="pg-card">{smart_tag}<div class="pg-name">{html.escape(str(row[ad_col]))}</div><div class="pg-price">{fiyat:.2f} ₺</div><div class="pg-badge {badge_cls}">{symbol} %{fark:.2f}</div></div>"""
+                        # BURADAKİ ZİRVE/FIRSAT KODLARI SİLİNDİ
+                        card_html = f"""<div class="pg-card"><div class="pg-name">{html.escape(str(row[ad_col]))}</div><div class="pg-price">{fiyat:.2f} ₺</div><div class="pg-badge {badge_cls}">{symbol} %{fark:.2f}</div></div>"""
                         with cols[idx % 4]:
                             st.markdown(card_html, unsafe_allow_html=True)
                             st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
