@@ -228,7 +228,7 @@ class PDFReport(FPDF):
         self.set_fill_color(*self.c_sari)
         self.rect(self.get_x(), self.get_y(), 60, 25, 'F')
         self.set_text_color(*self.c_lacivert)
-        self.cell(60, 5, self.fix_text("KÜMÜLATİF ENFLASYON"), 0, 2, 'C')
+        self.cell(60, 5, self.fix_text("AYLIK ENFLASYON"), 0, 2, 'C')
         self.set_font(self.font_family, 'B', 16)
         self.cell(60, 10, self.fix_text(f"%{enf_genel:.2f}"), 0, 0, 'C')
         
@@ -910,9 +910,9 @@ def dashboard_modu():
 
                 c1, c2, c3, c4 = st.columns(4)
                 # GÜNCELLENEN KPI KARTI BURADA:
-                with c1: kpi_card("Kümülatif Enflasyon", f"%{enf_genel:.2f}", kumu_sub_text, kumu_icon_color, "#ef4444", "📈")
+                with c1: kpi_card("Ay Sonu Enflasyon", f"%{enf_genel:.2f}", kumu_sub_text, kumu_icon_color, "#ef4444", "📈")
                 with c2: kpi_card("Gıda Enflasyonu", f"%{enf_gida:.2f}", "Mutfak Sepeti", "#f87171", "#84cc16", "🛒")
-                with c3: kpi_card("Simülasyon Tahmini", f"%{math.floor(enf_genel):.2f}", "Canlı Veri", "#a78bfa", "#8b5cf6", "🤖") 
+                with c3: kpi_card("Ay Sonu Tahmini", f"%{math.floor(enf_genel):.2f}","#a78bfa", "#8b5cf6", "🤖") 
                 with c4: kpi_card("Resmi TÜİK Verisi", f"%{resmi_aylik_enf:.2f}", f"{resmi_tarih_str}", "#fbbf24", "#eab308", "🏛️")
                 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -1056,3 +1056,4 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
+
