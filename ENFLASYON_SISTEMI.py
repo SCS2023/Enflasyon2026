@@ -787,7 +787,15 @@ def dashboard_modu():
                 if not gecerli_veri.empty:
                     # Kümülatif (Yıl içi) Enflasyon Hesabı
                     w = gecerli_veri[agirlik_col]
-                    p_relative = gecerli_veri[son] / gecerli_veri[baz_col]
+                    # 1. Bu aya ait tüm günlerin sütunlarını bul (Örn: 2026-01-01, 2026-01-02...)
+                    bu_ay_prefix = f"{dt_son.year}-{dt_son.month:02d}"
+                    bu_ay_gunleri = [c for c in gunler if c.startswith(bu_ay_prefix)]
+                    
+                    # 2. Bu günlerin fiyat ortalamasını al (Her ürün için)
+                    gecerli_veri['Bu_Ay_Ortalama'] = gecerli_veri[bu_ay_gunleri].mean(axis=1)
+                    
+                    # 3. Hesabı "Son Gün" yerine "Ortalama" ile yap
+                    p_relative_ortalama = gecerli_veri['Bu_Ay_Ortalama'] / gecerli_veri[baz_col]
                     # Formül: I = Toplam(W * (Pn/P0)) / Toplam(W) * 100
                     genel_endeks = (w * p_relative).sum() / w.sum() * 100
                     enf_genel = genel_endeks - 100
@@ -1114,3 +1122,4 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
+
