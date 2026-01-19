@@ -1226,7 +1226,7 @@ def dashboard_modu():
                     """, unsafe_allow_html=True)
                 
                 else:
-                    # Boş Durum (Placeholder) - YÜKSEK KONTRAST DÜZELTMESİ
+                    # Boş Durum (Placeholder) - DÜZELTİLMİŞ VERSİYON
                     st.markdown(f"""
                     <div class="terminal-wrapper" style="background-color: #050505 !important; opacity: 1 !important; border: 1px solid #333;">
                         
@@ -1254,6 +1254,7 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
+
 
 
 
