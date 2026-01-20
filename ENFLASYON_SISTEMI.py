@@ -870,16 +870,77 @@ def dashboard_modu():
 
                 # 4. ZAMAN SERİSİ / TREND HESAPLAMA (Prophet İçin - Günlük devam edebilir)
                 trend_data = []
-                for g in gunler:
-                    tmp_df = df_analiz.dropna(subset=[g, baz_col])
-                    if not tmp_df.empty:
-                        w_tmp = tmp_df[agirlik_col]
-                        idx_val = (w_tmp * (tmp_df[g] / tmp_df[baz_col])).sum() / w_tmp.sum() * 100
-                        trend_data.append({"Tarih": g, "TÜFE": idx_val})
+                bu_ay_str = f"{dt_son.year}-{dt_son.month:02d}"
+                # Sadece bu ayın günlerini (veya analiz periyodunu) al
+                analiz_gunleri = [g for g in gunler if g.startswith(bu_ay_str)]
                 
+                # Eğer analiz günleri boşsa (örn: yılbaşı) tüm günleri al
+                if not analiz_gunleri: analiz_gunleri = gunler
+
+                # --- VECTORIZED GEOMETRİK ORTALAMA (HIZLI) ---
+                def get_geo_mean_vectorized(df_in, cols):
+                    # 0 ve negatifleri maskele, log al, ortalama al, exp al
+                    data = df_in[cols].values.astype(float)
+                    data[data <= 0] = np.nan # 0 ve eksileri yoksay
+                    # Tüm satır NaN ise sonuç NaN olur, değilse ortalama alınır
+                    with np.errstate(divide='ignore', invalid='ignore'):
+                        log_data = np.log(data)
+                    mean_log = np.nanmean(log_data, axis=1)
+                    return np.exp(mean_log)
+
+                # TARİHSEL DÖNGÜ: Ayın 1'inden bugüne tek tek hesapla
+                for i in range(1, len(analiz_gunleri) + 1):
+                    aktif_gunler = analiz_gunleri[:i] # 1. günden i. güne kadar olanlar
+                    su_anki_tarih = aktif_gunler[-1]
+                    
+                    # O güne kadarki Geometrik Ortalama
+                    df_analiz[f'Geo_Temp_{i}'] = get_geo_mean_vectorized(df_analiz, aktif_gunler)
+                    
+                    # Endeks Hesabı
+                    gecerli = df_analiz.dropna(subset=[f'Geo_Temp_{i}', baz_col])
+                    
+                    if not gecerli.empty:
+                        w = gecerli[agirlik_col]
+                        p_rel = gecerli[f'Geo_Temp_{i}'] / gecerli[baz_col]
+                        idx_val = (w * p_rel).sum() / w.sum() * 100
+                        trend_data.append({"Tarih": su_anki_tarih, "TÜFE": idx_val})
+                    else:
+                        # Veri yoksa bir önceki değeri veya 100'ü bas
+                        prev_val = trend_data[-1]["TÜFE"] if trend_data else 100.0
+                        trend_data.append({"Tarih": su_anki_tarih, "TÜFE": prev_val})
+
+                # SONUÇLARI ÇEKME
                 df_trend = pd.DataFrame(trend_data)
-                if not df_trend.empty:
-                    df_trend['Tarih'] = pd.to_datetime(df_trend['Tarih'])
+                df_trend['Tarih'] = pd.to_datetime(df_trend['Tarih'])
+                
+                # KÜMÜLATİF ENFLASYON (SON DEĞER)
+                enf_genel = 0.0
+                enf_onceki = 0.0
+                
+                if len(trend_data) > 0:
+                    enf_genel = trend_data[-1]["TÜFE"] - 100
+                
+                if len(trend_data) > 1:
+                    enf_onceki = trend_data[-2]["TÜFE"] - 100
+                else:
+                    enf_onceki = enf_genel # Eğer tek gün varsa değişim yok
+                
+                # GIDA ENFLASYONU (Sadece Son Gün İçin Hesapla - Performans İçin)
+                df_analiz['Aylik_Ortalama'] = df_analiz[f'Geo_Temp_{len(analiz_gunleri)}']
+                df_analiz['Fark'] = (df_analiz['Aylik_Ortalama'] / df_analiz[baz_col]) - 1
+                
+                gecerli_son = df_analiz.dropna(subset=['Aylik_Ortalama', baz_col])
+                gida_df = gecerli_son[gecerli_son['Kod'].astype(str).str.startswith("01")]
+                enf_gida = 0.0
+                if not gida_df.empty:
+                    w_g = gida_df[agirlik_col]
+                    p_rel_g = gida_df['Aylik_Ortalama'] / gida_df[baz_col]
+                    enf_gida = ((w_g * p_rel_g).sum() / w_g.sum() * 100) - 100
+
+                # Değişim Farkı (Bugün - Dün)
+                kumu_fark = enf_genel - enf_onceki
+                kumu_icon_color = "#ef4444" if kumu_fark > 0 else "#22c55e"
+                kumu_sub_text = f"Önceki: %{enf_onceki:.2f} ({'+' if kumu_fark > 0 else ''}{kumu_fark:.2f})"
                 
                 # -------------------------------------------------------------
                 # --- [BİTİŞ] HESAPLAMA BLOĞU ---
@@ -1105,3 +1166,4 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
+
