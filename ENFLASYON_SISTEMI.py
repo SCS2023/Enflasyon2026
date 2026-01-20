@@ -60,13 +60,13 @@ def apply_theme():
         }}
 
         /* --- INPUT ALANLARINI GÜZELLEŞTİRME --- */
-        .stSelectbox > div > div {{
+        .stSelectbox > div > div, .stTextInput > div > div {{
             background-color: rgba(255, 255, 255, 0.03) !important;
             border: 1px solid var(--border-color) !important;
             color: #e4e4e7 !important;
             border-radius: 8px !important;
         }}
-        .stSelectbox > div > div:hover {{
+        .stSelectbox > div > div:hover, .stTextInput > div > div:hover {{
             border-color: rgba(255, 255, 255, 0.3) !important;
         }}
         /* Dropdown açıldığındaki liste rengi */
@@ -1041,27 +1041,53 @@ def dashboard_modu():
                 
                 with t_sektor:
                     st.markdown("### 🔍 Detaylı Fiyat Analizi")
-                    kategoriler = ["TÜMÜ"] + sorted(df_analiz['Grup'].unique().tolist())
-                    secilen_kategori = st.selectbox("Kategori Filtrele:", kategoriler)
-                    df_goster = df_analiz.copy() if secilen_kategori == "TÜMÜ" else df_analiz[df_analiz['Grup'] == secilen_kategori]
                     
-                    cols = st.columns(4)
-                    for idx, row in df_goster.iterrows():
-                        # KARTLARDA SON FİYATI GÖSTERELİM (ETİKET BİLGİSİ İÇİN)
-                        fiyat = row[son] 
-                        # GÜNCELLEME: Kartlardaki değişim artık kümülatif değil, BİR ÖNCEKİ GÜNE GÖRE (Günlük) değişimdir.
-                        fark = row.get('Gunluk_Degisim', 0) * 100 
-                        
-                        if fark > 0: badge_cls = "pg-red"; symbol = "▲"
-                        elif fark < 0: badge_cls = "pg-green"; symbol = "▼"
-                        else: badge_cls = "pg-gray"; symbol = "-"
-                        # BURADAKİ ZİRVE/FIRSAT KODLARI SİLİNDİ
-                        card_html = f"""<div class="pg-card"><div class="pg-name">{html.escape(str(row[ad_col]))}</div><div class="pg-price">{fiyat:.2f} ₺</div><div class="pg-badge {badge_cls}">{symbol} %{fark:.2f}</div></div>"""
-                        with cols[idx % 4]:
-                            st.markdown(card_html, unsafe_allow_html=True)
-                            st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
+                    # --- YENİ EKLENEN ÖZELLİK: FİLTRE & ARAMA PANELİ ---
+                    f_col1, f_col2 = st.columns([1, 2])
+                    with f_col1:
+                        kategoriler = ["TÜMÜ"] + sorted(df_analiz['Grup'].unique().tolist())
+                        secilen_kategori = st.selectbox("Kategori Filtrele:", kategoriler)
+                    with f_col2:
+                        arama_terimi = st.text_input("Ürün Ara...", placeholder="Örn: Zeytinyağı, Beyaz Peynir...")
+                    
+                    # Filtreleme Mantığı
+                    df_goster = df_analiz.copy()
+                    if secilen_kategori != "TÜMÜ":
+                        df_goster = df_goster[df_goster['Grup'] == secilen_kategori]
+                    
+                    if arama_terimi:
+                        df_goster = df_goster[df_goster[ad_col].astype(str).str.contains(arama_terimi, case=False, na=False)]
+                    
+                    if not df_goster.empty:
+                        cols = st.columns(4)
+                        for idx, row in df_goster.iterrows():
+                            fiyat = row[son] 
+                            fark = row.get('Gunluk_Degisim', 0) * 100 
+                            
+                            if fark > 0: badge_cls = "pg-red"; symbol = "▲"
+                            elif fark < 0: badge_cls = "pg-green"; symbol = "▼"
+                            else: badge_cls = "pg-gray"; symbol = "-"
+                            
+                            card_html = f"""<div class="pg-card"><div class="pg-name">{html.escape(str(row[ad_col]))}</div><div class="pg-price">{fiyat:.2f} ₺</div><div class="pg-badge {badge_cls}">{symbol} %{fark:.2f}</div></div>"""
+                            with cols[idx % 4]:
+                                st.markdown(card_html, unsafe_allow_html=True)
+                                st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
+                    else:
+                        st.info("🔍 Aradığınız kriterlere uygun ürün bulunamadı.")
                 
                 with t_ozet:
+                    # --- YENİ EKLENEN ÖZELLİK: ZAMAN SERİSİ GRAFİĞİ ---
+                    if not df_trend.empty:
+                        st.subheader("📈 Enflasyon Seyri (Ay İçi Trend)")
+                        df_trend['TÜFE_Oran'] = df_trend['TÜFE'] - 100
+                        fig_trend = px.area(df_trend, x='Tarih', y='TÜFE_Oran', 
+                                            line_shape='spline', markers=True)
+                        fig_trend.update_traces(line_color='#3b82f6', fillcolor='rgba(59, 130, 246, 0.1)')
+                        fig_trend.update_yaxes(title=None, ticksuffix="%")
+                        fig_trend.update_xaxes(title=None)
+                        st.plotly_chart(style_chart(fig_trend), use_container_width=True)
+                    
+                    # --- MEVCUT ÖZETLER ---
                     rising = len(df_analiz[df_analiz['Fark'] > 0])
                     falling = len(df_analiz[df_analiz['Fark'] < 0])
                     total = len(df_analiz)
@@ -1112,7 +1138,6 @@ def dashboard_modu():
                       st.data_editor(
                           df_analiz[['Grup', ad_col, 'Fark', baz_col, son]], 
                           column_config={
-                              # --- GÜNCELLENDİ: BarChartColumn ile daha estetik gösterim ---
                               "Fark": st.column_config.BarChartColumn(
                                   "Kümülatif Değişim",
                                   help="Baz döneme göre değişim oranı",
