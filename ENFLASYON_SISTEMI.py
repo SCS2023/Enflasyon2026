@@ -1010,8 +1010,8 @@ def dashboard_modu():
                     for idx, row in df_goster.iterrows():
                         # KARTLARDA SON FİYATI GÖSTERELİM (ETİKET BİLGİSİ İÇİN)
                         fiyat = row[son] 
-                        # AMA DEĞİŞİM YÜZDESİNİ ORTALAMADAN HESAPLADIĞIMIZ FARK İLE GÖSTERELİM
-                        fark = row['Fark'] * 100 
+                        # GÜNCELLEME: Kartlardaki değişim artık kümülatif değil, BİR ÖNCEKİ GÜNE GÖRE (Günlük) değişimdir.
+                        fark = row.get('Gunluk_Degisim', 0) * 100 
                         
                         if fark > 0: badge_cls = "pg-red"; symbol = "▲"
                         elif fark < 0: badge_cls = "pg-green"; symbol = "▼"
