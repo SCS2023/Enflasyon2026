@@ -774,172 +774,124 @@ def dashboard_modu():
                 days_left = calendar.monthrange(dt_son.year, dt_son.month)[1] - dt_son.day
 
                 # -------------------------------------------------------------
-                # --- [BAŞLANGIÇ] TÜİK METODOLOJİSİ: ZİNCİRLEME LASPEYRES ---
-                # --- REVİZE: GEOMETRİK ORTALAMA İLE AYLIK FİYAT ---
+                # --- [BAŞLANGIÇ] HESAPLAMA BLOĞU ---
                 # -------------------------------------------------------------
                 
-                # 1. BAZ DÖNEMİ BELİRLEME (Referans: Önceki Yılın Aralık Ayı)
+                # 1. BAZ DÖNEMİ BELİRLEME
                 simdi_yil = dt_son.year
                 onceki_yil_aralik_prefix = f"{simdi_yil - 1}-12"
-                
-                # Sütunlarda geçen yılın Aralık ayına ait veri var mı kontrol et
                 aralik_cols = [c for c in gunler if c.startswith(onceki_yil_aralik_prefix)]
 
                 if aralik_cols:
                     baz_col = aralik_cols[-1]
                     baz_tanimi = f"Aralık {simdi_yil - 1}"
                 else:
-                    # Yeni sistem/yıl verisi yoksa en eski veri baz alınır
                     baz_col = gunler[0]
                     baz_tanimi = f"Başlangıç ({baz_col})"
 
-                # 2. GEOMETRİK ORTALAMA İLE AYLIK FİYAT HESAPLAMA
-                # Bu ayın (son veri tarihi ayı) tüm sütunlarını bul
-                bu_ay_str = f"{dt_son.year}-{dt_son.month:02d}"
-                bu_ay_cols = [c for c in gunler if c.startswith(bu_ay_str)]
-                
-                # Geometrik Ortalama Fonksiyonu (0 ve negatifleri hariç tutar)
+                # Geometrik Ortalama Fonksiyonu
                 def geometrik_ortalama_hesapla(row):
-                    # Sadece 0'dan büyük sayıları al (Logaritma hatasını önlemek için)
                     valid_vals = [x for x in row if isinstance(x, (int, float)) and x > 0]
                     if not valid_vals:
                         return np.nan
-                    # Geometrik Ortalama Formülü: exp(mean(log(x)))
                     return np.exp(np.mean(np.log(valid_vals)))
 
-                if bu_ay_cols:
-                    # Satır satır uygula
-                    df_analiz['Aylik_Ortalama'] = df_analiz[bu_ay_cols].apply(geometrik_ortalama_hesapla, axis=1)
-                else:
-                    df_analiz['Aylik_Ortalama'] = df_analiz[son] # Fallback
-
-                # 3. ENDEKS VE ENFLASYON HESABI (GÜNCEL + ÖNCEKİ GÜN SİMÜLASYONU)
+                # 2. GÜNCEL DURUM (BUGÜN) HESABI
+                bu_ay_str = f"{dt_son.year}-{dt_son.month:02d}"
+                bu_ay_cols = [c for c in gunler if c.startswith(bu_ay_str)]
                 
-                # A) GÜNCEL DURUM (BUGÜN)
+                # Eğer bu ay hiç veri yoksa son sütunu al
+                if not bu_ay_cols: bu_ay_cols = [son]
+
+                # BUGÜNÜN Geometrik Ortalaması
+                df_analiz['Aylik_Ortalama'] = df_analiz[bu_ay_cols].apply(geometrik_ortalama_hesapla, axis=1)
+
+                # BUGÜNÜN Enflasyon Hesabı
                 gecerli_veri = df_analiz.dropna(subset=['Aylik_Ortalama', baz_col]).copy()
                 enf_genel = 0.0
                 enf_gida = 0.0
 
                 if not gecerli_veri.empty:
-                    # Kümülatif (Yıl içi) Enflasyon Hesabı
                     w = gecerli_veri[agirlik_col]
                     p_relative = gecerli_veri['Aylik_Ortalama'] / gecerli_veri[baz_col]
-                    
                     genel_endeks = (w * p_relative).sum() / w.sum() * 100
                     enf_genel = genel_endeks - 100
                     
-                    # Gıda Enflasyonu
+                    # Gıda Hesabı
                     gida_df = gecerli_veri[gecerli_veri['Kod'].astype(str).str.startswith("01")]
                     if not gida_df.empty:
                         w_g = gida_df[agirlik_col]
                         p_rel_g = gida_df['Aylik_Ortalama'] / gida_df[baz_col]
                         enf_gida = ((w_g * p_rel_g).sum() / w_g.sum() * 100) - 100
 
-                    # Ürün Bazlı Değişim
+                    # Ürün Bazlı Fark
                     df_analiz['Fark'] = (df_analiz['Aylik_Ortalama'] / df_analiz[baz_col]) - 1
                 else:
                     df_analiz['Fark'] = 0.0
 
-                # B) ÖNCEKİ GÜN SİMÜLASYONU (CANLI SKOR TABLOSU İÇİN)
+                # 3. ÖNCEKİ GÜN SİMÜLASYONU
                 enf_onceki = 0.0
                 
-                # Eğer bu ay içinde birden fazla veri varsa (örn: ayın 1'i ve 2'si), dünü hesaplayabiliriz.
+                # Eğer listede birden fazla gün varsa (Örn: Ayın 1'i ve 2'si)
                 if len(bu_ay_cols) > 1:
-                    onceki_cols = bu_ay_cols[:-1] # Son sütunu (bugünü) hariç tut
+                    onceki_cols = bu_ay_cols[:-1] # Son günü listeden çıkar
                     
-                    # Dünün Geometrik Ortalamasını Hesapla
+                    # DÜNÜN Geometrik Ortalaması (Bugün ile birebir aynı fonksiyon)
                     df_analiz['Onceki_Ortalama'] = df_analiz[onceki_cols].apply(geometrik_ortalama_hesapla, axis=1)
                     
-                    # Dünün Endeksini Hesapla
+                    # DÜNÜN Enflasyon Hesabı
                     gecerli_veri_prev = df_analiz.dropna(subset=['Onceki_Ortalama', baz_col])
+                    
                     if not gecerli_veri_prev.empty:
                         w_p = gecerli_veri_prev[agirlik_col]
                         p_rel_p = gecerli_veri_prev['Onceki_Ortalama'] / gecerli_veri_prev[baz_col]
                         genel_endeks_prev = (w_p * p_rel_p).sum() / w_p.sum() * 100
                         enf_onceki = genel_endeks_prev - 100
+                    else:
+                        enf_onceki = enf_genel # Veri yoksa değişim yok say
                 else:
-                    # Eğer ayın ilk günüyse veya tek veri varsa, değişim yok varsayalım veya manuel set edelim.
+                    # Ayın ilk günü ise veya tek veri varsa değişim 0 kabul edilir
                     enf_onceki = enf_genel
 
-                # Değişim Farkı (Bugün - Dün)
-                kumu_fark = enf_genel - enf_onceki
-                kumu_icon_color = "#ef4444" if kumu_fark > 0 else "#22c55e" # Artış varsa kırmızı, düşüş varsa yeşil
-                
-                # Alt metin formatı: "Önceki: %45.20 (+0.12)"
-                kumu_sub_text = f"Önceki: %{enf_onceki:.2f} ({'+' if kumu_fark > 0 else ''}{kumu_fark:.2f})"
-
-                # 4. ZAMAN SERİSİ / TREND HESAPLAMA (Prophet İçin - Günlük devam edebilir)
+                # 4. TREND VERİSİ (Grafik İçin - Ama KPI'ı Ezmeyecek)
                 trend_data = []
-                bu_ay_str = f"{dt_son.year}-{dt_son.month:02d}"
-                # Sadece bu ayın günlerini (veya analiz periyodunu) al
-                analiz_gunleri = [g for g in gunler if g.startswith(bu_ay_str)]
+                analiz_gunleri = bu_ay_cols 
                 
-                # Eğer analiz günleri boşsa (örn: yılbaşı) tüm günleri al
-                if not analiz_gunleri: analiz_gunleri = gunler
-
-                # --- VECTORIZED GEOMETRİK ORTALAMA (HIZLI) ---
+                # Vektörel Hızlandırma (Sadece grafik çizimi için kullanılır)
                 def get_geo_mean_vectorized(df_in, cols):
-                    # 0 ve negatifleri maskele, log al, ortalama al, exp al
                     data = df_in[cols].values.astype(float)
-                    data[data <= 0] = np.nan # 0 ve eksileri yoksay
-                    # Tüm satır NaN ise sonuç NaN olur, değilse ortalama alınır
+                    data[data <= 0] = np.nan
                     with np.errstate(divide='ignore', invalid='ignore'):
                         log_data = np.log(data)
                     mean_log = np.nanmean(log_data, axis=1)
                     return np.exp(mean_log)
 
-                # TARİHSEL DÖNGÜ: Ayın 1'inden bugüne tek tek hesapla
                 for i in range(1, len(analiz_gunleri) + 1):
-                    aktif_gunler = analiz_gunleri[:i] # 1. günden i. güne kadar olanlar
+                    aktif_gunler = analiz_gunleri[:i]
                     su_anki_tarih = aktif_gunler[-1]
                     
-                    # O güne kadarki Geometrik Ortalama
+                    # Geçici hesaplama (sadece trend için)
                     df_analiz[f'Geo_Temp_{i}'] = get_geo_mean_vectorized(df_analiz, aktif_gunler)
                     
-                    # Endeks Hesabı
                     gecerli = df_analiz.dropna(subset=[f'Geo_Temp_{i}', baz_col])
-                    
                     if not gecerli.empty:
                         w = gecerli[agirlik_col]
                         p_rel = gecerli[f'Geo_Temp_{i}'] / gecerli[baz_col]
                         idx_val = (w * p_rel).sum() / w.sum() * 100
                         trend_data.append({"Tarih": su_anki_tarih, "TÜFE": idx_val})
                     else:
-                        # Veri yoksa bir önceki değeri veya 100'ü bas
+                         # Veri yoksa bir önceki değeri koy
                         prev_val = trend_data[-1]["TÜFE"] if trend_data else 100.0
                         trend_data.append({"Tarih": su_anki_tarih, "TÜFE": prev_val})
 
-                # SONUÇLARI ÇEKME
                 df_trend = pd.DataFrame(trend_data)
-                df_trend['Tarih'] = pd.to_datetime(df_trend['Tarih'])
+                if not df_trend.empty:
+                    df_trend['Tarih'] = pd.to_datetime(df_trend['Tarih'])
                 
-                # KÜMÜLATİF ENFLASYON (SON DEĞER)
-                enf_genel = 0.0
-                enf_onceki = 0.0
-                
-                if len(trend_data) > 0:
-                    enf_genel = trend_data[-1]["TÜFE"] - 100
-                
-                if len(trend_data) > 1:
-                    enf_onceki = trend_data[-2]["TÜFE"] - 100
-                else:
-                    enf_onceki = enf_genel # Eğer tek gün varsa değişim yok
-                
-                # GIDA ENFLASYONU (Sadece Son Gün İçin Hesapla - Performans İçin)
-                df_analiz['Aylik_Ortalama'] = df_analiz[f'Geo_Temp_{len(analiz_gunleri)}']
-                df_analiz['Fark'] = (df_analiz['Aylik_Ortalama'] / df_analiz[baz_col]) - 1
-                
-                gecerli_son = df_analiz.dropna(subset=['Aylik_Ortalama', baz_col])
-                gida_df = gecerli_son[gecerli_son['Kod'].astype(str).str.startswith("01")]
-                enf_gida = 0.0
-                if not gida_df.empty:
-                    w_g = gida_df[agirlik_col]
-                    p_rel_g = gida_df['Aylik_Ortalama'] / gida_df[baz_col]
-                    enf_gida = ((w_g * p_rel_g).sum() / w_g.sum() * 100) - 100
-
                 # Değişim Farkı (Bugün - Dün)
                 kumu_fark = enf_genel - enf_onceki
                 kumu_icon_color = "#ef4444" if kumu_fark > 0 else "#22c55e"
+                
                 kumu_sub_text = f"Önceki: %{enf_onceki:.2f} ({'+' if kumu_fark > 0 else ''}{kumu_fark:.2f})"
                 
                 # -------------------------------------------------------------
@@ -1016,7 +968,7 @@ def dashboard_modu():
                     """, unsafe_allow_html=True)
 
                 c1, c2, c3, c4 = st.columns(4)
-                # GÜNCELLENEN KPI KARTI BURADA:
+                
                 with c1: kpi_card("Ay Sonu Enflasyon", f"%{enf_genel:.2f}", kumu_sub_text, kumu_icon_color, "#ef4444", "📈")
                 with c2: kpi_card("Gıda Enflasyonu", f"%{enf_gida:.2f}", "Mutfak Sepeti", "#f87171", "#84cc16", "🛒")
                 with c3: kpi_card("Ay Sonu Tahmini", f"%{math.floor(enf_genel):.2f}", None, "#a78bfa", "#8b5cf6", "🤖")
@@ -1166,4 +1118,3 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
-
