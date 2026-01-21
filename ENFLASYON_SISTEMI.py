@@ -214,8 +214,8 @@ def apply_theme():
             backdrop-filter: blur(5px); white-space: nowrap;
         }
         .ticker-move { display: inline-block; padding-left: 100%; animation: marquee 45s linear infinite; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
-        @keyframes marquee { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
-
+        @keyframes marquee {{ 0% {{ transform: translate(0, 0); }} 100% {{ transform: translate(-100%, 0); }} }}
+        
         /* --- SCROLLBAR --- */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -1314,3 +1314,4 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
+
