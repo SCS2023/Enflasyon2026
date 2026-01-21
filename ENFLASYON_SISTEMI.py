@@ -772,7 +772,7 @@ def dashboard_modu():
             <div style="text-align: center; padding-bottom: 20px;">
                 <div style="font-size: 50px; filter: drop-shadow(0 0 30px rgba(59, 130, 246, 0.4)); animation: float 6s ease-in-out infinite;">💎</div>
                 <div style="font-size: 20px; font-weight: 800; color: #fff; letter-spacing: -0.5px; margin-top: 15px;">PİYASA MONİTÖRÜ</div>
-                <div style="font-size: 10px; font-weight: 500; color: #71717a; letter-spacing: 2px;">PRO ANALYTICS</div>
+                <div style="font-size: 10px; font-weight: 500; color: #e4e4e7; letter-spacing: 2px;">PRO ANALYTICS</div>
             </div>
             <style>
                 @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-8px); } 100% { transform: translateY(0px); } }
@@ -1346,6 +1346,7 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
+
 
 
 
