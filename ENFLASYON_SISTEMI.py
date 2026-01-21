@@ -1274,28 +1274,34 @@ def dashboard_modu():
                         ))
                         st.plotly_chart(style_chart(fig_water), use_container_width=True)
 
-                with t_veri:
-                    st.markdown("### 📋 Veri Seti")
-                    # Tabloda sadece seçilen tarih ve baz dönemi kalsın
-                    st.data_editor(
-                        df_analiz[['Grup', ad_col, 'Fark', baz_col, son]],
-                        column_config={
-                            "Fark": st.column_config.BarChartColumn(
-                                "Kümülatif Değişim",
-                                help="Baz döneme göre değişim oranı",
-                                y_min=-0.5, y_max=0.5
-                            ),
-                            ad_col: "Ürün", "Grup": "Kategori",
-                            baz_col: st.column_config.NumberColumn(f"Fiyat ({baz_tanimi})", format="%.2f ₺"),
-                            son: st.column_config.NumberColumn(f"Fiyat ({son})", format="%.2f ₺")
-                        },
-                        hide_index=True, use_container_width=True, height=600
-                    )
-                    output = BytesIO()
-                    with pd.ExcelWriter(output, engine='openpyxl') as writer: df_analiz.to_excel(writer, index=False,
-                                                                                                 sheet_name='Analiz')
-                    st.download_button("📥 Excel İndir", data=output.getvalue(), file_name=f"Rapor_{son}.xlsx",
-                                       mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    with t_veri:
+                        st.markdown("### 📋 Veri Seti")
+                        
+                        # --- YENİ EKLENEN KISIM: FİYAT GRAFİĞİ LİSTESİ OLUŞTURMA ---
+                        # Her ürün satırı için, seçilen tarih aralığındaki tüm fiyatları tek bir liste haline getiriyoruz
+                        df_analiz['Fiyat_Trendi'] = df_analiz[gunler].values.tolist()
+    
+                        st.data_editor(
+                            df_analiz[['Grup', ad_col, 'Fiyat_Trendi', baz_col, son]], # 'Fark' yerine 'Fiyat_Trendi'
+                            column_config={
+                                "Fiyat_Trendi": st.column_config.LineChartColumn(
+                                    "Fiyat Grafiği",
+                                    width="medium",
+                                    help="Seçilen dönem içindeki fiyat hareketi",
+                                    # y_min=0 koymuyoruz ki dalgalanma net görünsün
+                                ),
+                                ad_col: "Ürün", 
+                                "Grup": "Kategori",
+                                baz_col: st.column_config.NumberColumn(f"Fiyat ({baz_tanimi})", format="%.2f ₺"),
+                                son: st.column_config.NumberColumn(f"Fiyat ({son})", format="%.2f ₺")
+                            },
+                            hide_index=True, use_container_width=True, height=600
+                        )
+                        output = BytesIO()
+                        with pd.ExcelWriter(output, engine='openpyxl') as writer: df_analiz.to_excel(writer, index=False,
+                                                                                                     sheet_name='Analiz')
+                        st.download_button("📥 Excel İndir", data=output.getvalue(), file_name=f"Rapor_{son}.xlsx",
+                                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
                 with t_rapor:
                     st.markdown("### 📝 Stratejik Görünüm Raporu")
@@ -1346,6 +1352,7 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
+
 
 
 
