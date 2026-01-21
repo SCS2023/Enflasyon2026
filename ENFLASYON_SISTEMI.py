@@ -32,6 +32,7 @@ st.set_page_config(
 )
 
 # --- CSS MOTORU (PREMIUM FINTECH / GLASSMORPHISM) ---
+# --- CSS MOTORU (PREMIUM FINTECH / GLASSMORPHISM) ---
 def apply_theme():
     st.session_state.plotly_template = "plotly_dark"
 
@@ -145,7 +146,7 @@ def apply_theme():
         div.stButton > button:active {{ transform: translateY(0); }}
 
         /* --- KPI CARD PREMIUM --- */
-        .kpi-card {
+        .kpi-card {{
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--glass-border);
             border-radius: var(--card-radius);
@@ -156,13 +157,13 @@ def apply_theme():
             -webkit-backdrop-filter: blur(12px);
             box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.2);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .kpi-card:hover {
+        }}
+        .kpi-card:hover {{
             transform: translateY(-4px);
             box-shadow: 0 20px 40px -5px rgba(0,0,0,0.4);
             border-color: rgba(255,255,255,0.1);
-        }
-        .kpi-bg-icon {
+        }}
+        .kpi-bg-icon {{
             position: absolute;
             right: -10px;
             bottom: -20px;
@@ -171,14 +172,14 @@ def apply_theme():
             transform: rotate(-15deg);
             z-index: 0;
             pointer-events: none;
-        }
-        .kpi-content { position: relative; z-index: 1; }
-        .kpi-title { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-dim); letter-spacing: 1px; margin-bottom: 8px; }
-        .kpi-value { font-size: 32px; font-weight: 800; letter-spacing: -1px; color: #fff; margin-bottom: 4px; font-family: 'Inter', sans-serif; }
-        .kpi-sub { font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; color: var(--text-dim); }
+        }}
+        .kpi-content {{ position: relative; z-index: 1; }}
+        .kpi-title {{ font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-dim); letter-spacing: 1px; margin-bottom: 8px; }}
+        .kpi-value {{ font-size: 32px; font-weight: 800; letter-spacing: -1px; color: #fff; margin-bottom: 4px; font-family: 'Inter', sans-serif; }}
+        .kpi-sub {{ font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; color: var(--text-dim); }}
 
         /* --- PRODUCT CARD (GRID) --- */
-        .pg-card {
+        .pg-card {{
             background: rgba(20, 20, 25, 0.6);
             border: 1px solid var(--glass-border);
             border-radius: 12px;
@@ -190,37 +191,38 @@ def apply_theme():
             align-items: center;
             text-align: center;
             transition: all 0.2s ease;
-        }
-        .pg-card:hover {
+        }}
+        .pg-card:hover {{
             background: rgba(30, 30, 35, 0.8);
             border-color: rgba(255,255,255,0.15);
             transform: scale(1.02);
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-        .pg-name { font-size: 13px; font-weight: 500; color: #d4d4d8; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 36px; }
-        .pg-price { font-size: 20px; font-weight: 700; color: #fff; margin: 8px 0; letter-spacing: -0.5px; }
-        .pg-badge { padding: 4px 10px; border-radius: 99px; font-size: 10px; font-weight: 700; width: auto; display: inline-flex; align-items: center; gap: 4px; backdrop-filter: blur(4px); }
-        .pg-red { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.2); }
-        .pg-green { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.2); }
-        .pg-gray { background: rgba(255, 255, 255, 0.05); color: #a1a1aa; border: 1px solid rgba(255, 255, 255, 0.05); }
+        }}
+        .pg-name {{ font-size: 13px; font-weight: 500; color: #d4d4d8; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 36px; }}
+        .pg-price {{ font-size: 20px; font-weight: 700; color: #fff; margin: 8px 0; letter-spacing: -0.5px; }}
+        .pg-badge {{ padding: 4px 10px; border-radius: 99px; font-size: 10px; font-weight: 700; width: auto; display: inline-flex; align-items: center; gap: 4px; backdrop-filter: blur(4px); }}
+        .pg-red {{ background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.2); }}
+        .pg-green {{ background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.2); }}
+        .pg-gray {{ background: rgba(255, 255, 255, 0.05); color: #a1a1aa; border: 1px solid rgba(255, 255, 255, 0.05); }}
 
         /* --- TICKER --- */
-        .ticker-wrap {
+        .ticker-wrap {{
             width: 100%; overflow: hidden;
             background: rgba(0,0,0,0.3);
             border-top: 1px solid var(--glass-border);
             border-bottom: 1px solid var(--glass-border);
             padding: 10px 0; margin-bottom: 30px;
             backdrop-filter: blur(5px); white-space: nowrap;
-        }
-        .ticker-move { display: inline-block; padding-left: 100%; animation: marquee 45s linear infinite; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
-        @keyframes marquee {{ 0% {{ transform: translate(0, 0); }} 100% {{ transform: translate(-100%, 0); }} }}
+        }}
+        .ticker-move {{ display: inline-block; padding-left: 100%; animation: marquee 45s linear infinite; font-family: 'JetBrains Mono', monospace; font-size: 12px; }}
         
+        @keyframes marquee {{ 0% {{ transform: translate(0, 0); }} 100% {{ transform: translate(-100%, 0); }} }}
+
         /* --- SCROLLBAR --- */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        ::-webkit-scrollbar {{ width: 6px; height: 6px; }}
+        ::-webkit-scrollbar-track {{ background: transparent; }}
+        ::-webkit-scrollbar-thumb {{ background: rgba(255,255,255,0.1); border-radius: 3px; }}
+        ::-webkit-scrollbar-thumb:hover {{ background: rgba(255,255,255,0.2); }}
     </style>
     """
     st.markdown(final_css, unsafe_allow_html=True)
@@ -1314,4 +1316,5 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
+
 
