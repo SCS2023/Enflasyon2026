@@ -31,195 +31,199 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-
-# --- CSS MOTORU (CYBERPUNK / FINTECH STİL) ---
+# --- CSS MOTORU (PREMIUM FINTECH / GLASSMORPHISM) ---
 def apply_theme():
     st.session_state.plotly_template = "plotly_dark"
 
     final_css = f"""
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;800&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
 
         :root {{
-            --bg-color: #09090b;
-            --card-bg: rgba(24, 24, 27, 0.6);
-            --border-color: rgba(255, 255, 255, 0.08);
-            --neon-blue: #3b82f6;
-            --neon-green: #22c55e;
-            --neon-red: #ef4444;
+            --bg-deep: #050505;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.06);
+            --text-main: #e4e4e7;
+            --text-dim: #a1a1aa;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-purple: #8b5cf6;
+            --card-radius: 16px;
         }}
 
-        /* --- SAYFA GİRİŞ ANİMASYONU --- */
-        @keyframes fadeIn {{
-            0% {{ opacity: 0; transform: translateY(10px); }}
-            100% {{ opacity: 1; transform: translateY(0); }}
-        }}
-        .block-container {{ 
-            animation: fadeIn 0.8s ease-out; 
-            padding-top: 2rem !important;
-        }}
-
-        /* --- INPUT ALANLARINI GÜZELLEŞTİRME --- */
-        .stSelectbox > div > div, .stTextInput > div > div {{
-            background-color: rgba(255, 255, 255, 0.03) !important;
-            border: 1px solid var(--border-color) !important;
-            color: #e4e4e7 !important;
-            border-radius: 8px !important;
-        }}
-        .stSelectbox > div > div:hover, .stTextInput > div > div:hover {{
-            border-color: rgba(255, 255, 255, 0.3) !important;
-        }}
-        /* Dropdown açıldığındaki liste rengi */
-        ul[data-baseweb="menu"] {{
-            background-color: #18181b !important;
-            border: 1px solid #3f3f46 !important;
+        /* --- ANA ARKA PLAN (Hareketli Mesh Gradient) --- */
+        [data-testid="stAppViewContainer"] {{
+            background-color: var(--bg-deep);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%), 
+                radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%), 
+                radial-gradient(at 100% 100%, rgba(239, 68, 68, 0.08) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
+            background-attachment: fixed;
+            font-family: 'Inter', sans-serif !important;
+            color: var(--text-main) !important;
         }}
 
-        /* --- TABLO ESTETİĞİ --- */
-        [data-testid="stDataEditor"], [data-testid="stDataFrame"] {{
-            color-scheme: dark; 
-            background-color: transparent !important;
-        }}
-        div[data-testid="stDataEditor"] > div, div[data-testid="stDataFrame"] > div {{
-            background-color: rgba(24, 24, 27, 0.4) !important;
-            border: 1px solid #333 !important;
-            border-radius: 8px !important;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
-        }}
-
-        /* --- HEADER VE TOOLBAR YOK ETME --- */
+        /* --- HEADER GİZLEME VE DÜZEN --- */
         [data-testid="stHeader"] {{ visibility: hidden; height: 0px; }}
         [data-testid="stToolbar"] {{ display: none; }}
         [data-testid="stDecoration"] {{ display: none; }}
+        .block-container {{ padding-top: 1rem !important; padding-bottom: 5rem; animation: fadeIn 0.6s ease-out; }}
 
-        /* --- GENEL ARKA PLAN --- */
-        [data-testid="stAppViewContainer"] {{
-            background-color: var(--bg-color);
-            background-image: 
-                radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.06), transparent 25%), 
-                radial-gradient(circle at 85% 30%, rgba(239, 68, 68, 0.04), transparent 25%);
-            font-family: 'Inter', sans-serif !important;
-            color: #e4e4e7 !important;
-        }}
+        @keyframes fadeIn {{ from {{ opacity: 0; transform: translateY(10px); }} to {{ opacity: 1; transform: translateY(0); }} }}
 
-        /* --- TAB (SEKME) İSİMLERİ --- */
-        button[data-baseweb="tab"] {{ background-color: transparent !important; }}
-        button[data-baseweb="tab"] div[data-testid="stMarkdownContainer"] p {{
-            color: #a1a1aa !important;
-            font-weight: 600 !important;
-            font-size: 13px !important;
-            transition: color 0.3s;
-        }}
-        button[data-baseweb="tab"]:hover div[data-testid="stMarkdownContainer"] p {{
-            color: #ffffff !important;
-        }}
-        button[data-baseweb="tab"][aria-selected="true"] {{ border-bottom-color: #3b82f6 !important; }}
-        button[data-baseweb="tab"][aria-selected="true"] div[data-testid="stMarkdownContainer"] p {{
-            color: #ffffff !important;
-            text-shadow: 0 0 10px rgba(255,255,255,0.3);
-        }}
-
-        /* --- EXCEL İNDİR BUTONU --- */
-        [data-testid="stDownloadButton"] button {{
-            background-color: #000000 !important;
-            color: #ffffff !important;
-            border: 1px solid #3f3f46 !important;
-            font-weight: 700 !important;
-            text-transform: uppercase !important;
-            letter-spacing: 1px !important;
-            transition: all 0.3s ease !important;
-            border-radius: 6px !important;
-        }}
-        [data-testid="stDownloadButton"] button:hover {{
-            background-color: #18181b !important;
-            border-color: #3b82f6 !important;
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.2) !important;
-            color: #3b82f6 !important;
-        }}
-
-        /* --- KPI KARTLARI (NEON GLOW) --- */
-        .kpi-card {{
-            background: linear-gradient(145deg, rgba(39, 39, 42, 0.4), rgba(24, 24, 27, 0.6));
+        /* --- SIDEBAR --- */
+        section[data-testid="stSidebar"] {{
+            background-color: rgba(5, 5, 5, 0.8) !important;
+            border-right: 1px solid var(--glass-border);
             backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
+        }}
+        
+        /* --- INPUT VE SELECTBOX --- */
+        .stSelectbox > div > div, .stTextInput > div > div {{
+            background-color: rgba(255, 255, 255, 0.02) !important;
+            border: 1px solid var(--glass-border) !important;
+            color: var(--text-main) !important;
+            border-radius: 12px !important;
+            transition: all 0.3s ease;
+        }}
+        .stSelectbox > div > div:hover, .stTextInput > div > div:hover {{
+            border-color: rgba(255, 255, 255, 0.2) !important;
+            background-color: rgba(255, 255, 255, 0.05) !important;
+        }}
+        
+        /* --- TABLOLAR --- */
+        [data-testid="stDataEditor"], [data-testid="stDataFrame"] {{
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            overflow: hidden;
+            background: rgba(0,0,0,0.2) !important;
+        }}
+
+        /* --- SEKME (TAB) TASARIMI --- */
+        .stTabs [data-baseweb="tab-list"] {{
+            gap: 24px;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 4px;
+        }}
+        .stTabs [data-baseweb="tab"] {{
+            height: 50px;
+            white-space: pre-wrap;
+            background-color: transparent !important;
+            border: none !important;
+            color: var(--text-dim) !important;
+            font-weight: 500;
+        }}
+        .stTabs [aria-selected="true"] {{
+            color: #fff !important;
+            font-weight: 700;
+            border-bottom: 2px solid var(--accent-blue) !important;
+        }}
+
+        /* --- BUTTONS --- */
+        div.stButton > button {{
+            background: linear-gradient(180deg, rgba(39, 39, 42, 0.8) 0%, rgba(24, 24, 27, 0.8) 100%);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            font-size: 13px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }}
+        div.stButton > button:hover {{
+            background: linear-gradient(180deg, rgba(63, 63, 70, 0.8) 0%, rgba(39, 39, 42, 0.8) 100%);
+            border-color: var(--accent-blue);
+            transform: translateY(-1px);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+            color: var(--accent-blue);
+        }}
+        div.stButton > button:active {{ transform: translateY(0); }}
+
+        /* --- KPI CARD PREMIUM --- */
+        .kpi-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--card-radius);
             padding: 24px;
             position: relative;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             overflow: hidden;
-        }}
-        .kpi-card:hover {{ 
-            transform: translateY(-5px); 
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255,255,255,0.1);
-        }}
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -5px rgba(0,0,0,0.4);
+            border-color: rgba(255,255,255,0.1);
+        }
+        .kpi-bg-icon {
+            position: absolute;
+            right: -10px;
+            bottom: -20px;
+            font-size: 80px;
+            opacity: 0.05;
+            transform: rotate(-15deg);
+            z-index: 0;
+            pointer-events: none;
+        }
+        .kpi-content { position: relative; z-index: 1; }
+        .kpi-title { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-dim); letter-spacing: 1px; margin-bottom: 8px; }
+        .kpi-value { font-size: 32px; font-weight: 800; letter-spacing: -1px; color: #fff; margin-bottom: 4px; font-family: 'Inter', sans-serif; }
+        .kpi-sub { font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; color: var(--text-dim); }
 
-        .kpi-title {{ font-size: 11px; font-weight: 700; color: #a1a1aa !important; text-transform: uppercase; margin-bottom: 8px; position: relative; z-index: 1; letter-spacing: 0.5px; }}
-        .kpi-value {{ font-size: 38px; font-weight: 800; color: #ffffff !important; text-shadow: 0 0 30px rgba(255,255,255,0.1); position: relative; z-index: 1; font-family: 'Inter', sans-serif; }}
-        .kpi-sub {{ font-size: 12px; font-weight: 500; margin-top: 8px; color: #d4d4d8 !important; display: flex; align-items: center; gap: 5px; position: relative; z-index: 1; }}
-
-        /* --- ÜRÜN KARTLARI --- */
-        .pg-card {{ 
-            background: rgba(39, 39, 42, 0.3); 
-            border: 1px solid var(--border-color); 
-            border-radius: 12px; padding: 16px; height: 180px; 
-            display: flex; flex-direction: column; justify-content: space-between; align-items: center; 
-            text-align: center; position: relative; transition: all 0.3s ease; 
-        }}
-        .pg-card:hover {{ 
-            background: rgba(63, 63, 70, 0.5); 
-            border-color: rgba(255,255,255,0.15); 
-            transform: translateY(-3px); 
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5); 
-        }}
-
-        .pg-name {{ 
-            font-size: 13px; font-weight: 600; color: #e4e4e7 !important; line-height: 1.4; opacity: 0.9; 
-            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; min-height: 36px;
-        }}
-
-        .pg-price {{ font-size: 24px; font-weight: 900; color: #ffffff !important; letter-spacing: -0.5px; margin: 10px 0; }}
-
-        .pg-badge {{ padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; width: auto; min-width: 80px; display: inline-flex; justify-content: center; align-items: center; gap: 4px; }}
-        .pg-red {{ background: rgba(239, 68, 68, 0.1); color: #fca5a5 !important; border: 1px solid rgba(239, 68, 68, 0.3); }}
-        .pg-green {{ background: rgba(34, 197, 94, 0.1); color: #86efac !important; border: 1px solid rgba(34, 197, 94, 0.3); }}
-        .pg-gray {{ background: #27272a; color: #a1a1aa !important; border: 1px solid #3f3f46; }}
+        /* --- PRODUCT CARD (GRID) --- */
+        .pg-card {
+            background: rgba(20, 20, 25, 0.6);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 16px;
+            height: 160px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        .pg-card:hover {
+            background: rgba(30, 30, 35, 0.8);
+            border-color: rgba(255,255,255,0.15);
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .pg-name { font-size: 13px; font-weight: 500; color: #d4d4d8; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 36px; }
+        .pg-price { font-size: 20px; font-weight: 700; color: #fff; margin: 8px 0; letter-spacing: -0.5px; }
+        .pg-badge { padding: 4px 10px; border-radius: 99px; font-size: 10px; font-weight: 700; width: auto; display: inline-flex; align-items: center; gap: 4px; backdrop-filter: blur(4px); }
+        .pg-red { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .pg-green { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.2); }
+        .pg-gray { background: rgba(255, 255, 255, 0.05); color: #a1a1aa; border: 1px solid rgba(255, 255, 255, 0.05); }
 
         /* --- TICKER --- */
-        .ticker-wrap {{ width: 100%; overflow: hidden; background-color: rgba(0,0,0,0.2); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); padding: 8px 0; margin-bottom: 25px; backdrop-filter: blur(5px); white-space: nowrap; }}
-        .ticker-move {{ display: inline-block; padding-left: 100%; animation: marquee 60s linear infinite; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; letter-spacing: -0.5px; }}
-        .ticker-move:hover {{ animation-play-state: paused; }}
-        @keyframes marquee {{ 0% {{ transform: translate(0, 0); }} 100% {{ transform: translate(-100%, 0); }} }}
+        .ticker-wrap {
+            width: 100%; overflow: hidden;
+            background: rgba(0,0,0,0.3);
+            border-top: 1px solid var(--glass-border);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 10px 0; margin-bottom: 30px;
+            backdrop-filter: blur(5px); white-space: nowrap;
+        }
+        .ticker-move { display: inline-block; padding-left: 100%; animation: marquee 45s linear infinite; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+        @keyframes marquee { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
 
-        section[data-testid="stSidebar"] {{ background-color: #050505 !important; border-right: 1px solid #27272a; }}
-
-        /* --- BUTONLAR --- */
-        div.stButton > button {{ 
-            width: 100%; border-radius: 8px; font-weight: 600; 
-            background: linear-gradient(to bottom, #27272a, #18181b); 
-            color: #e4e4e7; border: 1px solid rgba(255,255,255,0.1); 
-            transition: all 0.2s; 
-            font-family: 'JetBrains Mono', monospace;
-            text-transform: uppercase; letter-spacing: 1px; font-size: 12px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }}
-        div.stButton > button:hover {{ 
-            border-color: #3b82f6; color: #fff; background: #27272a;
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
-            transform: scale(1.01);
-        }}
-        div.stButton > button:active {{ transform: scale(0.98); }}
-
-        ::-webkit-scrollbar {{ width: 6px; height: 6px; }}
-        ::-webkit-scrollbar-track {{ background: transparent; }}
-        ::-webkit-scrollbar-thumb {{ background: #3f3f46; border-radius: 3px; }}
-        ::-webkit-scrollbar-thumb:hover {{ background: #52525b; }}
+        /* --- SCROLLBAR --- */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
     </style>
     """
     st.markdown(final_css, unsafe_allow_html=True)
-
 
 apply_theme()
 
@@ -750,11 +754,12 @@ def dashboard_modu():
         # SIDEBAR LOGO/ICON (Gradient Metin)
         st.markdown("""
             <div style="text-align: center; padding-bottom: 20px;">
-                <div style="font-size: 60px; filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.6)); animation: float 6s ease-in-out infinite;">💎</div>
-                <div style="font-size: 24px; font-weight: 800; background: linear-gradient(to right, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-top: 10px;">PİYASA MONİTÖRÜ</div>
+                <div style="font-size: 50px; filter: drop-shadow(0 0 30px rgba(59, 130, 246, 0.4)); animation: float 6s ease-in-out infinite;">💎</div>
+                <div style="font-size: 20px; font-weight: 800; color: #fff; letter-spacing: -0.5px; margin-top: 15px;">PİYASA MONİTÖRÜ</div>
+                <div style="font-size: 10px; font-weight: 500; color: #71717a; letter-spacing: 2px;">PRO ANALYTICS</div>
             </div>
             <style>
-                @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+                @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-8px); } 100% { transform: translateY(0px); } }
             </style>
         """, unsafe_allow_html=True)
 
@@ -769,27 +774,27 @@ def dashboard_modu():
         widgets_html = ""
         for sym in symbols:
             widgets_html += f"""
-            <div class="tradingview-widget-container" style="margin-bottom: 10px;">
+            <div class="tradingview-widget-container" style="margin-bottom: 12px; border:1px solid rgba(255,255,255,0.05); border-radius:8px; overflow:hidden;">
               <div class="tradingview-widget-container__widget"></div>
               <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-              {{ "symbol": "{sym['s']}", "width": "100%", "height": 110, "locale": "tr", "dateRange": "1D", "colorTheme": "{tv_theme}", "isTransparent": true, "autosize": true, "noTimeScale": true }}
+              {{ "symbol": "{sym['s']}", "width": "100%", "height": 100, "locale": "tr", "dateRange": "1D", "colorTheme": "{tv_theme}", "isTransparent": true, "autosize": true, "noTimeScale": true }}
               </script>
             </div>
             """
         components.html(f'<div style="display:flex; flex-direction:column; overflow:hidden;">{widgets_html}</div>',
-                        height=len(symbols) * 120)
+                        height=len(symbols) * 115)
 
         st.markdown("---")
         st.markdown("### 🇹🇷 BIST ÖZET")
         all_stocks_html = """
-        <div class="tradingview-widget-container">
+        <div class="tradingview-widget-container" style="border:1px solid rgba(255,255,255,0.05); border-radius:12px; overflow:hidden;">
           <div class="tradingview-widget-container__widget"></div>
           <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-screener.js" async>
-          { "width": "100%", "height": 600, "defaultColumn": "overview", "defaultScreen": "general", "market": "turkey", "showToolbar": false, "colorTheme": "dark", "locale": "tr", "isTransparent": true }
+          { "width": "100%", "height": 500, "defaultColumn": "overview", "defaultScreen": "general", "market": "turkey", "showToolbar": false, "colorTheme": "dark", "locale": "tr", "isTransparent": true }
           </script>
         </div>
         """
-        components.html(all_stocks_html, height=600)
+        components.html(all_stocks_html, height=500)
 
     # HEADER
     header_html_code = """
@@ -801,26 +806,26 @@ def dashboard_modu():
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
             body { margin: 0; padding: 0; background: transparent; font-family: 'Inter', sans-serif; overflow: hidden; }
             .header-wrapper {
-                background: rgba(20, 20, 25, 0.4); backdrop-filter: blur(20px);
-                border-bottom: 1px solid rgba(255,255,255,0.05); border-radius: 16px;
-                padding: 20px 30px; display: flex; justify-content: space-between; align-items: center;
-                box-shadow: 0 4px 30px rgba(0,0,0,0.3);
+                background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px);
+                border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;
+                padding: 24px 32px; display: flex; justify-content: space-between; align-items: center;
+                box-shadow: 0 10px 40px -10px rgba(0,0,0,0.5);
             }
-            .app-title { font-size: 28px; font-weight: 900; background: linear-gradient(90deg, #ffffff, #a1a1aa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -1px; }
-            .app-subtitle { font-size: 11px; color: #71717a; font-weight: 600; margin-top: 4px; letter-spacing: 2px; text-transform: uppercase; }
-            .live-badge { display: inline-flex; align-items: center; background: rgba(34, 197, 94, 0.1); color: #4ade80; padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: 800; margin-left: 15px; border: 1px solid rgba(34, 197, 94, 0.2); box-shadow: 0 0 15px rgba(34, 197, 94, 0.2); }
-            .live-dot { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; margin-right: 6px; box-shadow: 0 0 8px #22c55e; animation: pulse 2s infinite; }
+            .app-title { font-size: 32px; font-weight: 800; color: #fff; letter-spacing: -1px; display: flex; align-items: center; gap: 15px; }
+            .app-subtitle { font-size: 13px; color: #a1a1aa; font-weight: 500; margin-top: 4px; letter-spacing: 0.5px; }
+            .live-badge { display: inline-flex; align-items: center; background: rgba(16, 185, 129, 0.1); color: #34d399; padding: 6px 14px; border-radius: 99px; font-size: 11px; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.2); letter-spacing: 0.5px; }
+            .live-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; margin-right: 8px; box-shadow: 0 0 12px #10b981; animation: pulse 2s infinite; }
             @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
             .clock-container { text-align: right; }
-            .location-tag { font-size: 9px; color: #52525b; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
-            #live_clock { font-family: 'Inter', monospace; font-size: 26px; font-weight: 700; color: #e4e4e7; letter-spacing: -1px; }
+            .location-tag { font-size: 10px; color: #71717a; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 2px; }
+            #live_clock { font-family: 'Inter', monospace; font-size: 32px; font-weight: 800; color: #e4e4e7; letter-spacing: -1.5px; line-height: 1; }
         </style>
     </head>
     <body>
         <div class="header-wrapper">
             <div>
                 <div class="app-title">Piyasa Monitörü <span class="live-badge"><div class="live-dot"></div>ONLINE</span></div>
-                <div class="app-subtitle">Kurumsal Analiz & Yönetim Platformu</div>
+                <div class="app-subtitle">Yapay Zeka Destekli Enflasyon & Fiyat Analiz Sistemi</div>
             </div>
             <div class="clock-container">
                 <div class="location-tag">İSTANBUL / HQ</div>
@@ -837,32 +842,34 @@ def dashboard_modu():
     </body>
     </html>
     """
-    components.html(header_html_code, height=130)
+    components.html(header_html_code, height=140)
 
     # BUTON
-    if st.button("SİSTEMİ SENKRONİZE ET", type="primary", use_container_width=True):
-        with st.status("Veri Akışı Sağlanıyor...", expanded=True) as status:
-            st.write("📡 Uzak sunucu ile el sıkışılıyor...")
-            log_ph = st.empty();
-            log_msgs = []
+    col_btn1, col_btn2 = st.columns([3, 1])
+    with col_btn2:
+        if st.button("SİSTEMİ SENKRONİZE ET ⚡", type="primary", use_container_width=True):
+            with st.status("Veri Akışı Sağlanıyor...", expanded=True) as status:
+                st.write("📡 Uzak sunucu ile el sıkışılıyor...")
+                log_ph = st.empty();
+                log_msgs = []
 
-            def logger(m):
-                log_msgs.append(f"> {m}")
-                log_ph.markdown(
-                    f'<div style="font-size:12px; font-family:monospace; color:#cbd5e1;">{"<br>".join(log_msgs)}</div>',
-                    unsafe_allow_html=True)
+                def logger(m):
+                    log_msgs.append(f"> {m}")
+                    log_ph.markdown(
+                        f'<div style="font-size:12px; font-family:monospace; color:#cbd5e1;">{"<br>".join(log_msgs)}</div>',
+                        unsafe_allow_html=True)
 
-            res = html_isleyici(logger)
-            status.update(label="Senkronizasyon Başarılı", state="complete", expanded=False)
-        if "OK" in res:
-            st.cache_data.clear()
-            st.toast('Veri Seti Yenilendi', icon='⚡')
-            time.sleep(1);
-            st.rerun()
-        elif "Veri bulunamadı" in res:
-            st.warning("⚠️ Yeni veri akışı yok.")
-        else:
-            st.error(res)
+                res = html_isleyici(logger)
+                status.update(label="Senkronizasyon Başarılı", state="complete", expanded=False)
+            if "OK" in res:
+                st.cache_data.clear()
+                st.toast('Veri Seti Yenilendi', icon='⚡')
+                time.sleep(1);
+                st.rerun()
+            elif "Veri bulunamadı" in res:
+                st.warning("⚠️ Yeni veri akışı yok.")
+            else:
+                st.error(res)
 
     if not df_f.empty and not df_s.empty:
         try:
@@ -1064,14 +1071,14 @@ def dashboard_modu():
                 for _, r in inc.iterrows():
                     if r['Gunluk_Degisim'] > 0:
                         items.append(
-                            f"<span style='color:#ff4d4d; font-weight:800;'>▲ {r[ad_col]} %{r['Gunluk_Degisim'] * 100:.1f}</span>")
+                            f"<span style='color:#ef4444; font-weight:700;'>▲ {r[ad_col]} %{r['Gunluk_Degisim'] * 100:.1f}</span>")
                 for _, r in dec.iterrows():
                     if r['Gunluk_Degisim'] < 0:
                         items.append(
-                            f"<span style='color:#4ade80; font-weight:800;'>▼ {r[ad_col]} %{r['Gunluk_Degisim'] * 100:.1f}</span>")
+                            f"<span style='color:#10b981; font-weight:700;'>▼ {r[ad_col]} %{r['Gunluk_Degisim'] * 100:.1f}</span>")
 
-                ticker_html_content = " &nbsp;&nbsp; • &nbsp;&nbsp; ".join(
-                    items) if items else "<span style='color:#94a3b8'>Piyasada yatay seyir izlenmektedir.</span>"
+                ticker_html_content = " &nbsp;&nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp;&nbsp; ".join(
+                    items) if items else "<span style='color:#71717a'>Piyasada yatay seyir izlenmektedir.</span>"
                 st.markdown(f"""<div class="ticker-wrap"><div class="ticker-move">{ticker_html_content}</div></div>""",
                             unsafe_allow_html=True)
 
@@ -1094,15 +1101,16 @@ def dashboard_modu():
                     # Alt metin HTML'ini TEK SATIRDA hazırlıyoruz ki Streamlit bunu kod bloğu sanmasın
                     sub_html = ""
                     if sub:
-                        sub_html = f"<div class='kpi-sub'><span style='display:inline-block; width:6px; height:6px; background:{sub_color}; border-radius:50%; margin-right:5px;'></span><span style='color:{sub_color}; filter: brightness(1.2);'>{sub}</span></div>"
+                        sub_html = f"<div class='kpi-sub'><span style='display:inline-block; width:6px; height:6px; background:{sub_color}; border-radius:50%; box-shadow:0 0 5px {sub_color};'></span><span style='color:{sub_color}; filter: brightness(1.2);'>{sub}</span></div>"
 
                     st.markdown(f"""
                     <div class="kpi-card">
-                        <div style="position: absolute; left: 0; top: 15px; bottom: 15px; width: 3px; background: {accent_color}; border-radius: 0 4px 4px 0; box-shadow: 0 0 10px {accent_color};"></div>
-                        <div style="position: absolute; right: 20px; top: 20px; font-size: 28px; opacity: 0.8; filter: drop-shadow(0 0 15px {accent_color}50);">{icon}</div>
-                        <div class="kpi-title">{title}</div>
-                        <div class="kpi-value">{val}</div>
-                        {sub_html}
+                        <div class="kpi-bg-icon" style="color:{accent_color};">{icon}</div>
+                        <div class="kpi-content">
+                            <div class="kpi-title">{title}</div>
+                            <div class="kpi-value">{val}</div>
+                            {sub_html}
+                        </div>
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -1111,11 +1119,11 @@ def dashboard_modu():
                 with c1:
                     kpi_card("Ay Sonu Enflasyon", f"%{enf_genel:.2f}", kumu_sub_text, kumu_icon_color, "#ef4444", "📈")
                 with c2:
-                    kpi_card("Gıda Enflasyonu", f"%{enf_gida:.2f}", "Mutfak Sepeti", "#f87171", "#84cc16", "🛒")
+                    kpi_card("Gıda Enflasyonu", f"%{enf_gida:.2f}", "Mutfak Sepeti", "#fca5a5", "#10b981", "🛒")
                 with c3:
                     kpi_card("Ay Sonu Tahmini", f"%{math.floor(enf_genel):.2f}", None, "#a78bfa", "#8b5cf6", "🤖")
                 with c4:
-                    kpi_card("Resmi TÜİK Verisi", f"%{resmi_aylik_enf:.2f}", f"{resmi_tarih_str}", "#fbbf24", "#eab308",
+                    kpi_card("Resmi TÜİK Verisi", f"%{resmi_aylik_enf:.2f}", f"{resmi_tarih_str}", "#fbbf24", "#f59e0b",
                              "🏛️")
                 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -1128,15 +1136,15 @@ def dashboard_modu():
                             paper_bgcolor="rgba(0,0,0,0)",  # Tam şeffaflık
                             plot_bgcolor="rgba(0,0,0,0)",  # Tam şeffaflık
                             font=dict(family="Inter, sans-serif", color="#a1a1aa", size=12),
-                            margin=dict(l=10, r=10, t=40, b=10),
-                            hoverlabel=dict(bgcolor="#18181b", bordercolor="#3f3f46", font=dict(color="#fff")),
+                            margin=dict(l=0, r=0, t=40, b=0),
+                            hoverlabel=dict(bgcolor="#18181b", bordercolor="rgba(255,255,255,0.1)", font=dict(color="#fff")),
                         )
                         if not is_sunburst:
                             layout_args.update(dict(
-                                xaxis=dict(showgrid=False, zeroline=False, showline=True, linecolor="#3f3f46",
-                                           gridcolor='rgba(255,255,255,0.05)', gridwidth=1, dtick="M1"),
-                                yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.05)", zeroline=False,
-                                           gridwidth=1, griddash='dot')
+                                xaxis=dict(showgrid=False, zeroline=False, showline=True, linecolor="rgba(255,255,255,0.1)",
+                                           gridcolor='rgba(255,255,255,0.05)', dtick="M1"),
+                                yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.03)", zeroline=False,
+                                           gridwidth=1)
                             ))
                         fig.update_layout(**layout_args)
                         # Modebar'ı (grafik üzerindeki butonları) gizle, sadece hoverda göster
@@ -1198,14 +1206,14 @@ def dashboard_modu():
                         n_pct = 100 - r_pct - f_pct
                         st.subheader("📊 Piyasa Derinliği")
                         st.markdown(f"""
-                        <div style="display:flex; width:100%; height:8px; border-radius:4px; overflow:hidden; margin-bottom:15px; background:#18181b;">
-                            <div style="width:{r_pct}%; background:#f87171; box-shadow: 0 0 10px rgba(248, 113, 113, 0.5);"></div>
+                        <div style="display:flex; width:100%; height:8px; border-radius:99px; overflow:hidden; margin-bottom:15px; background:rgba(255,255,255,0.05);">
+                            <div style="width:{r_pct}%; background:#ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);"></div>
                             <div style="width:{n_pct}%; background:transparent;"></div>
-                            <div style="width:{f_pct}%; background:#4ade80; box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);"></div>
+                            <div style="width:{f_pct}%; background:#10b981; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);"></div>
                         </div>
                         <div style="display:flex; justify-content:space-between; font-size:11px; color:#a1a1aa; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">
-                            <span style="color:#f87171">▲ {rising} Ürün Artışta</span>
-                            <span style="color:#4ade80">▼ {falling} Ürün Düşüşte</span>
+                            <span style="color:#ef4444">▲ {rising} Ürün Artışta</span>
+                            <span style="color:#10b981">▼ {falling} Ürün Düşüşte</span>
                         </div>
                         """, unsafe_allow_html=True)
 
@@ -1229,7 +1237,7 @@ def dashboard_modu():
                             x=df_sektor_katki['Grup'], textposition="outside",
                             text=df_sektor_katki['Katki_Puan'].apply(lambda x: f"{x:.2f}"),
                             y=df_sektor_katki['Katki_Puan'], connector={"line": {"color": "#52525b"}},
-                            decreasing={"marker": {"color": "#22c55e", "line": {"width": 0}}},
+                            decreasing={"marker": {"color": "#10b981", "line": {"width": 0}}},
                             increasing={"marker": {"color": "#ef4444", "line": {"width": 0}}},
                             totals={"marker": {"color": "#f8fafc"}}
                         ))
@@ -1300,7 +1308,7 @@ def dashboard_modu():
         except Exception as e:
             st.error(f"Sistem Hatası: {e}")
     st.markdown(
-        '<div style="text-align:center; color:#52525b; font-size:11px; margin-top:50px;">VALIDASYON MUDURLUGU © 2026 - CONFIDENTIAL</div>',
+        '<div style="text-align:center; color:#52525b; font-size:11px; margin-top:50px; opacity:0.6;">VALIDASYON MUDURLUGU © 2026 - CONFIDENTIAL</div>',
         unsafe_allow_html=True)
 
 
