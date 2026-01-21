@@ -744,20 +744,24 @@ Hesaplanan veriler, fiyat istikrarında henüz tam bir dengelenme (konsolidasyon
     return text.strip()
 
 
-# --- 8. DASHBOARD MODU ---
-# --- 8. DASHBOARD MODU (GÜNCELLENMİŞ: ZAMAN MAKİNESİ) ---
+# --- 8. DASHBOARD MODU (GÜNCELLENMİŞ: TARİH FİLTRESİ + RENK DÜZENİ) ---
 def dashboard_modu():
     # 1. VERİYİ ÖNCE YÜKLE (Sidebar için tarih listesi lazım)
     df_f = github_excel_oku(FIYAT_DOSYASI)
     df_s = github_excel_oku(EXCEL_DOSYASI, SAYFA_ADI)
     
-    # Tarihleri Hazırla
+    # Tarihleri Hazırla ve FİLTRELE (2026-01-02 ve sonrası)
     if not df_f.empty:
         df_f['Tarih_DT'] = pd.to_datetime(df_f['Tarih'], errors='coerce')
         df_f = df_f.dropna(subset=['Tarih_DT']).sort_values('Tarih_DT')
         df_f['Tarih_Str'] = df_f['Tarih_DT'].dt.strftime('%Y-%m-%d')
-        # Mevcut tüm tarihleri tersten sırala (En yeni en üstte)
-        tum_tarihler = sorted(df_f['Tarih_Str'].unique().tolist(), reverse=True)
+        
+        # TÜM MEVCUT TARİHLERİ AL
+        raw_dates = df_f['Tarih_Str'].unique().tolist()
+        
+        # FİLTRE: Sadece 2026-01-02 ve sonrasını listeye ekle
+        BASLANGIC_LIMITI = "2026-01-02"
+        tum_tarihler = sorted([d for d in raw_dates if d >= BASLANGIC_LIMITI], reverse=True)
     else:
         tum_tarihler = []
 
@@ -778,26 +782,31 @@ def dashboard_modu():
         st.markdown("---")
         
         # --- ZAMAN MAKİNESİ ---
-        st.markdown("### ⏳ Zaman Makinesi")
+        # Başlık Rengi: Parlak Beyaz/Gri (#e4e4e7)
+        st.markdown("<h3 style='color: #e4e4e7; font-size: 16px; font-weight: 600; margin-bottom: 10px;'>⏳ Zaman Makinesi</h3>", unsafe_allow_html=True)
+        
         if tum_tarihler:
             secilen_tarih = st.selectbox(
                 "Geçmiş bir tarihe git:",
                 options=tum_tarihler,
-                index=0, # Varsayılan olarak en son tarih
-                help="Seçtiğiniz tarihe geri dönerek o günkü piyasa koşullarını ve raporları görüntüler."
+                index=0, # Varsayılan olarak en son tarih (filtrelenmiş listenin en yenisi)
+                label_visibility="collapsed" # Başlığı yukarıda özel yazdığımız için buradakini gizliyoruz
             )
             
-            # Zaman makinesi aktifse görsel uyarı
+            # Zaman makinesi aktifse görsel uyarı (En güncel tarih değilse)
             if secilen_tarih != tum_tarihler[0]:
                 st.warning(f"⚠️ Şu an {secilen_tarih} tarihli arşiv kaydını inceliyorsunuz.")
         else:
             secilen_tarih = None
-            st.error("Veri bulunamadı.")
+            if not df_f.empty:
+                st.warning("2026-01-02 tarihinden sonrasına ait veri henüz oluşmadı.")
+            else:
+                st.error("Veri bulunamadı.")
 
         st.markdown("---")
 
-        # PIYASA VERİLERİ (BIST ÖZETİ KALDIRILDI, SADECE DÖVİZ KALDI)
-        st.markdown("### 🌍 Piyasa Verileri")
+        # PIYASA VERİLERİ
+        st.markdown("<h3 style='color: #e4e4e7; font-size: 16px; font-weight: 600; margin-bottom: 10px;'>🌍 Piyasa Verileri</h3>", unsafe_allow_html=True)
         tv_theme = "dark"
         symbols = [
             {"s": "FX_IDC:USDTRY", "d": "Dolar / TL"},
@@ -924,11 +933,20 @@ def dashboard_modu():
                 tum_gunler_sirali = sorted([c for c in pivot.columns if c != 'Kod'])
                 
                 # Seçilen tarihe kadar olan günleri al
-                if secilen_tarih in tum_gunler_sirali:
+                if secilen_tarih and secilen_tarih in tum_gunler_sirali:
                     idx = tum_gunler_sirali.index(secilen_tarih)
                     gunler = tum_gunler_sirali[:idx+1] # Baştan seçilen güne kadar (dahil)
                 else:
-                    gunler = tum_gunler_sirali # Hata olursa hepsi
+                    # Seçim yoksa veya liste boşsa, en son veriyi göster ama filtreye uy
+                    if tum_tarihler:
+                        son_tarih = tum_tarihler[0]
+                        if son_tarih in tum_gunler_sirali:
+                             idx = tum_gunler_sirali.index(son_tarih)
+                             gunler = tum_gunler_sirali[:idx+1]
+                        else:
+                             gunler = tum_gunler_sirali
+                    else:
+                        gunler = tum_gunler_sirali 
 
                 if not gunler:
                     st.error("Seçilen tarih için veri oluşturulamadı.")
@@ -1328,6 +1346,7 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
+
 
 
 
