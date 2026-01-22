@@ -1072,7 +1072,7 @@ def dashboard_modu():
                             elif fark < 0:
                                 badge_cls = "pg-green"; symbol = "▼"
                             else:
-                                badge_cls = "pg-gray"; symbol = "-"
+                                badge_cls = "pg-yellow"; symbol = "-"
 
                             card_html = f"""<div class="pg-card"><div class="pg-name">{html.escape(str(row[ad_col]))}</div><div class="pg-price">{fiyat:.2f} ₺</div><div class="pg-badge {badge_cls}">{symbol} %{fark:.2f}</div></div>"""
                             with cols[idx % 4]:
@@ -1209,4 +1209,5 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
+
 
