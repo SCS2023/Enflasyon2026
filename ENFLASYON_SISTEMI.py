@@ -1,5 +1,5 @@
-# ÖNCE BU KÜTÜPHANEYİ KURMALISINIZ:
-# pip install streamlit-lottie
+# GEREKLİ KÜTÜPHANELER:
+# pip install streamlit-lottie python-docx
 
 import streamlit as st
 import pandas as pd
@@ -17,7 +17,6 @@ import zipfile
 import base64
 import requests
 from prophet import Prophet
-from fpdf import FPDF
 import streamlit.components.v1 as components
 import tempfile
 import os
@@ -26,11 +25,18 @@ import random
 import html
 import numpy as np
 
-# --- YENİ KÜTÜPHANE ---
+# --- YENİ KÜTÜPHANELER ---
 try:
     from streamlit_lottie import st_lottie
 except ImportError:
     st.error("Lütfen 'pip install streamlit-lottie' komutunu çalıştırın.")
+
+try:
+    from docx import Document
+    from docx.shared import Pt, RGBColor, Inches
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+except ImportError:
+    st.error("Lütfen 'pip install python-docx' komutunu çalıştırın.")
 
 # --- 1. AYARLAR VE TEMA YÖNETİMİ ---
 st.set_page_config(
@@ -61,7 +67,7 @@ def apply_theme():
             --card-radius: 16px;
         }}
 
-        /* --- ANA ARKA PLAN (AURORA EFFECT) --- */
+        /* --- ANA ARKA PLAN --- */
         [data-testid="stAppViewContainer"] {{
             background-color: var(--bg-deep);
             background-image: 
@@ -84,7 +90,7 @@ def apply_theme():
             backdrop-filter: blur(20px);
         }}
         
-        /* --- INPUT VE SELECTBOX (MODERN) --- */
+        /* --- INPUT VE SELECTBOX --- */
         .stSelectbox > div > div, .stTextInput > div > div {{
             background-color: rgba(255, 255, 255, 0.03) !important;
             border: 1px solid var(--glass-border) !important;
@@ -233,228 +239,56 @@ def load_lottieurl(url: str):
     except:
         return None
 
-# --- 3. PDF MOTORU ---
-class PDFReport(FPDF):
-    def __init__(self):
-        super().__init__()
-        self.font_family = 'Arial'
-        self.tr_active = False
-        self.c_sari = (253, 185, 19)
-        self.c_lacivert = (0, 40, 85)
-        self.c_koyu = (30, 30, 30)
-        self.c_gri = (100, 100, 100)
-        self.font_path = 'Roboto-Regular.ttf'
-        self.font_bold_path = 'Roboto-Bold.ttf'
-        if self._ensure_fonts_exist():
-            try:
-                self.add_font('Roboto', '', self.font_path, uni=True)
-                self.add_font('Roboto', 'B', self.font_bold_path, uni=True)
-                self.font_family = 'Roboto'
-                self.tr_active = True
-            except Exception as e:
-                print(f"Font yükleme hatası: {e}")
-                self.tr_active = False
+# --- 3. WORD MOTORU (GÜNCELLENDİ) ---
+def create_word_report(text_content, tarih):
+    doc = Document()
+    
+    # Başlık Stili
+    style = doc.styles['Normal']
+    font = style.font
+    font.name = 'Arial'
+    font.size = Pt(11)
 
-    def _ensure_fonts_exist(self):
-        if os.path.exists(self.font_path) and os.path.exists(self.font_bold_path): return True
-        try:
-            headers = {'User-Agent': 'Mozilla/5.0'}
-            url_reg = "https://github.com/google/fonts/raw/main/apache/roboto/Roboto-Regular.ttf"
-            url_bold = "https://github.com/google/fonts/raw/main/apache/roboto/Roboto-Bold.ttf"
-            r1 = requests.get(url_reg, headers=headers, timeout=10);
-            with open(self.font_path, 'wb') as f:
-                f.write(r1.content)
-            r2 = requests.get(url_bold, headers=headers, timeout=10)
-            with open(self.font_bold_path, 'wb') as f:
-                f.write(r2.content)
-            return True
-        except:
-            return False
+    # Ana Başlık
+    head = doc.add_heading(f'PİYASA GÖRÜNÜM RAPORU', 0)
+    head.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    # Tarih
+    subhead = doc.add_paragraph(f'Rapor Tarihi: {tarih}')
+    subhead.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    doc.add_paragraph("") # Boşluk
 
-    def fix_text(self, text):
-        if text is None: return ""
-        text = str(text)
-        if self.tr_active: return text
-        tr_map = {'Ğ': 'G', 'ğ': 'g', 'Ş': 'S', 'ş': 's', 'İ': 'I', 'ı': 'i', 'Ö': 'O', 'ö': 'o', 'Ü': 'U', 'ü': 'u',
-                  'Ç': 'C', 'ç': 'c'}
-        for k, v in tr_map.items(): text = text.replace(k, v)
-        return text.encode('latin-1', 'replace').decode('latin-1')
+    # Metni Paragraflara Böl ve İşle
+    # Markdown stili **bold** ları Word bold'a çevirir
+    paragraphs = text_content.split('\n')
+    
+    for p_text in paragraphs:
+        if not p_text.strip(): 
+            continue
+            
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        
+        # Basit Markdown Parser (** işaretine göre)
+        parts = p_text.split('**')
+        for i, part in enumerate(parts):
+            run = p.add_run(part)
+            if i % 2 == 1: # Tek sayılar ** arasındaki kısımlardır
+                run.bold = True
+                run.font.color.rgb = RGBColor(0, 50, 100) # Koyu Lacivert
 
-    def header(self):
-        if self.page_no() > 1:
-            self.set_font(self.font_family, 'B', 10)
-            self.set_text_color(*self.c_koyu)
-            self.cell(0, 10, self.fix_text("ENFLASYON MONİTÖRÜ"), 0, 0, 'L')
-            self.set_font(self.font_family, '', 8)
-            self.set_text_color(*self.c_gri)
-            self.cell(0, 10, self.fix_text(f'Rapor Tarihi: {datetime.now().strftime("%d.%m.%Y")}'), 0, 1, 'R')
-            self.set_draw_color(*self.c_sari)
-            self.set_line_width(0.8)
-            self.line(10, 20, 200, 20)
-            self.ln(5)
+    # Footer Ekle
+    section = doc.sections[0]
+    footer = section.footer
+    p_foot = footer.paragraphs[0]
+    p_foot.text = "Validasyon Müdürlüğü © 2026 - Gizli Belge"
+    p_foot.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-    def footer(self):
-        self.set_y(-15)
-        self.set_font(self.font_family, '', 8)
-        self.set_text_color(*self.c_gri)
-        self.cell(0, 10, self.fix_text(f'Sayfa {self.page_no()}'), 0, 0, 'C')
-
-    def chapter_title(self, label):
-        self.ln(5)
-        self.set_font(self.font_family, 'B', 14)
-        self.set_text_color(*self.c_koyu)
-        self.cell(0, 10, self.fix_text(str(label)), 0, 1, 'L')
-        self.set_draw_color(*self.c_sari)
-        self.set_line_width(1.5)
-        self.line(self.get_x(), self.get_y(), self.get_x() + 190, self.get_y())
-        self.ln(10)
-
-    def create_kpi_summary(self, enf_genel, enf_gida, en_yuksek_urun):
-        self.ln(5)
-        self.set_font(self.font_family, 'B', 10)
-        self.set_fill_color(*self.c_sari)
-        self.rect(self.get_x(), self.get_y(), 60, 25, 'F')
-        self.set_text_color(*self.c_lacivert)
-        self.cell(60, 5, self.fix_text("AYLIK ENFLASYON"), 0, 2, 'C')
-        self.set_font(self.font_family, 'B', 16)
-        self.cell(60, 10, self.fix_text(f"%{enf_genel:.2f}"), 0, 0, 'C')
-
-        self.set_xy(self.get_x() + 5, self.get_y() - 15)
-        self.set_fill_color(*self.c_lacivert)
-        self.rect(self.get_x(), self.get_y(), 60, 25, 'F')
-        self.set_text_color(255, 255, 255)
-        self.set_font(self.font_family, 'B', 10)
-        self.cell(60, 5, self.fix_text("GIDA ENFLASYONU"), 0, 2, 'C')
-        self.set_font(self.font_family, 'B', 16)
-        self.cell(60, 10, self.fix_text(f"%{enf_gida:.2f}"), 0, 0, 'C')
-
-        self.set_xy(self.get_x() + 5, self.get_y() - 15)
-        self.set_fill_color(240, 240, 240)
-        self.rect(self.get_x(), self.get_y(), 60, 25, 'F')
-        self.set_text_color(*self.c_koyu)
-        self.set_font(self.font_family, 'B', 10)
-        self.cell(60, 5, self.fix_text("EN YÜKSEK ARTIŞ"), 0, 2, 'C')
-        self.set_font(self.font_family, 'B', 11)
-        self.cell(60, 10, self.fix_text(str(en_yuksek_urun)[:15]), 0, 0, 'C')
-        self.ln(25)
-
-    def write_markdown(self, text):
-        if not text: return
-        self.set_text_color(50, 50, 50)
-        self.set_font(self.font_family, '', 11)
-        self.lines = str(text).split('\n')
-        for line in self.lines:
-            line = self.fix_text(line)
-            if any(x in line for x in
-                   ["Saygilarimizla", "[Basekonomist", "[Kurum", "Unvani]", "Basekonomist Ofisi"]): continue
-            if not line.strip(): self.ln(5); continue
-            parts = line.split('**')
-            for i, part in enumerate(parts):
-                if i % 2 == 1:
-                    self.set_font(self.font_family, 'B', 11)
-                else:
-                    self.set_font(self.font_family, '', 11)
-                self.write(6, part)
-            self.ln(6)
-
-    def create_cover(self, date_str, rate_val):
-        self.add_page()
-        self.set_fill_color(*self.c_sari)
-        self.rect(0, 0, 210, 297, 'F')
-        self.set_fill_color(255, 255, 255)
-        self.rect(20, 40, 170, 200, 'F')
-        self.set_y(60)
-        self.set_font(self.font_family, 'B', 28)
-        self.set_text_color(*self.c_koyu)
-        self.cell(0, 15, self.fix_text("PİYASA & ENFLASYON"), 0, 1, 'C')
-        self.cell(0, 15, self.fix_text("RAPORU"), 0, 1, 'C')
-        self.ln(25)
-        self.set_font(self.font_family, 'B', 70)
-        self.set_text_color(*self.c_koyu)
-        self.cell(0, 30, self.fix_text(f"%{rate_val}"), 0, 1, 'C')
-        self.set_font(self.font_family, 'B', 14)
-        self.set_text_color(100, 100, 100)
-        self.cell(0, 15, self.fix_text("YIL İÇİ KÜMÜLATİF GÖSTERGE"), 0, 1, 'C')
-        self.ln(30)
-        self.set_font(self.font_family, '', 12)
-        self.set_text_color(*self.c_koyu)
-        self.aciklama = f"Bu rapor, {date_str} dönemi için piyasa analiz sistemi tarafından oluşturulmuştur."
-        self.set_x(40)
-        self.multi_cell(130, 6, self.fix_text(self.aciklama), 0, 'C')
-
-    def add_plot_image(self, plot_bytes, title="Grafik", force_new_page=False):
-        if plot_bytes:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-                tmpfile.write(plot_bytes);
-                path = tmpfile.name
-            if force_new_page or self.get_y() > 200:
-                self.add_page()
-            else:
-                self.ln(5)
-            self.set_font(self.font_family, 'B', 11)
-            self.set_text_color(*self.c_lacivert)
-            self.cell(0, 8, self.fix_text(f"» {title}"), 0, 1, 'L')
-            try:
-                self.image(path, x=10, w=190)
-            except:
-                pass
-            self.ln(10)
-            try:
-                os.unlink(path)
-            except:
-                pass
-
-
-def create_pdf_report_advanced(text_content, df_table, figures, manset_oran, metrics_dict, date_str_ignored):
-    pdf = PDFReport()
-    aylar = {1: "Ocak", 2: "Şubat", 3: "Mart", 4: "Nisan", 5: "Mayıs", 6: "Haziran",
-             7: "Temmuz", 8: "Ağustos", 9: "Eylül", 10: "Ekim", 11: "Kasım", 12: "Aralık"}
-    simdi = datetime.now()
-    tr_tarih = f"{aylar[simdi.month]} {simdi.year}"
-    pdf.create_cover(tr_tarih, f"{manset_oran:.2f}")
-    pdf.add_page()
-    pdf.chapter_title("PİYASA GENEL GÖRÜNÜMÜ")
-    if metrics_dict:
-        pdf.create_kpi_summary(metrics_dict.get('genel', 0), metrics_dict.get('gida', 0),
-                               metrics_dict.get('top_urun', 'Yok'))
-    if figures:
-        keys = list(figures.keys())
-        if len(keys) > 0:
-            trend_title = keys[0]
-            try:
-                img = figures[trend_title].to_image(format="png", width=1600, height=700, scale=2)
-                pdf.add_plot_image(img, title=trend_title)
-            except:
-                pass
-    pdf.add_page()
-    pdf.chapter_title("STRATEJİK ANALİZ VE DETAYLI GÖRÜNÜM")
-    pdf.write_markdown(text_content)
-    pdf.ln(10)
-    if figures and len(keys) > 1:
-        hist_title = keys[1]
-        try:
-            img = figures[hist_title].to_image(format="png", width=1600, height=700, scale=2)
-            force_page = True if pdf.get_y() > 180 else False
-            pdf.add_plot_image(img, title=hist_title, force_new_page=force_page)
-        except:
-            pass
-    pdf.ln(15)
-    if pdf.get_y() > 240: pdf.add_page()
-    pdf.set_font(pdf.font_family, 'B', 12)
-    pdf.set_text_color(*pdf.c_koyu)
-    pdf.cell(0, 6, pdf.fix_text("Saygilarimizla,"), 0, 1, 'R')
-    pdf.cell(0, 6, pdf.fix_text("VALIDASYON MUDURLUGU"), 0, 1, 'R')
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        pdf.output(tmp.name)
-        tmp.close()
-        with open(tmp.name, "rb") as f:
-            pdf_bytes = f.read()
-        try:
-            os.unlink(tmp.name)
-        except:
-            pass
-    return pdf_bytes
-
+    # IO Kaydı
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    return buffer
 
 # --- 4. GITHUB İŞLEMLERİ ---
 def get_github_repo():
@@ -1329,43 +1163,42 @@ def dashboard_modu():
 
                 with t_rapor:
                     st.markdown("### 📝 Stratejik Görünüm Raporu")
-                    st.info("Bu rapor, seçilen tarihteki veriler kullanılarak oluşturulur.")
-                    if st.button("🚀 DETAYLI RAPORU HAZIRLA (PDF)", type="primary"):
-                        with st.spinner("Rapor oluşturuluyor..."):
-                            en_cok_artan_row = df_analiz.sort_values('Fark', ascending=False).iloc[0]
-                            rap_text = generate_detailed_static_report(df_analiz=df_analiz, tarih=son,
-                                                                       enf_genel=enf_genel, enf_gida=enf_gida,
-                                                                       gun_farki=gun_farki, tahmin=month_end_forecast,
-                                                                       ad_col=ad_col, agirlik_col=agirlik_col)
-                            fig_katki_pdf = go.Figure(
-                                go.Bar(x=df_sektor_katki['Katki_Puan'], y=df_sektor_katki['Grup'], orientation='h',
-                                       marker=dict(color='#0f172a')))
-                            fig_katki_pdf.update_layout(title="Sektörel Katkı")
-                            style_chart(fig_katki_pdf, is_pdf=True)
+                    
+                    # Rapor Metni Oluştur
+                    rap_text = generate_detailed_static_report(df_analiz=df_analiz, tarih=son,
+                                                               enf_genel=enf_genel, enf_gida=enf_gida,
+                                                               gun_farki=gun_farki, tahmin=month_end_forecast,
+                                                               ad_col=ad_col, agirlik_col=agirlik_col)
+                    
+                    # 1. EKRANDA GÖSTERİM (ŞIK KUTU)
+                    st.markdown(f"""
+                    <div style="
+                        background: rgba(255,255,255,0.03); 
+                        padding: 30px; 
+                        border-radius: 12px; 
+                        border: 1px solid rgba(255,255,255,0.08); 
+                        color: #e4e4e7; 
+                        line-height: 1.8; 
+                        font-family: 'Inter', sans-serif;
+                        font-size: 15px;
+                        box-shadow: inset 0 2px 10px rgba(0,0,0,0.2);">
+                        {rap_text.replace(chr(10), '<br>').replace('**', '<b>').replace('**', '</b>')}
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    st.markdown("<br>", unsafe_allow_html=True)
 
-                            top_n = 7
-                            df_uclar = pd.concat([df_analiz.sort_values('Fark', ascending=True).head(top_n),
-                                                  df_analiz.sort_values('Fark', ascending=False).head(
-                                                      top_n)]).sort_values('Fark', ascending=True)
-                            df_uclar['Renk'] = df_uclar['Fark'].apply(lambda x: '#dc2626' if x > 0 else '#16a34a')
-                            fig_uclar = go.Figure(go.Bar(x=df_uclar['Fark'] * 100, y=df_uclar[ad_col], orientation='h',
-                                                         marker=dict(color=df_uclar['Renk']),
-                                                         text=(df_uclar['Fark'] * 100).apply(lambda x: f"%{x:+.2f}"),
-                                                         textposition='outside'))
-                            fig_uclar.update_layout(title=f"Uç Noktalar")
-                            style_chart(fig_uclar, is_pdf=True)
-
-                            figs = {"Enflasyonun Sektörel Kaynakları": fig_katki_pdf,
-                                    "Fiyat Hareketlerinde Uç Noktalar": fig_uclar}
-                            metrics = {'genel': enf_genel, 'gida': enf_gida, 'top_urun': en_cok_artan_row[ad_col]}
-                            pdf_data = create_pdf_report_advanced(text_content=rap_text,
-                                                                  df_table=df_analiz.sort_values('Fark',
-                                                                                                 ascending=False).head(
-                                                                      20), figures=figs, manset_oran=enf_genel,
-                                                                  metrics_dict=metrics, date_str_ignored="-")
-                            st.success("✅ Rapor Hazırlandı!")
-                            st.download_button("📥 PDF Raporunu İndir", data=pdf_data,
-                                               file_name=f"Strateji_Raporu_{son}.pdf", mime="application/pdf")
+                    # 2. WORD İNDİRME BUTONU
+                    c_dl1, c_dl2 = st.columns([1, 4])
+                    with c_dl1:
+                        word_buffer = create_word_report(rap_text, son)
+                        st.download_button(
+                            label="📥 Raporu Word Olarak İndir (.docx)",
+                            data=word_buffer,
+                            file_name=f"Strateji_Raporu_{son}.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            type="primary"
+                        )
 
         except Exception as e:
             st.error(f"Sistem Hatası: {e}")
