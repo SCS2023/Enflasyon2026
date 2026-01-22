@@ -17,7 +17,6 @@ import zipfile
 import base64
 import requests
 from prophet import Prophet
-from prophet.plot import plot_components_plotly 
 import streamlit.components.v1 as components
 import tempfile
 import os
@@ -400,11 +399,10 @@ def predict_inflation_prophet(df_trend):
         m.fit(df_p)
         future = m.make_future_dataframe(periods=90)
         forecast = m.predict(future)
-        # HATA DUZELTMESI: trend_upper gibi sütunların eksik gitmemesi için tüm forecast'i döndürüyoruz.
-        return m, forecast 
+        return forecast 
     except Exception as e:
-        st.error(f"Prophet Hatası: {str(e)}")
-        return None, pd.DataFrame()
+        # Hata durumunda boş dataframe dön
+        return pd.DataFrame()
 
 
 # --- 6. SCRAPER ---
@@ -817,8 +815,9 @@ def dashboard_modu():
 
                 df_analiz['Aylik_Ortalama'] = df_analiz[bu_ay_cols].apply(geometrik_ortalama_hesapla, axis=1)
                 
-                # Volatilite Hesaplama
-                df_analiz['Volatilite'] = df_analiz[gunler].std(axis=1)
+                # MA_3 hesaplama (Anomali için)
+                if len(gunler) >= 3:
+                     df_analiz['MA_3'] = df_analiz[gunler[-3:]].mean(axis=1)
 
                 gecerli_veri = df_analiz.dropna(subset=['Aylik_Ortalama', baz_col]).copy()
                 enf_genel = 0.0
@@ -895,8 +894,8 @@ def dashboard_modu():
                 df_analiz['Min_Fiyat'] = df_analiz[gunler].min(axis=1)
 
                 with st.spinner(f"{header_date} tarihi için modeller çalıştırılıyor..."):
-                    # Prophet modelini ve tüm veriyi alıyoruz
-                    prophet_model, df_forecast = predict_inflation_prophet(df_trend)
+                    # Prophet Tahmini
+                    df_forecast = predict_inflation_prophet(df_trend)
 
                 target_jan_end = pd.Timestamp(dt_son.year, dt_son.month,
                                                 calendar.monthrange(dt_son.year, dt_son.month)[1])
@@ -917,9 +916,8 @@ def dashboard_modu():
                     df_analiz['Gunluk_Degisim'] = (df_analiz[son] / df_analiz[onceki_gun]) - 1
                     gun_farki = (dt_son - datetime.strptime(baz_col, '%Y-%m-%d')).days
                     
-                    # Anomali Tespiti (Son fiyat > 3 günlük ortalama * 1.10)
-                    if len(gunler) >= 3:
-                        df_analiz['MA_3'] = df_analiz[gunler[-3:]].mean(axis=1)
+                    # Anomali Tespiti
+                    if 'MA_3' in df_analiz.columns:
                         anomaliler = df_analiz[df_analiz[son] > df_analiz['MA_3'] * 1.10]
                     else:
                         anomaliler = pd.DataFrame()
@@ -1058,27 +1056,11 @@ def dashboard_modu():
                         fig.update_layout(modebar=dict(bgcolor='rgba(0,0,0,0)', color='#71717a', activecolor='#fff'))
                     return fig
                 
-                # Heatmap Fonksiyonu
-                def plot_correlation_heatmap(df_pivot):
-                    try:
-                        corr_matrix = df_pivot.iloc[:, 1:].T.corr() 
-                        selected_indices = corr_matrix.index[:15] 
-                        corr_small = corr_matrix.loc[selected_indices, selected_indices]
-                        
-                        fig = px.imshow(corr_small,
-                                        text_auto=False,
-                                        aspect="auto",
-                                        color_continuous_scale='RdBu_r',
-                                        title="Ürün Fiyat Hareketleri Korelasyon Matrisi")
-                        return fig
-                    except:
-                        return None
-
                 df_analiz['Fark_Yuzde'] = df_analiz['Fark'] * 100
                 
-                # Simülasyon sekmesi KALDIRILDI
-                t_sektor, t_ozet, t_analitik, t_veri, t_rapor = st.tabs(
-                    ["📂 KATEGORİ DETAY", "📊 PİYASA ÖZETİ", "📈 ANALİTİK", "📋 TAM LİSTE", "📝 RAPORLAMA"])
+                # Sekmeler (Analitik ve Simülasyon Kaldırıldı)
+                t_sektor, t_ozet, t_veri, t_rapor = st.tabs(
+                    ["📂 KATEGORİ DETAY", "📊 PİYASA ÖZETİ", "📋 TAM LİSTE", "📝 RAPORLAMA"])
 
                 with t_sektor:
                     st.markdown("### 🔍 Detaylı Fiyat Analizi")
@@ -1164,40 +1146,6 @@ def dashboard_modu():
                             totals={"marker": {"color": "#f8fafc"}}
                         ))
                         st.plotly_chart(style_chart(fig_water), use_container_width=True)
-                
-                # ANALİTİK SEKME İÇERİĞİ
-                with t_analitik:
-                    col_a1, col_a2 = st.columns(2)
-                    with col_a1:
-                        st.markdown("### 🌪️ Volatilite (Risk) Analizi")
-                        st.caption("Fiyatı en kararsız (sürekli değişen) ürünler")
-                        top_risky = df_analiz.sort_values('Volatilite', ascending=False).head(10)
-                        fig_risk = px.bar(top_risky, x=ad_col, y='Volatilite', 
-                                          color='Volatilite', color_continuous_scale='Oranges')
-                        st.plotly_chart(style_chart(fig_risk), use_container_width=True)
-                    
-                    with col_a2:
-                        st.markdown("### 🔗 Fiyat Korelasyonları")
-                        st.caption("Ürünlerin fiyat hareketleri arasındaki ilişki")
-                        fig_corr = plot_correlation_heatmap(pivot)
-                        if fig_corr:
-                            st.plotly_chart(style_chart(fig_corr), use_container_width=True)
-                        else:
-                            st.info("Korelasyon için yeterli veri yok.")
-
-                    st.markdown("---")
-                    st.markdown("### 🧠 Prophet Model Bileşenleri")
-                    st.caption("Enflasyonun Trend vs Mevsimsellik Ayrımı")
-                    if prophet_model is not None and not df_forecast.empty:
-                         try:
-                             # Plotly componentlerini çiz
-                             fig_comp = plot_components_plotly(prophet_model, df_forecast)
-                             fig_comp.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-                             st.plotly_chart(fig_comp, use_container_width=True)
-                         except Exception as e:
-                             st.warning(f"Bileşenler çizilemedi: {e}")
-                
-                # SİMÜLASYON SEKMESİ KALDIRILDI
 
                 with t_veri:
                     st.markdown("### 📋 Veri Seti")
