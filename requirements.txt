@@ -6,5 +6,6 @@ PyGithub
 requests
 prophet
 fpdf
-numpy
-worldcloud
+matplotlib
+wordcloud
+openpyxl
