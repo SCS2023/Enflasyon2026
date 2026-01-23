@@ -12,3 +12,4 @@ openpyxl
 scipy
 streamlit-lottie
 python-docx
+xlsxwriter
