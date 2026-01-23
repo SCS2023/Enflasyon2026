@@ -671,7 +671,7 @@ def dashboard_modu():
 
         st.markdown("---")
         
-        st.markdown("<h3 style='color: #e4e4e7; font-size: 14px; font-weight: 600; text-transform:uppercase; letter-spacing:1px; margin-bottom: 15px;'>⏳ Zaman Makinesi</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #e4e4e7; font-size: 14px; font-weight: 600; text-transform:uppercase; letter-spacing:1px; margin-bottom: 15px;'>⏳ Geçmiş Veri</h3>", unsafe_allow_html=True)
         
         # Değişken kontrolü (NameError önlemi)
         if 'tum_tarihler' not in locals(): tum_tarihler = []
@@ -1441,4 +1441,5 @@ def dashboard_modu():
         
 if __name__ == "__main__":
     dashboard_modu()
+
 
