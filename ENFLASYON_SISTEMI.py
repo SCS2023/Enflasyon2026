@@ -51,7 +51,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- CSS MOTORU (ULTRA PREMIUM FINTECH THEME - SHOW EDITION V2.3) ---
+# --- CSS MOTORU (ULTRA PREMIUM FINTECH THEME - SHOW EDITION V2.4) ---
 def apply_theme():
     st.session_state.plotly_template = "plotly_dark"
 
@@ -72,7 +72,7 @@ def apply_theme():
             --card-radius: 16px;
         }}
 
-        /* --- LABEL RENKLERİ (BEYAZ - KORUNDU) --- */
+        /* --- LABEL RENKLERİ (BEYAZ) --- */
         .stSelectbox label p, .stTextInput label p {{
             color: #ffffff !important;
             font-weight: 700 !important;
@@ -1093,13 +1093,12 @@ def dashboard_modu():
                     df_analiz['Gunluk_Degisim'] = (df_analiz[son] / df_analiz[onceki_gun]) - 1
                     gun_farki = (dt_son - datetime.strptime(baz_col, '%Y-%m-%d')).days
                     
-                    # Anomali Tespiti
-                    if ma3_baslik in df_analiz.columns:
-                        anomaliler = df_analiz[df_analiz[son] > df_analiz[ma3_baslik] * 1.10].copy()
-                        anomaliler[ma3_baslik] = anomaliler[ma3_baslik].astype(float)
-                        anomaliler['Gunluk_Degisim'] = anomaliler['Gunluk_Degisim'].astype(float)
-                    else:
-                        anomaliler = pd.DataFrame()
+                    # Anomali Tespiti (YENİ MANTIK)
+                    # "Bir önceki güne göre bugün fazla artanlar"
+                    # Günlük artışı %3'ten (0.03) fazla olanları "Şok" olarak işaretliyoruz.
+                    anomaliler = df_analiz[df_analiz['Gunluk_Degisim'] > 0.03].copy()
+                    # En yüksek artıştan aza doğru sırala
+                    anomaliler = anomaliler.sort_values('Gunluk_Degisim', ascending=False)
                 else:
                     df_analiz['Gunluk_Degisim'] = 0
                     gun_farki = 0
@@ -1167,16 +1166,16 @@ def dashboard_modu():
                 
                 # Anomali Uyarısı
                 if not anomaliler.empty:
-                    st.error(f"⚠️ DİKKAT: Piyasadaki {len(anomaliler)} üründe ani fiyat şoku tespit edildi!")
+                    st.error(f"⚠️ DİKKAT: Piyasadaki {len(anomaliler)} üründe ani fiyat artışı (Şok) tespit edildi!")
                     with st.expander("Şok Yaşanan Ürünleri İncele"):
                         # Dataframe gösterirken 4 hane formatı uygula
                         st.data_editor(
-                            anomaliler[[ad_col, son, ma3_baslik, 'Gunluk_Degisim']],
+                            anomaliler[[ad_col, onceki_gun, son, 'Gunluk_Degisim']],
                             column_config={
                                 ad_col: "Ürün",
-                                son: st.column_config.NumberColumn(f"Fiyat ({son})", format="%.4f ₺"),
-                                ma3_baslik: st.column_config.NumberColumn(ma3_baslik, format="%.4f ₺"),
-                                "Gunluk_Degisim": st.column_config.NumberColumn("Şok Olan Üründeki Değişim", format="%.4f")
+                                onceki_gun: st.column_config.NumberColumn(f"Dünkü Fiyat ({onceki_gun})", format="%.4f ₺"),
+                                son: st.column_config.NumberColumn(f"Bugünkü Fiyat ({son})", format="%.4f ₺"),
+                                "Gunluk_Degisim": st.column_config.NumberColumn("Şok Olan Üründeki Değişim", format="%.2f%%")
                             },
                             hide_index=True,
                             use_container_width=True
