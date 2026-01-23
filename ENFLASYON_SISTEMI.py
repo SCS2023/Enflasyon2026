@@ -52,6 +52,7 @@ st.set_page_config(
 )
 
 # --- CSS MOTORU (ULTRA PREMIUM FINTECH THEME - SHOW EDITION V2) ---
+# --- CSS MOTORU (ULTRA PREMIUM FINTECH THEME - SHOW EDITION V2.1) ---
 def apply_theme():
     st.session_state.plotly_template = "plotly_dark"
 
@@ -72,7 +73,16 @@ def apply_theme():
             --card-radius: 16px;
         }}
 
-        /* --- BACKGROUND PARTICLES (YENİ) --- */
+        /* --- LABEL RENKLERİ (DÜZELTME - İSTEK ÜZERİNE BEYAZ YAPILDI) --- */
+        .stSelectbox label p, .stTextInput label p {{
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            font-size: 14px !important;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }}
+
+        /* --- BACKGROUND PARTICLES --- */
         [data-testid="stAppViewContainer"]::before {{
             content: "";
             position: fixed;
@@ -125,7 +135,7 @@ def apply_theme():
             color: var(--text-main) !important;
         }}
 
-        /* --- SCROLLBAR (YENİ) --- */
+        /* --- SCROLLBAR --- */
         ::-webkit-scrollbar {{ width: 8px; height: 8px; }}
         ::-webkit-scrollbar-track {{ background: #02040a; }}
         ::-webkit-scrollbar-thumb {{ background: #3b82f6; border-radius: 4px; }}
@@ -200,7 +210,7 @@ def apply_theme():
             transform: translateY(-1px);
         }}
 
-        /* --- KPI CARD DESIGN (NEON BORDER EKLENDİ) --- */
+        /* --- KPI CARD DESIGN --- */
         .kpi-card {{
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
             border: 1px solid var(--glass-border);
@@ -291,7 +301,7 @@ def apply_theme():
         .sc-title {{ font-size: 11px; color: #a1a1aa; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }}
         .sc-val {{ font-size: 20px; color: #fff; font-weight:700; display:flex; align-items:center; gap:8px; }}
         
-        /* --- SKELETON LOADER (YENİ) --- */
+        /* --- SKELETON LOADER --- */
         .skeleton {{
             background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
             background-size: 200% 100%;
@@ -302,7 +312,7 @@ def apply_theme():
     </style>
     """
     st.markdown(final_css, unsafe_allow_html=True)
-
+    
 apply_theme()
 
 # --- 2. GITHUB & VERİ MOTORU ---
@@ -1521,3 +1531,4 @@ def dashboard_modu():
         
 if __name__ == "__main__":
     dashboard_modu()
+
