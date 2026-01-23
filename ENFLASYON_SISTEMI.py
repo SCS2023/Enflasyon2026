@@ -219,7 +219,7 @@ def apply_theme():
         ::-webkit-scrollbar-thumb {{ background: rgba(255,255,255,0.1); border-radius: 4px; }}
         ::-webkit-scrollbar-thumb:hover {{ background: rgba(255,255,255,0.25); }}
         
-        /* --- YENİ: SMART SECTOR CARDS --- */
+        /* --- SMART SECTOR CARDS --- */
         .smart-card {{
             background: rgba(30, 30, 35, 0.6);
             border: 1px solid rgba(255,255,255,0.1);
@@ -232,7 +232,7 @@ def apply_theme():
         .sc-title {{ font-size: 11px; color: #a1a1aa; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }}
         .sc-val {{ font-size: 20px; color: #fff; font-weight:700; display:flex; align-items:center; gap:8px; }}
         
-        /* --- YENİ: SYSTEM STATUS --- */
+        /* --- SYSTEM STATUS --- */
         .sys-status {{
             background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05);
             border-radius: 8px; padding: 12px; margin-top: 20px; font-size: 11px; color: #71717a;
@@ -281,7 +281,6 @@ def create_word_report(text_content, tarih):
     doc.add_paragraph("") # Boşluk
 
     # Metni Paragraflara Böl ve İşle
-    # Markdown stili **bold** ları Word bold'a çevirir
     paragraphs = text_content.split('\n')
     
     for p_text in paragraphs:
@@ -291,13 +290,12 @@ def create_word_report(text_content, tarih):
         p = doc.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         
-        # Basit Markdown Parser (** işaretine göre)
         parts = p_text.split('**')
         for i, part in enumerate(parts):
             run = p.add_run(part)
-            if i % 2 == 1: # Tek sayılar ** arasındaki kısımlardır
+            if i % 2 == 1: 
                 run.bold = True
-                run.font.color.rgb = RGBColor(0, 50, 100) # Koyu Lacivert
+                run.font.color.rgb = RGBColor(0, 50, 100) 
 
     # Footer Ekle
     section = doc.sections[0]
@@ -423,7 +421,6 @@ def predict_inflation_prophet(df_trend):
         forecast = m.predict(future)
         return forecast 
     except Exception as e:
-        # Hata durumunda boş dataframe dön
         return pd.DataFrame()
 
 
@@ -678,7 +675,7 @@ def dashboard_modu():
         components.html(f'<div style="display:flex; flex-direction:column; overflow:hidden;">{widgets_html}</div>',
                         height=len(symbols) * 125)
         
-        # --- YENİ EKLENEN: SİSTEM STATUS PANELİ ---
+        # --- SİSTEM STATUS PANELİ ---
         st.markdown("---")
         st.markdown("<h3 style='color: #e4e4e7; font-size: 14px; font-weight: 600; text-transform:uppercase; letter-spacing:1px; margin-bottom: 10px;'>📡 SİSTEM SAĞLIĞI</h3>", unsafe_allow_html=True)
         
@@ -855,9 +852,17 @@ def dashboard_modu():
 
                 df_analiz['Aylik_Ortalama'] = df_analiz[bu_ay_cols].apply(geometrik_ortalama_hesapla, axis=1)
                 
-                # MA_3 hesaplama (Anomali için)
+                # MA_3 hesaplama (Son 3 gün ortalaması)
+                # KULLANICI İSTEĞİ: Tarihleri başlıkta göster
+                ma3_baslik = "Son 3 Gün Ort."
                 if len(gunler) >= 3:
-                     df_analiz['MA_3'] = df_analiz[gunler[-3:]].mean(axis=1)
+                     # Son 3 günün tarihlerini al
+                     last_3_dates = gunler[-3:]
+                     start_d = datetime.strptime(last_3_dates[0], '%Y-%m-%d').strftime('%d.%m')
+                     end_d = datetime.strptime(last_3_dates[-1], '%Y-%m-%d').strftime('%d.%m')
+                     ma3_baslik = f"Ortalama ({start_d} - {end_d})"
+                     
+                     df_analiz[ma3_baslik] = df_analiz[gunler[-3:]].mean(axis=1)
 
                 gecerli_veri = df_analiz.dropna(subset=['Aylik_Ortalama', baz_col]).copy()
                 enf_genel = 0.0
@@ -957,8 +962,11 @@ def dashboard_modu():
                     gun_farki = (dt_son - datetime.strptime(baz_col, '%Y-%m-%d')).days
                     
                     # Anomali Tespiti
-                    if 'MA_3' in df_analiz.columns:
-                        anomaliler = df_analiz[df_analiz[son] > df_analiz['MA_3'] * 1.10]
+                    if ma3_baslik in df_analiz.columns:
+                        anomaliler = df_analiz[df_analiz[son] > df_analiz[ma3_baslik] * 1.10].copy()
+                        # Sayısal formatı hazırla (Virgülden sonra 4 hane)
+                        anomaliler[ma3_baslik] = anomaliler[ma3_baslik].astype(float)
+                        anomaliler['Gunluk_Degisim'] = anomaliler['Gunluk_Degisim'].astype(float)
                     else:
                         anomaliler = pd.DataFrame()
                 else:
@@ -1022,7 +1030,18 @@ def dashboard_modu():
                 if not anomaliler.empty:
                     st.error(f"⚠️ DİKKAT: Piyasadaki {len(anomaliler)} üründe ani fiyat şoku tespit edildi!")
                     with st.expander("Şok Yaşanan Ürünleri İncele"):
-                        st.dataframe(anomaliler[[ad_col, son, 'MA_3', 'Gunluk_Degisim']], use_container_width=True)
+                        # Dataframe gösterirken 4 hane formatı uygula
+                        st.data_editor(
+                            anomaliler[[ad_col, son, ma3_baslik, 'Gunluk_Degisim']],
+                            column_config={
+                                ad_col: "Ürün",
+                                son: st.column_config.NumberColumn(f"Fiyat ({son})", format="%.4f ₺"),
+                                ma3_baslik: st.column_config.NumberColumn(ma3_baslik, format="%.4f ₺"),
+                                "Gunluk_Degisim": st.column_config.NumberColumn("Değişim", format="%.4f")
+                            },
+                            hide_index=True,
+                            use_container_width=True
+                        )
 
                 # --- AI ANALİST KARTI ---
                 st.markdown("<br>", unsafe_allow_html=True)
@@ -1174,16 +1193,14 @@ def dashboard_modu():
                         st.info("🔍 Aradığınız kriterlere uygun ürün bulunamadı.")
 
                 with t_ozet:
-                    # --- YENİ EKLENEN: FİYAT DAĞILIM HİSTOGRAMI (DÜZELTİLMİŞ) ---
+                    # --- FİYAT DAĞILIM HİSTOGRAMI ---
                     st.subheader("📊 Piyasa Derinliği ve Dağılım")
                     
                     ozet_col1, ozet_col2 = st.columns([2, 1])
                     
                     with ozet_col1:
-                        # 1. Önce veriyi temizle ve float olduğundan emin ol
                         df_analiz['Fark_Yuzde'] = pd.to_numeric(df_analiz['Fark_Yuzde'], errors='coerce')
                         
-                        # 2. Grafiği oluştur
                         fig_hist = px.histogram(df_analiz, x="Fark_Yuzde", nbins=20, 
                                                 title="Fiyat Değişim Dağılımı",
                                                 labels={"Fark_Yuzde": "Değişim Oranı (%)"},
@@ -1191,15 +1208,15 @@ def dashboard_modu():
                         
                         fig_hist.update_layout(
                             bargap=0.1,
-                            margin=dict(l=10, r=10, t=40, b=10) # Kenar boşluklarını ayarla
+                            margin=dict(l=10, r=10, t=40, b=10) 
                         )
                         
-                        # 3. KESİN ÇÖZÜM: Ekseni formatla
+                        # KESİN ÇÖZÜM: Ekseni formatla - Kullanıcı İsteği: 4 Hane Hassasiyet
                         fig_hist.update_xaxes(
-                            type="linear",       # Ekseni sayısal olmaya zorla
-                            tickmode="auto",     # Otomatik aralık belirle
-                            nticks=5,            # Maksimum 5-6 tane sayı göster (Kalabalığı engeller)
-                            tickformat=".0f",    # Virgülleri at (Sadeleştirir)
+                            type="linear",       
+                            tickmode="auto",     
+                            nticks=5,            
+                            tickformat=".4f",    # Kullanıcı isteği: her türlü virgülden sonra 4 hane
                             title_font=dict(size=11),
                             tickfont=dict(size=10, color="#a1a1aa")
                         )
@@ -1254,7 +1271,7 @@ def dashboard_modu():
                         fig_water = go.Figure(go.Waterfall(
                             name="", orientation="v", measure=["relative"] * len(df_sektor_katki),
                             x=df_sektor_katki['Grup'], textposition="outside",
-                            text=df_sektor_katki['Katki_Puan'].apply(lambda x: f"{x:.2f}"),
+                            text=df_sektor_katki['Katki_Puan'].apply(lambda x: f"{x:.4f}"), # Burada da 4 hane
                             y=df_sektor_katki['Katki_Puan'], connector={"line": {"color": "#52525b"}},
                             decreasing={"marker": {"color": "#34d399", "line": {"width": 0}}},
                             increasing={"marker": {"color": "#f87171", "line": {"width": 0}}},
@@ -1283,8 +1300,8 @@ def dashboard_modu():
                             ),
                             ad_col: "Ürün", 
                             "Grup": "Kategori",
-                            baz_col: st.column_config.NumberColumn(f"Fiyat ({baz_tanimi})", format="%.2f ₺"),
-                            son: st.column_config.NumberColumn(f"Fiyat ({son})", format="%.2f ₺")
+                            baz_col: st.column_config.NumberColumn(f"Fiyat ({baz_tanimi})", format="%.4f ₺"), # 4 Hane
+                            son: st.column_config.NumberColumn(f"Fiyat ({son})", format="%.4f ₺") # 4 Hane
                         },
                         hide_index=True, use_container_width=True, height=600
                     )
@@ -1343,5 +1360,3 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
-
-
