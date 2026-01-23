@@ -644,14 +644,23 @@ def dashboard_modu():
         tum_tarihler = []
 
     # 2. SIDEBAR
+    # 2. SIDEBAR (TEMİZ & GÜVENLİ)
     with st.sidebar:
-        # --- LOTTIE ANİMASYONU ---
+        # --- LOTTIE ANİMASYONU (HATA KORUMALI) ---
         lottie_url = "https://lottie.host/98606416-297c-4a37-9b2a-714013063529/5D6o8k8fW0.json" 
-        lottie_json = load_lottieurl(lottie_url)
-        if lottie_json:
-             st_lottie(lottie_json, height=180, key="finance_anim")
-        else:
-             st.markdown("""<div style="font-size: 50px; text-align:center; filter: drop-shadow(0 0 25px rgba(59, 130, 246, 0.6)); animation: float 6s ease-in-out infinite;">💎</div>""", unsafe_allow_html=True)
+        try:
+            # Gerekli fonksiyonların varlığını kontrol et
+            if 'load_lottieurl' in globals() and 'st_lottie' in globals():
+                lottie_json = load_lottieurl(lottie_url)
+                if lottie_json:
+                     st_lottie(lottie_json, height=180, key="finance_anim")
+                else:
+                     st.markdown("""<div style="font-size: 50px; text-align:center; padding: 20px;">💎</div>""", unsafe_allow_html=True)
+            else:
+                 st.markdown("""<div style="font-size: 50px; text-align:center; padding: 20px;">💎</div>""", unsafe_allow_html=True)
+        except Exception:
+            # Herhangi bir hatada sabit ikon
+            st.markdown("""<div style="font-size: 50px; text-align:center; padding: 20px;">💎</div>""", unsafe_allow_html=True)
 
         st.markdown("""
             <div style="text-align: center; padding-bottom: 20px;">
@@ -662,7 +671,10 @@ def dashboard_modu():
 
         st.markdown("---")
         
-        st.markdown("<h3 style='color: #e4e4e7; font-size: 14px; font-weight: 600; text-transform:uppercase; letter-spacing:1px; margin-bottom: 15px;'>⏳ GEÇMİŞ VERİ</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #e4e4e7; font-size: 14px; font-weight: 600; text-transform:uppercase; letter-spacing:1px; margin-bottom: 15px;'>⏳ Zaman Makinesi</h3>", unsafe_allow_html=True)
+        
+        # Değişken kontrolü (NameError önlemi)
+        if 'tum_tarihler' not in locals(): tum_tarihler = []
         
         if tum_tarihler:
             secilen_tarih = st.selectbox(
@@ -676,7 +688,7 @@ def dashboard_modu():
                 st.warning(f"⚠️ Şuan {secilen_tarih} tarihli arşiv kaydı inceleniyor.")
         else:
             secilen_tarih = None
-            if not df_f.empty:
+            if 'df_f' in locals() and not df_f.empty:
                 st.warning("2026-01-02 tarihinden sonrasına ait veri henüz oluşmadı.")
             else:
                 st.error("Veri bulunamadı.")
@@ -704,9 +716,6 @@ def dashboard_modu():
             """
         components.html(f'<div style="display:flex; flex-direction:column; overflow:hidden;">{widgets_html}</div>',
                         height=len(symbols) * 125)
-        
-        st.markdown(status_html, unsafe_allow_html=True)
-
 
     # 3. ANA EKRAN HEADER
     header_date = datetime.strptime(secilen_tarih, "%Y-%m-%d").strftime("%d.%m.%Y") if secilen_tarih else "--.--.----"
@@ -1432,3 +1441,4 @@ def dashboard_modu():
         
 if __name__ == "__main__":
     dashboard_modu()
+
