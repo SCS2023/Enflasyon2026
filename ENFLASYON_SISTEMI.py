@@ -1310,7 +1310,7 @@ def dashboard_modu():
         
                         df_analiz['Fiyat_Trendi'] = df_analiz[gunler].apply(fix_sparkline, axis=1)
         
-                        # Tabloyu Göster
+                        # Ekranda gösterilen tablo (Burada hala görsel grafikler kalsın, kullanıcı görsün)
                         st.data_editor(
                             df_analiz[['Grup', ad_col, 'Fiyat_Trendi', baz_col, son, 'Fark']], 
                             column_config={
@@ -1332,10 +1332,27 @@ def dashboard_modu():
                             hide_index=True, use_container_width=True, height=600
                         )
                         
-                        # Excel Oluşturma (XlsxWriter ile Renkli)
+                        # --- EXCEL HAZIRLIĞI (SADELEŞTİRİLMİŞ) ---
+                        # İstenen sütunları belirle: Temel Bilgiler + Günlük Fiyatlar + Fark
+                        export_cols = ['Kod', 'Grup', ad_col] # Sabitler
+                        
+                        # Eğer ağırlık sütunu varsa ekle
+                        if agirlik_col in df_analiz.columns:
+                            export_cols.append(agirlik_col)
+                            
+                        export_cols.extend(gunler) # Geçmiş Fiyatlar (Tarih sütunları)
+                        
+                        if 'Fark' in df_analiz.columns:
+                            export_cols.append('Fark') # Sadece değişim oranı
+                        
+                        # Sadece mevcut sütunları seç (Hata önlemek için)
+                        final_cols = [c for c in export_cols if c in df_analiz.columns]
+                        df_export = df_analiz[final_cols].copy()
+    
+                        # Excel Oluşturma
                         output = BytesIO()
                         with pd.ExcelWriter(output, engine='xlsxwriter') as writer: 
-                            df_analiz.to_excel(writer, index=False, sheet_name='Analiz')
+                            df_export.to_excel(writer, index=False, sheet_name='Analiz')
                             
                             workbook = writer.book
                             worksheet = writer.sheets['Analiz']
@@ -1343,11 +1360,14 @@ def dashboard_modu():
                             format_red = workbook.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'})
                             format_green = workbook.add_format({'bg_color': '#C6EFCE', 'font_color': '#006100'})
                             
-                            worksheet.set_column('A:Z', 15) 
+                            # Sütun Genişlikleri
+                            worksheet.set_column('A:Z', 12) 
                             
-                            if 'Fark' in df_analiz.columns:
-                                fark_col_idx = df_analiz.columns.get_loc('Fark')
-                                row_count = len(df_analiz)
+                            # Fark sütunu varsa renklendir
+                            if 'Fark' in df_export.columns:
+                                # df_export içindeki yerini bul (df_analiz değil)
+                                fark_col_idx = df_export.columns.get_loc('Fark')
+                                row_count = len(df_export)
                                 
                                 worksheet.conditional_format(1, fark_col_idx, row_count, fark_col_idx,
                                                             {'type': 'cell', 'criteria': '>', 'value': 0, 'format': format_red})
@@ -1355,13 +1375,12 @@ def dashboard_modu():
                                 worksheet.conditional_format(1, fark_col_idx, row_count, fark_col_idx,
                                                             {'type': 'cell', 'criteria': '<', 'value': 0, 'format': format_green})
     
-                        # --- GÜNCELLEME: BUTON STİLİ (type='primary') EKLENDİ ---
                         st.download_button(
-                            label="📥 Excel İndir", 
+                            label="📥 Akıllı Excel İndir (Sadeleştirilmiş)", 
                             data=output.getvalue(), 
-                            file_name=f"Rapor_{son}.xlsx",
+                            file_name=f"Fiyat_Analizi_{son}.xlsx",
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            type="primary"  # Bu parametre butonu diğer sekmedeki gibi yapar
+                            type="primary"
                         )
                 with t_rapor:
                     st.markdown("### 📝 Stratejik Görünüm Raporu")
@@ -1411,6 +1430,7 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
+
 
 
 
