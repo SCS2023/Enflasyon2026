@@ -1,5 +1,5 @@
 # GEREKLİ KÜTÜPHANELER:
-# pip install streamlit-lottie python-docx prophet plotly pandas xlsxwriter
+# pip install streamlit-lottie python-docx prophet plotly pandas xlsxwriter scipy
 
 import streamlit as st
 import pandas as pd
@@ -783,6 +783,29 @@ def stream_text(text, container, kutu_rengi, kenar_rengi, durum_emoji, durum_bas
         """, unsafe_allow_html=True)
         time.sleep(delay)
 
+def style_chart(fig, is_pdf=False, is_sunburst=False):
+    if is_pdf:
+        fig.update_layout(template="plotly_white", font=dict(family="Arial", size=14, color="black"))
+    else:
+        layout_args = dict(
+            template="plotly_dark",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(family="Inter, sans-serif", color="#a1a1aa", size=12),
+            margin=dict(l=0, r=0, t=40, b=0),
+            hoverlabel=dict(bgcolor="#18181b", bordercolor="rgba(255,255,255,0.1)", font=dict(color="#fff")),
+        )
+        if not is_sunburst:
+            layout_args.update(dict(
+                xaxis=dict(showgrid=False, zeroline=False, showline=True, linecolor="rgba(255,255,255,0.1)",
+                           gridcolor='rgba(255,255,255,0.05)', dtick="M1"),
+                yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.03)", zeroline=False,
+                           gridwidth=1)
+            ))
+        fig.update_layout(**layout_args)
+        fig.update_layout(modebar=dict(bgcolor='rgba(0,0,0,0)', color='#71717a', activecolor='#fff'))
+    return fig
+
 # --- 8. DASHBOARD MODU (SHOW EDITION) ---
 def dashboard_modu():
     # 0. SKELETON LOADING SIMULATION (GÖRSEL ŞOV)
@@ -823,9 +846,9 @@ def dashboard_modu():
             if 'load_lottieurl' in globals() and 'st_lottie' in globals():
                 lottie_json = load_lottieurl(lottie_url)
                 if lottie_json:
-                     st_lottie(lottie_json, height=180, key="finance_anim")
+                      st_lottie(lottie_json, height=180, key="finance_anim")
                 else:
-                     st.markdown("""<div style="font-size: 50px; text-align:center; padding: 20px;">💎</div>""", unsafe_allow_html=True)
+                      st.markdown("""<div style="font-size: 50px; text-align:center; padding: 20px;">💎</div>""", unsafe_allow_html=True)
             else:
                  st.markdown("""<div style="font-size: 50px; text-align:center; padding: 20px;">💎</div>""", unsafe_allow_html=True)
         except Exception:
@@ -1282,31 +1305,83 @@ def dashboard_modu():
                 ai_placeholder = st.empty()
                 stream_text(durum_mesaji, ai_placeholder, kutu_rengi, kenar_rengi, durum_emoji, durum_baslik)
                 
-                # --- NORMALE DÖNÜŞ ---
+                # --- YENİ GÖRSELLEŞTİRME HAZIRLIĞI ---
 
-                def style_chart(fig, is_pdf=False, is_sunburst=False):
-                    if is_pdf:
-                        fig.update_layout(template="plotly_white", font=dict(family="Arial", size=14, color="black"))
-                    else:
-                        layout_args = dict(
-                            template="plotly_dark",
-                            paper_bgcolor="rgba(0,0,0,0)",
-                            plot_bgcolor="rgba(0,0,0,0)",
-                            font=dict(family="Inter, sans-serif", color="#a1a1aa", size=12),
-                            margin=dict(l=0, r=0, t=40, b=0),
-                            hoverlabel=dict(bgcolor="#18181b", bordercolor="rgba(255,255,255,0.1)", font=dict(color="#fff")),
-                        )
-                        if not is_sunburst:
-                            layout_args.update(dict(
-                                xaxis=dict(showgrid=False, zeroline=False, showline=True, linecolor="rgba(255,255,255,0.1)",
-                                           gridcolor='rgba(255,255,255,0.05)', dtick="M1"),
-                                yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.03)", zeroline=False,
-                                           gridwidth=1)
-                            ))
-                        fig.update_layout(**layout_args)
-                        fig.update_layout(modebar=dict(bgcolor='rgba(0,0,0,0)', color='#71717a', activecolor='#fff'))
-                    return fig
-                
+                # 1. ANA TREND GRAFİĞİ (Kümülatif Enflasyon Seyri)
+                fig_trend_main = go.Figure()
+                if not df_trend.empty:
+                    # Kümülatif yüzdeye çevir (Endeks 100'den başlıyorsa)
+                    baseline_val = df_trend.iloc[0]['TÜFE'] if not df_trend.empty else 100
+                    df_trend['Kumulatif_Yuzde'] = ((df_trend['TÜFE'] / baseline_val) - 1) * 100
+
+                    fig_trend_main.add_trace(go.Scatter(
+                        x=df_trend['Tarih'],
+                        y=df_trend['Kumulatif_Yuzde'],
+                        mode='lines+markers',
+                        name='Dijital Sepet (Hesaplanan)',
+                        line=dict(color='#3b82f6', width=3),
+                        marker=dict(size=6, color='#60a5fa', line=dict(width=1, color='#fff'))
+                    ))
+
+                    # Eğer Prophet tahmini varsa ekle (Opsiyonel - Buton açıksa çalışır)
+                    if 'df_forecast' in locals() and not df_forecast.empty:
+                         forecast_filtered = df_forecast[df_forecast['ds'] > df_trend['Tarih'].max()]
+                         if not forecast_filtered.empty:
+                             # Tahmini de kümülatife çevirelim (Yaklaşık)
+                             forecast_kumulatif = ((forecast_filtered['yhat'] / baseline_val) - 1) * 100
+                             fig_trend_main.add_trace(go.Scatter(
+                                 x=forecast_filtered['ds'],
+                                 y=forecast_kumulatif,
+                                 mode='lines',
+                                 name='AI Tahmini (Trend)',
+                                 line=dict(color='#a78bfa', width=2, dash='dot')
+                             ))
+
+                fig_trend_main.update_layout(
+                    title=dict(text="📈 Kümülatif Enflasyon Seyri", font=dict(size=18, color='#fff')),
+                    xaxis_title="",
+                    yaxis_title="Kümülatif Değişim (%)",
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, bgcolor='rgba(0,0,0,0)'),
+                    hovermode="x unified",
+                    height=400
+                )
+                # Neon efekti ve stil uygula
+                fig_trend_main = make_neon_chart(style_chart(fig_trend_main))
+
+
+                # 2. RİSK GÖSTERGESİ (GAUGE CHART)
+                # Risk seviyesine göre renk belirle
+                gauge_color = "#10b981" # Yeşil (Düşük)
+                if enf_genel > 5: gauge_color = "#ef4444" # Kırmızı (Yüksek)
+                elif enf_genel > 2: gauge_color = "#f59e0b" # Sarı (Orta)
+
+                fig_gauge = go.Figure(go.Indicator(
+                    mode = "gauge+number+delta",
+                    value = enf_genel,
+                    domain = {'x': [0, 1], 'y': [0, 1]},
+                    title = {'text': "Piyasa Risk Göstergesi", 'font': {'size': 16, 'color': '#a1a1aa'}},
+                    delta = {'reference': enf_onceki, 'increasing': {'color': "#ef4444"}, 'decreasing': {'color': "#10b981"}, "valueformat": ".2f%%"},
+                    number = {'suffix': "%", 'font': {'size': 36, 'color': '#fff', 'family': 'Inter'}},
+                    gauge = {
+                        'axis': {'range': [None, max(10, enf_genel * 1.5)], 'tickwidth': 1, 'tickcolor': "rgba(255,255,255,0.1)"},
+                        'bar': {'color': gauge_color, 'thickness': 0.75}, # İbre rengi
+                        'bgcolor': "rgba(0,0,0,0)",
+                        'borderwidth': 2,
+                        'bordercolor': "rgba(255,255,255,0.1)",
+                        'steps': [
+                            {'range': [0, 2], 'color': 'rgba(16, 185, 129, 0.1)'},  # Yeşil Bölge
+                            {'range': [2, 5], 'color': 'rgba(245, 158, 11, 0.1)'},   # Sarı Bölge
+                            {'range': [5, max(10, enf_genel * 1.5)], 'color': 'rgba(239, 68, 68, 0.1)'} # Kırmızı Bölge
+                        ],
+                        'threshold': {
+                            'line': {'color': "#fff", 'width': 4},
+                            'thickness': 0.8,
+                            'value': enf_genel
+                        }
+                    }
+                ))
+                fig_gauge.update_layout(paper_bgcolor = "rgba(0,0,0,0)", font = {'color': "#a1a1aa", 'family': "Inter"}, height=280, margin=dict(t=40, b=10, l=20, r=20))
+
                 df_analiz['Fark_Yuzde'] = df_analiz['Fark'] * 100
                 
                 # Sekmeler
@@ -1384,106 +1459,110 @@ def dashboard_modu():
                         st.info("🔍 Aradığınız kriterlere uygun ürün bulunamadı.")
 
                 with t_ozet:
-                    # --- FİYAT DAĞILIM HİSTOGRAMI (NEON EFFECT) ---
-                    st.subheader("📊 Piyasa Derinliği ve Dağılım")
+                    # --- YENİ GÜÇLENDİRİLMİŞ GÖRÜNÜM ---
                     
-                    ozet_col1, ozet_col2 = st.columns([2, 1])
+                    # ÜST BÖLÜM: ANA TREND VE RİSK KADRANI
+                    col_main_trend, col_risk_gauge = st.columns([2.8, 1.2])
+                    
+                    with col_main_trend:
+                        # Hazırladığımız Ana Trend Grafiği
+                        st.plotly_chart(fig_trend_main, use_container_width=True)
+                    
+                    with col_risk_gauge:
+                         # Hazırladığımız Risk Kadranı (Gauge)
+                         st.plotly_chart(fig_gauge, use_container_width=True)
+                         
+                         # Altına kısa bir özet kutusu (Eski koddan taşıdık)
+                         rising = len(df_analiz[df_analiz['Fark'] > 0])
+                         falling = len(df_analiz[df_analiz['Fark'] < 0])
+                         total = len(df_analiz)
+                         if total > 0:
+                             r_pct = (rising / total) * 100
+                             f_pct = (falling / total) * 100
+                             n_pct = 100 - r_pct - f_pct
+                             st.markdown(f"""
+                             <div style="background:rgba(255,255,255,0.02); border-radius:12px; padding:15px; border:1px solid rgba(255,255,255,0.05); margin-top:-10px;">
+                                 <div style="font-size:11px; color:#a1a1aa; margin-bottom:8px; text-transform:uppercase; letter-spacing:1px; font-weight:600;">Piyasa Yönü (Adet)</div>
+                                 <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:13px;">
+                                     <span><span style="color:#ef4444">▲</span> Yükselen: <b>{rising}</b></span>
+                                     <span><span style="color:#10b981">▼</span> Düşen: <b>{falling}</b></span>
+                                 </div>
+                                 <div style="width:100%; height:6px; background:rgba(255,255,255,0.1); border-radius:4px; overflow:hidden; display:flex;">
+                                     <div style="width:{r_pct}%; background:#ef4444;"></div>
+                                     <div style="width:{n_pct}%; background:transparent;"></div>
+                                     <div style="width:{f_pct}%; background:#10b981;"></div>
+                                 </div>
+                             </div>
+                             """, unsafe_allow_html=True)
+
+                    st.markdown("---")
+                    st.subheader("📊 Piyasa Derinliği ve Dağılım")
+
+                    # ORTA BÖLÜM: HİSTOGRAM VE PAZAR DAĞILIMI (Yan Yana)
+                    ozet_col1, ozet_col2 = st.columns(2)
                     
                     with ozet_col1:
+                        # Histogram (Eski koddan)
                         df_analiz['Fark_Yuzde'] = pd.to_numeric(df_analiz['Fark_Yuzde'], errors='coerce')
-                        
-                        fig_hist = px.histogram(df_analiz, x="Fark_Yuzde", nbins=20, 
-                                                title="Fiyat Değişim Dağılımı",
+                        fig_hist = px.histogram(df_analiz, x="Fark_Yuzde", nbins=30, # nbins arttırıldı
+                                                title="Fiyat Değişim Dağılımı (Histogram)",
                                                 labels={"Fark_Yuzde": "Değişim Oranı (%)"},
                                                 color_discrete_sequence=["#3b82f6"])
-                        
-                        fig_hist.update_layout(
-                            bargap=0.1,
-                            margin=dict(l=10, r=10, t=40, b=10) 
-                        )
-                        
-                        fig_hist.update_xaxes(
-                            type="linear",        
-                            tickmode="auto",       
-                            nticks=5,             
-                            tickformat=".4f",     
-                            title_font=dict(size=11),
-                            tickfont=dict(size=10, color="#a1a1aa")
-                        )
-                        
+                        fig_hist.update_layout(bargap=0.1, margin=dict(l=10, r=10, t=40, b=10), height=350)
+                        fig_hist.update_xaxes(showgrid=False, zeroline=False, title_font=dict(size=11), tickfont=dict(size=10, color="#a1a1aa"))
                         fig_hist.update_yaxes(showgrid=True, gridcolor="rgba(255,255,255,0.05)")
-                        
-                        # NEON CHART EFEKTI UYGULANIYOR
-                        st.plotly_chart(make_neon_chart(style_chart(fig_hist)), use_container_width=True)
-                        
-                    with ozet_col2:
-                          rising = len(df_analiz[df_analiz['Fark'] > 0])
-                          falling = len(df_analiz[df_analiz['Fark'] < 0])
-                          total = len(df_analiz)
-                          if total > 0:
-                            r_pct = (rising / total) * 100
-                            f_pct = (falling / total) * 100
-                            n_pct = 100 - r_pct - f_pct
-                            
-                            st.markdown(f"""
-                            <div class="delay-1 animate-enter" style="background:rgba(255,255,255,0.03); border-radius:12px; padding:20px; border:1px solid rgba(255,255,255,0.05);">
-                                <div style="font-size:12px; color:#a1a1aa; margin-bottom:10px;">PİYASA YÖNÜ</div>
-                                <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-weight:600;">
-                                    <span style="color:#ef4444">Yükselen</span>
-                                    <span>{rising}</span>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-weight:600;">
-                                    <span style="color:#10b981">Düşen</span>
-                                    <span>{falling}</span>
-                                </div>
-                                <div style="width:100%; height:8px; background:rgba(255,255,255,0.1); border-radius:4px; overflow:hidden; display:flex;">
-                                    <div style="width:{r_pct}%; background:#ef4444;"></div>
-                                    <div style="width:{n_pct}%; background:transparent;"></div>
-                                    <div style="width:{f_pct}%; background:#10b981;"></div>
-                                </div>
-                            </div>
-                            """, unsafe_allow_html=True)
+                        # Histogramın üzerine yoğunluk çizgisi ekleyelim (KDE benzeri)
+                        try:
+                            from scipy import stats
+                            data_hist = df_analiz['Fark_Yuzde'].dropna()
+                            if len(data_hist) > 1:
+                                kde = stats.gaussian_kde(data_hist)
+                                x_range = np.linspace(data_hist.min(), data_hist.max(), 100)
+                                fig_hist.add_trace(go.Scatter(x=x_range, y=kde(x_range) * len(data_hist) * (data_hist.max()-data_hist.min())/30, 
+                                                              mode='lines', line=dict(color='white', width=1.5, dash='dot'), name='Yoğunluk'))
+                        except: pass
 
-                    c_ozet1, c_ozet2 = st.columns(2)
-                    with c_ozet1:
-                        st.subheader("☀️ Pazar Dağılımı")
-                        
-                        grafik_tipi = st.radio("Görünüm Modu:", ["Halka (Sunburst)", "Kutu (Treemap)"], 
-                                               horizontal=True, label_visibility="collapsed")
+                        st.plotly_chart(make_neon_chart(style_chart(fig_hist)), use_container_width=True)
+
+                    with ozet_col2:
+                        # Sunburst/Treemap (Eski koddan - başlığı güncellendi)
+                        st.subheader("☀️ Sektörel Pazar Dağılımı", anchor=False)
+                        grafik_tipi = st.radio("Görünüm Modu:", ["Halka (Sunburst)", "Kutu (Treemap)"],
+                                               horizontal=True, label_visibility="collapsed", key="viz_mode_radio")
                         
                         if grafik_tipi == "Halka (Sunburst)":
                             fig_sun = px.sunburst(
                                 df_analiz, path=['Grup', ad_col], values=agirlik_col, color='Fark',
-                                color_continuous_scale='RdYlGn_r', title=None
+                                color_continuous_scale='RdYlGn_r', title=None, height=350
                             )
                             st.plotly_chart(style_chart(fig_sun, is_sunburst=True), use_container_width=True)
                         else:
                             fig_tree = px.treemap(
-                                df_analiz, path=[px.Constant("Piyasa"), 'Grup', ad_col], 
+                                df_analiz, path=[px.Constant("Piyasa"), 'Grup', ad_col],
                                 values=agirlik_col, color='Fark',
                                 color_continuous_scale='RdYlGn_r',
-                                hover_data={ad_col:True, 'Fark':':.2%'}
+                                hover_data={ad_col:True, 'Fark':':.2%'}, height=350
                             )
                             fig_tree.update_layout(margin=dict(t=0, l=0, r=0, b=0))
                             st.plotly_chart(style_chart(fig_tree, is_sunburst=True), use_container_width=True)
 
-                    with c_ozet2:
-                        st.subheader("💧 Sektörel Etki")
-                        toplam_agirlik = df_analiz[agirlik_col].sum()
-                        df_analiz['Katki_Puan'] = (df_analiz['Fark'] * df_analiz[agirlik_col] / toplam_agirlik) * 100
-                        df_sektor_katki = df_analiz.groupby('Grup')['Katki_Puan'].sum().reset_index().sort_values(
-                            'Katki_Puan', ascending=False)
-                        fig_water = go.Figure(go.Waterfall(
-                            name="", orientation="v", measure=["relative"] * len(df_sektor_katki),
-                            x=df_sektor_katki['Grup'], textposition="outside",
-                            text=df_sektor_katki['Katki_Puan'].apply(lambda x: f"{x:.4f}"),
-                            y=df_sektor_katki['Katki_Puan'], connector={"line": {"color": "#52525b"}},
-                            decreasing={"marker": {"color": "#34d399", "line": {"width": 0}}},
-                            increasing={"marker": {"color": "#f87171", "line": {"width": 0}}},
-                            totals={"marker": {"color": "#f8fafc"}}
-                        ))
-                        # NEON EFFECT for Waterfall lines
-                        st.plotly_chart(make_neon_chart(style_chart(fig_water)), use_container_width=True)
+                    # ALT BÖLÜM: WATERFALL (Eski yerinde kalabilir)
+                    st.subheader("💧 Sektörel Etki Analizi (Waterfall)")
+                    toplam_agirlik = df_analiz[agirlik_col].sum()
+                    df_analiz['Katki_Puan'] = (df_analiz['Fark'] * df_analiz[agirlik_col] / toplam_agirlik) * 100
+                    df_sektor_katki = df_analiz.groupby('Grup')['Katki_Puan'].sum().reset_index().sort_values(
+                        'Katki_Puan', ascending=False)
+                    fig_water = go.Figure(go.Waterfall(
+                        name="", orientation="v", measure=["relative"] * len(df_sektor_katki),
+                        x=df_sektor_katki['Grup'], textposition="outside",
+                        text=df_sektor_katki['Katki_Puan'].apply(lambda x: f"{x:.2f}"),
+                        y=df_sektor_katki['Katki_Puan'], connector={"line": {"color": "#52525b"}},
+                        decreasing={"marker": {"color": "#34d399", "line": {"width": 0}}},
+                        increasing={"marker": {"color": "#f87171", "line": {"width": 0}}},
+                        totals={"marker": {"color": "#f8fafc"}}
+                    ))
+                    fig_water.update_layout(height=350, title=None)
+                    st.plotly_chart(make_neon_chart(style_chart(fig_water)), use_container_width=True)
 
                 with t_veri:
                     st.markdown("### 📋 Veri Seti")
@@ -1605,7 +1684,3 @@ def dashboard_modu():
         
 if __name__ == "__main__":
     dashboard_modu()
-
-
-
-
