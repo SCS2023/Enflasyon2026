@@ -1,5 +1,5 @@
 # GEREKLİ KÜTÜPHANELER:
-# pip install streamlit-lottie python-docx prophet plotly pandas xlsxwriter matplotlib
+# pip install streamlit-lottie python-docx plotly pandas xlsxwriter matplotlib
 
 import streamlit as st
 import pandas as pd
@@ -16,7 +16,6 @@ from io import BytesIO
 import zipfile
 import base64
 import requests
-from prophet import Prophet
 import streamlit.components.v1 as components
 import tempfile
 import os
@@ -478,18 +477,6 @@ def get_official_inflation():
     except Exception as e:
         return None, str(e)
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def predict_inflation_prophet(df_trend):
-    try:
-        df_p = df_trend.rename(columns={'Tarih': 'ds', 'TÜFE': 'y'})
-        m = Prophet(daily_seasonality=True, yearly_seasonality=False)
-        m.fit(df_p)
-        future = m.make_future_dataframe(periods=90)
-        forecast = m.predict(future)
-        return forecast 
-    except Exception as e:
-        return pd.DataFrame()
-
 # --- 6. SCRAPER (PROGRESS BAR DESTEKLİ) ---
 def temizle_fiyat(t):
     if not t: return None
@@ -796,9 +783,9 @@ def style_chart(fig, is_pdf=False, is_sunburst=False):
         if not is_sunburst:
             layout_args.update(dict(
                 xaxis=dict(showgrid=False, zeroline=False, showline=True, linecolor="rgba(255,255,255,0.1)",
-                            gridcolor='rgba(255,255,255,0.05)', dtick="M1"),
+                           gridcolor='rgba(255,255,255,0.05)', dtick="M1"),
                 yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.03)", zeroline=False,
-                            gridwidth=1)
+                           gridwidth=1)
             ))
         fig.update_layout(**layout_args)
         fig.update_layout(modebar=dict(bgcolor='rgba(0,0,0,0)', color='#71717a', activecolor='#fff'))
@@ -1194,28 +1181,30 @@ def dashboard_modu():
                 df_analiz['Max_Fiyat'] = df_analiz[gunler].max(axis=1)
                 df_analiz['Min_Fiyat'] = df_analiz[gunler].min(axis=1)
 
-                target_jan_end = pd.Timestamp(dt_son.year, dt_son.month,
-                                                calendar.monthrange(dt_son.year, dt_son.month)[1])
+                # --- AY SONU TAHMİNİ (SABİT TARİH: 24.01.2026) ---
+                target_fixed_date = "2026-01-24"
                 month_end_forecast = 0.0
 
-                # if SHOW_SYNC_BUTTON:
-                #     with st.spinner(f"{header_date} tarihi için modeller çalıştırılıyor..."):
-                #         df_forecast = predict_inflation_prophet(df_trend)
+                # Pivot tablodaki (yani Excel'deki) tüm tarihleri kullanarak 24 Ocak'a kadar olan sütunları bulalım
+                # tum_gunler_sirali değişkeni pivot.columns'dan geliyor, yani tüm veri seti.
+                fixed_cols = [c for c in tum_gunler_sirali if c.startswith("2026-01") and c <= target_fixed_date]
 
-                #     if not df_forecast.empty:
-                #         forecast_row = df_forecast[df_forecast['ds'] == target_jan_end]
-                #         if not forecast_row.empty:
-                #             month_end_forecast = forecast_row.iloc[0]['yhat'] - 100
-                #         else:
-                #             month_end_forecast = df_forecast.iloc[-1]['yhat'] - 100
-                #     else:
-                #         month_end_forecast = enf_genel
+                if fixed_cols:
+                    # 24 Ocak (veya öncesi) için aylık geometrik ortalamayı hesapla
+                    df_analiz['Fixed_Ortalama_24Jan'] = df_analiz[fixed_cols].apply(geometrik_ortalama_hesapla, axis=1)
                     
-                #     month_end_forecast = math.floor(month_end_forecast + random.uniform(-0.1, 0.1))
-                # else:
-                #     month_end_forecast = enf_genel
+                    # Enflasyon hesabı (Card 1 mantığıyla aynı)
+                    gecerli_fixed = df_analiz.dropna(subset=['Fixed_Ortalama_24Jan', baz_col])
                     
-                    month_end_forecast = enf_genel
+                    if not gecerli_fixed.empty:
+                        w_f = gecerli_fixed[agirlik_col]
+                        p_rel_f = gecerli_fixed['Fixed_Ortalama_24Jan'] / gecerli_fixed[baz_col]
+                        fixed_endeks = (w_f * p_rel_f).sum() / w_f.sum() * 100
+                        month_end_forecast = fixed_endeks - 100
+                    else:
+                        month_end_forecast = 0.0
+                else:
+                    month_end_forecast = 0.0
 
                 if len(gunler) >= 2:
                     onceki_gun = gunler[-2]
@@ -1283,8 +1272,8 @@ def dashboard_modu():
                 with c2:
                     kpi_card("Gıda Enflasyonu", f"%{enf_gida:.2f}", "Mutfak Sepeti", "#fca5a5", "#10b981", "🛒", "delay-2")
                 with c3:
-                    # Burada month_end_forecast artık enf_genel'e eşit olduğu için aynı değeri basacaktır.
-                    kpi_card("Ay Sonu Tahmini", f"%{month_end_forecast:.2f}", "Güncel Projeksiyon", "#a78bfa", "#8b5cf6", "🤖", "delay-3")
+                    # ARTIK 24 OCAK REFERANS DEĞERİNİ BASIYOR
+                    kpi_card("Referans (24.01.2026)", f"%{month_end_forecast:.2f}", "Sabit Değer", "#a78bfa", "#8b5cf6", "🤖", "delay-3")
                 with c4:
                     kpi_card("Resmi TÜİK Verisi", f"%{resmi_aylik_enf:.2f}", f"{resmi_tarih_str}", "#fbbf24", "#f59e0b",
                              "🏛️", "delay-3")
@@ -1359,9 +1348,9 @@ def dashboard_modu():
                         if not is_sunburst:
                             layout_args.update(dict(
                                 xaxis=dict(showgrid=False, zeroline=False, showline=True, linecolor="rgba(255,255,255,0.1)",
-                                            gridcolor='rgba(255,255,255,0.05)', dtick="M1"),
+                                           gridcolor='rgba(255,255,255,0.05)', dtick="M1"),
                                 yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.03)", zeroline=False,
-                                            gridwidth=1)
+                                           gridwidth=1)
                             ))
                         fig.update_layout(**layout_args)
                         fig.update_layout(modebar=dict(bgcolor='rgba(0,0,0,0)', color='#71717a', activecolor='#fff'))
@@ -1378,11 +1367,11 @@ def dashboard_modu():
                     df_analiz['Agirlikli_Fark'] = df_analiz['Fark'] * df_analiz[agirlik_col]
                     sektor_ozet = df_analiz.groupby('Grup').agg({
                         'Agirlikli_Fark': 'sum',
-                        agirlik_col: 'sum'
+                        'Agirlik_2025': 'sum'
                     }).reset_index()
-                    sektor_ozet['Ortalama_Degisim'] = (sektor_ozet['Agirlikli_Fark'] / sektor_ozet[agirlik_col]) * 100
+                    sektor_ozet['Ortalama_Degisim'] = (sektor_ozet['Agirlikli_Fark'] / sektor_ozet['Agirlik_2025']) * 100
                     
-                    top_sektorler = sektor_ozet.sort_values(agirlik_col, ascending=False).head(4)
+                    top_sektorler = sektor_ozet.sort_values('Agirlik_2025', ascending=False).head(4)
                     
                     sc_cols = st.columns(4)
                     for idx, (i, row) in enumerate(top_sektorler.iterrows()):
@@ -1465,8 +1454,8 @@ def dashboard_modu():
                         fig_hist.update_xaxes(
                             type="linear",        
                             tickmode="auto",        
-                            nticks=5,               
-                            tickformat=".4f",       
+                            nticks=5,                
+                            tickformat=".4f",        
                             title_font=dict(size=11),
                             tickfont=dict(size=10, color="#a1a1aa")
                         )
@@ -1659,4 +1648,3 @@ def dashboard_modu():
         
 if __name__ == "__main__":
     dashboard_modu()
-
