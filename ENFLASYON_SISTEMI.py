@@ -1194,12 +1194,6 @@ def dashboard_modu():
                 df_analiz['Max_Fiyat'] = df_analiz[gunler].max(axis=1)
                 df_analiz['Min_Fiyat'] = df_analiz[gunler].min(axis=1)
 
-                # ESKİ KOD:
-                # target_jan_end = pd.Timestamp(dt_son.year, dt_son.month,
-                #                                 calendar.monthrange(dt_son.year, dt_son.month)[1])
-
-                # YENİ KOD (24 Ocak 2026 Hedefli):
-                target_prediction_date = pd.Timestamp("2026-01-24") 
                 month_end_forecast = 0.0
 
                 if SHOW_SYNC_BUTTON:
@@ -1207,18 +1201,10 @@ def dashboard_modu():
                         df_forecast = predict_inflation_prophet(df_trend)
 
                     if not df_forecast.empty:
-                        # Özel olarak 2026-01-24 tarihini arıyoruz
-                        forecast_row = df_forecast[df_forecast['ds'] == target_prediction_date]
-                        
-                        if not forecast_row.empty:
-                            month_end_forecast = forecast_row.iloc[0]['yhat'] - 100
-                        else:
-                            # Eğer o tarih forecast içinde yoksa (örn: çok geçmişe bakılıyorsa) son tahmini al
-                            month_end_forecast = df_forecast.iloc[-1]['yhat'] - 100
+                        month_end_forecast = df_forecast.iloc[-1]['yhat'] - 100
                     else:
                         month_end_forecast = enf_genel
                     
-                    # Random noise ekleme (mevcut kodunuzdaki gibi)
                     month_end_forecast = math.floor(month_end_forecast + random.uniform(-0.1, 0.1))
                 else:
                     month_end_forecast = enf_genel
@@ -1280,6 +1266,34 @@ def dashboard_modu():
                     sub_html = f"<div class='kpi-sub'><span style='display:inline-block; width:6px; height:6px; background:{sub_color}; border-radius:50%; box-shadow:0 0 5px {sub_color};'></span><span style='color:{sub_color}; filter: brightness(1.2);'>{sub}</span></div>" if sub else ""
                     card_html = f'<div class="kpi-card {delay_class}"><div class="kpi-bg-icon" style="color:{accent_color};">{icon}</div><div class="kpi-content"><div class="kpi-title">{title}</div><div class="kpi-value">{val}</div>{sub_html}</div></div>'
                     st.markdown(card_html, unsafe_allow_html=True)
+                
+                # --- GÜNCELLEME: 24 OCAK 2026 HESAPLAMASI ---
+                ozel_tarih = "2026-01-24"
+                ozel_deger_gosterim = "0.00"
+                
+                # 1. Eğer veri setimizde (df_analiz) 2026-01-24 kolonu varsa GERÇEK veriyi hesapla
+                if ozel_tarih in df_analiz.columns:
+                     temp_df = df_analiz.dropna(subset=[ozel_tarih, baz_col])
+                     if not temp_df.empty:
+                         w_t = temp_df[agirlik_col]
+                         p_t = temp_df[ozel_tarih] / temp_df[baz_col]
+                         res = (w_t * p_t).sum() / w_t.sum() * 100
+                         ozel_deger_gosterim = f"%{(res - 100):.2f}"
+                     else:
+                         ozel_deger_gosterim = "Veri Yok"
+                
+                # 2. Eğer kolon yoksa ama Prophet tahmini (df_forecast) varsa TAHMİNİ veriyi çek
+                elif 'df_forecast' in locals() and not df_forecast.empty:
+                    hedef_dt = pd.Timestamp(ozel_tarih)
+                    row = df_forecast[df_forecast['ds'] == hedef_dt]
+                    if not row.empty:
+                        val = row.iloc[0]['yhat'] - 100
+                        ozel_deger_gosterim = f"%{val:.2f}"
+                    else:
+                        ozel_deger_gosterim = "Tahmin Yok"
+                else:
+                    ozel_deger_gosterim = "--"
+                # -----------------------------------------------
 
                 c1, c2, c3, c4 = st.columns(4)
 
@@ -1289,8 +1303,7 @@ def dashboard_modu():
                 with c2:
                     kpi_card("Gıda Enflasyonu", f"%{enf_gida:.2f}", "Mutfak Sepeti", "#fca5a5", "#10b981", "🛒", "delay-2")
                 with c3:
-                    # GÜNCELLEME: month_end_forecast yerine enf_genel kullanılarak 1. kart ile eşitlendi.
-                    kpi_card("Sistem Ocak Tahmini (24.01)", f"%{enf_genel:.2f}", "Yapay Zeka Modeli", "#a78bfa", "#8b5cf6", "🤖", "delay-3")
+                    kpi_card("Sistem Ocak Tahmini (24.01)", ozel_deger_gosterim, "Yapay Zeka / Gerçekleşen", "#a78bfa", "#8b5cf6", "🤖", "delay-3")
                 with c4:
                     kpi_card("Resmi TÜİK Verisi", f"%{resmi_aylik_enf:.2f}", f"{resmi_tarih_str}", "#fbbf24", "#f59e0b",
                              "🏛️", "delay-3")
@@ -1471,8 +1484,8 @@ def dashboard_modu():
                         fig_hist.update_xaxes(
                             type="linear",        
                             tickmode="auto",        
-                            nticks=5,               
-                            tickformat=".4f",       
+                            nticks=5,                
+                            tickformat=".4f",        
                             title_font=dict(size=11),
                             tickfont=dict(size=10, color="#a1a1aa")
                         )
@@ -1514,7 +1527,7 @@ def dashboard_modu():
                         st.subheader("☀️ Pazar Dağılımı")
                         
                         grafik_tipi = st.radio("Görünüm Modu:", ["Halka (Sunburst)", "Kutu (Treemap)"], 
-                                               horizontal=True, label_visibility="collapsed")
+                                                 horizontal=True, label_visibility="collapsed")
                         
                         if grafik_tipi == "Halka (Sunburst)":
                             fig_sun = px.sunburst(
@@ -1665,5 +1678,3 @@ def dashboard_modu():
         
 if __name__ == "__main__":
     dashboard_modu()
-
-
