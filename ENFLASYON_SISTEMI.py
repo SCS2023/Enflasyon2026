@@ -52,7 +52,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- CSS MOTORU (MOBİL UYUMLULUK GÜNCELLEMESİ EKLENDİ) ---
+# --- CSS MOTORU (MOBİL İÇİN ÖZEL OPTİMİZASYONLU) ---
 def apply_theme():
     st.session_state.plotly_template = "plotly_dark"
 
@@ -73,231 +73,186 @@ def apply_theme():
             --card-radius: 16px;
         }}
 
-        /* --- MOBİL UYUMLULUK (MEDIA QUERIES) --- */
+        /* --- MOBİL UYUMLULUK (MEDIA QUERIES - KUSURSUZ) --- */
         @media only screen and (max-width: 768px) {{
+            /* Konteyner Boşluklarını Küçült */
             .block-container {{
-                padding-left: 1rem !important;
-                padding-right: 1rem !important;
+                padding-top: 1rem !important;
+                padding-left: 0.5rem !important;
+                padding-right: 0.5rem !important;
                 max-width: 100% !important;
             }}
             
-            /* Kartların mobilde alt alta daha düzgün durması */
-            .kpi-card, .smart-card, .pg-card {{
-                margin-bottom: 12px;
+            /* Header Mobilde Alt Alta ve Sola Hizalı */
+            .header-wrapper {{
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                padding: 20px !important;
+                gap: 15px !important;
                 height: auto !important;
-                min-height: 120px;
+            }}
+            .app-title {{ 
+                font-size: 24px !important; 
+                flex-direction: column !important; 
+                align-items: flex-start !important; 
+                gap: 5px !important;
+            }}
+            .clock-container {{ 
+                text-align: left !important; 
+                width: 100% !important; 
+                margin-top: 10px !important;
+                padding-top: 10px !important;
+                border-top: 1px solid rgba(255,255,255,0.1);
             }}
             
-            /* Mobilde font boyutlarını dengeleme */
-            .kpi-value {{ font-size: 28px !important; }}
-            .app-title {{ font-size: 24px !important; flex-direction: column; align-items: flex-start; gap: 5px; }}
-            .header-wrapper {{ padding: 15px !important; flex-direction: column; gap: 15px; align-items: flex-start !important; }}
-            .clock-container {{ text-align: left !important; width: 100%; }}
+            /* KPI Kartları Mobilde */
+            .kpi-card {{
+                margin-bottom: 10px !important;
+                padding: 16px !important;
+                height: auto !important;
+                min-height: auto !important;
+            }}
+            .kpi-value {{ font-size: 28px !important; margin-bottom: 4px !important; }}
+            .kpi-title {{ font-size: 10px !important; margin-bottom: 8px !important; }}
+
+            /* Ürün Kartları (.pg-card) Mobilde Yatay Liste Olur */
+            .pg-card {{
+                width: 100% !important;
+                height: auto !important;
+                min-height: 70px !important;
+                margin-bottom: 10px !important;
+                flex-direction: row !important; /* Yan yana diz */
+                justify-content: space-between !important;
+                align-items: center !important;
+                text-align: left !important;
+                padding: 12px 16px !important;
+                gap: 10px;
+            }}
+            .pg-name {{ 
+                font-size: 13px !important; 
+                -webkit-line-clamp: 1 !important; 
+                margin-bottom: 0 !important;
+                flex: 1; /* İsme yer aç */
+                text-align: left !important;
+            }}
+            .pg-price {{ 
+                font-size: 15px !important; 
+                margin: 0 !important; 
+                white-space: nowrap;
+            }}
+            .pg-badge {{ 
+                font-size: 9px !important; 
+                padding: 2px 6px !important;
+            }}
+
+            /* Sekmeler (Tabs) Kaydırılabilir Olsun */
+            .stTabs [data-baseweb="tab-list"] {{
+                flex-wrap: nowrap !important;
+                overflow-x: auto !important;
+                justify-content: flex-start !important;
+                padding-bottom: 5px !important;
+            }}
+            .stTabs [data-baseweb="tab"] {{
+                flex: 0 0 auto !important;
+                padding: 0 15px !important;
+            }}
             
-            /* Tablo ve Grafiklerin taşmasını engelle */
-            .stDataFrame, .stPlotlyChart {{ width: 100% !important; }}
+            /* Grafikler */
+            .stPlotlyChart {{ width: 100% !important; }}
             
-            /* Mobilde Ticker yazısı */
-            .ticker-wrap {{ font-size: 10px; }}
+            /* Ticker Yazısı */
+            .ticker-wrap {{ font-size: 10px !important; padding: 8px 0 !important; }}
         }}
 
-        /* --- LABEL RENKLERİ --- */
-        .stSelectbox label p, .stTextInput label p {{
-            color: #ffffff !important;
-            font-weight: 700 !important;
-            font-size: 14px !important;
-            letter-spacing: 0.5px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-        }}
-
-        /* --- BACKGROUND PARTICLES --- */
+        /* --- GENEL STİLLER --- */
         [data-testid="stAppViewContainer"]::before {{
-            content: "";
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
+            content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-image: 
                 radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 3px),
                 radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 2px),
                 radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 3px);
             background-size: 550px 550px, 350px 350px, 250px 250px;
             background-position: 0 0, 40 60, 130 270;
-            opacity: 0.07;
-            z-index: 0;
-            animation: star-move 200s linear infinite;
-            pointer-events: none;
+            opacity: 0.07; z-index: 0; animation: star-move 200s linear infinite; pointer-events: none;
         }}
+        @keyframes star-move {{ from {{ transform: translateY(0); }} to {{ transform: translateY(-2000px); }} }}
 
-        @keyframes star-move {{
-            from {{ transform: translateY(0); }}
-            to {{ transform: translateY(-2000px); }}
-        }}
-
-        /* --- ANIMASYONLAR --- */
-        @keyframes fadeInUp {{
-            from {{ opacity: 0; transform: translate3d(0, 20px, 0); }}
-            to {{ opacity: 1; transform: translate3d(0, 0, 0); }}
-        }}
-        
-        @keyframes border-flow {{
-            0% {{ background-position: 0% 50%; }}
-            50% {{ background-position: 100% 50%; }}
-            100% {{ background-position: 0% 50%; }}
-        }}
-
+        @keyframes fadeInUp {{ from {{ opacity: 0; transform: translate3d(0, 20px, 0); }} to {{ opacity: 1; transform: translate3d(0, 0, 0); }} }}
+        @keyframes border-flow {{ 0% {{ background-position: 0% 50%; }} 50% {{ background-position: 100% 50%; }} 100% {{ background-position: 0% 50%; }} }}
         .animate-enter {{ animation: fadeInUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }}
-        .delay-1 {{ animation-delay: 0.1s; }}
-        .delay-2 {{ animation-delay: 0.2s; }}
-        .delay-3 {{ animation-delay: 0.3s; }}
-        
-        .blink {{ animation: blinker 1s linear infinite; }} 
-        @keyframes blinker {{ 50% {{ opacity: 0; }} }}
+        .delay-1 {{ animation-delay: 0.1s; }} .delay-2 {{ animation-delay: 0.2s; }} .delay-3 {{ animation-delay: 0.3s; }}
+        .blink {{ animation: blinker 1s linear infinite; }} @keyframes blinker {{ 50% {{ opacity: 0; }} }}
 
-        /* --- ANA ARKA PLAN --- */
         [data-testid="stAppViewContainer"] {{
             background-color: var(--bg-deep);
-            background-image: 
-                radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.06), transparent 25%), 
-                radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.06), transparent 25%);
-            background-attachment: fixed;
-            font-family: 'Inter', sans-serif !important;
-            color: var(--text-main) !important;
+            background-image: radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.06), transparent 25%), radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.06), transparent 25%);
+            background-attachment: fixed; font-family: 'Inter', sans-serif !important; color: var(--text-main) !important;
         }}
-
-        /* --- SCROLLBAR --- */
         ::-webkit-scrollbar {{ width: 8px; height: 8px; }}
         ::-webkit-scrollbar-track {{ background: #02040a; }}
         ::-webkit-scrollbar-thumb {{ background: #3b82f6; border-radius: 4px; }}
-        ::-webkit-scrollbar-thumb:hover {{ background: #60a5fa; box-shadow: 0 0 10px #3b82f6; }}
-
-        /* --- HEADER GİZLEME --- */
         [data-testid="stHeader"] {{ visibility: hidden; height: 0px; }}
         [data-testid="stToolbar"] {{ display: none; }}
         .block-container {{ padding-top: 1rem !important; padding-bottom: 5rem; max-width: 95% !important; }}
-
-        /* --- SIDEBAR --- */
+        
         section[data-testid="stSidebar"] {{
             background: linear-gradient(180deg, rgba(5, 5, 10, 0.95) 0%, rgba(0, 0, 0, 0.98) 100%) !important;
-            border-right: 1px solid var(--glass-border);
-            backdrop-filter: blur(20px);
-            z-index: 99;
+            border-right: 1px solid var(--glass-border); backdrop-filter: blur(20px); z-index: 99;
         }}
-        
-        .stRadio [data-testid="stMarkdownContainer"] > p {{
-            color: #ffffff !important; font-weight: 600 !important; letter-spacing: 0.5px;
-        }}
-        
-        /* --- INPUT VE SELECTBOX --- */
         .stSelectbox > div > div, .stTextInput > div > div {{
-            background-color: rgba(255, 255, 255, 0.03) !important;
-            border: 1px solid var(--glass-border) !important;
-            color: var(--text-main) !important;
-            border-radius: 10px !important;
-            transition: all 0.3s ease;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+            background-color: rgba(255, 255, 255, 0.03) !important; border: 1px solid var(--glass-border) !important;
+            color: var(--text-main) !important; border-radius: 10px !important; transition: all 0.3s ease;
         }}
         .stSelectbox > div > div:hover, .stTextInput > div > div:focus-within {{
-            border-color: var(--accent-blue) !important;
-            background-color: rgba(255, 255, 255, 0.06) !important;
-            box-shadow: 0 0 0 1px var(--accent-blue), 0 0 15px rgba(59, 130, 246, 0.2);
+            border-color: var(--accent-blue) !important; background-color: rgba(255, 255, 255, 0.06) !important;
         }}
-        
-        /* --- TABLO VE DATAFRAME --- */
         [data-testid="stDataEditor"], [data-testid="stDataFrame"] {{
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            background: rgba(10, 10, 15, 0.4) !important;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            animation: fadeInUp 0.8s ease-out;
+            border: 1px solid var(--glass-border); border-radius: 12px; background: rgba(10, 10, 15, 0.4) !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3); animation: fadeInUp 0.8s ease-out;
         }}
-        
-        /* --- SEKME (TABS) --- */
         .stTabs [data-baseweb="tab-list"] {{
-            gap: 8px; background: rgba(255,255,255,0.02);
-            padding: 8px; border-radius: 12px; border: 1px solid var(--glass-border);
-            flex-wrap: wrap; /* Mobil için wrap özelliği */
+            gap: 8px; background: rgba(255,255,255,0.02); padding: 8px; border-radius: 12px; border: 1px solid var(--glass-border);
         }}
         .stTabs [data-baseweb="tab"] {{
-            height: 40px; border-radius: 8px; padding: 0 20px;
-            color: var(--text-dim) !important; font-weight: 500; border: none !important;
-            transition: all 0.2s ease;
-            flex-grow: 1; /* Mobil için tam genişlik */
-            text-align: center;
+            height: 40px; border-radius: 8px; padding: 0 20px; color: var(--text-dim) !important; font-weight: 500; border: none !important; transition: all 0.2s ease;
         }}
         .stTabs [aria-selected="true"] {{
-            background-color: rgba(255,255,255,0.1) !important;
-            color: #fff !important; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            background-color: rgba(255,255,255,0.1) !important; color: #fff !important; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }}
-
-        /* --- BUTTONS --- */
         div.stButton > button {{
-            background: linear-gradient(145deg, rgba(40,40,45,0.8), rgba(20,20,25,0.9));
-            border: 1px solid var(--glass-border);
-            color: #fff; border-radius: 10px; font-weight: 600;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(145deg, rgba(40,40,45,0.8), rgba(20,20,25,0.9)); border: 1px solid var(--glass-border);
+            color: #fff; border-radius: 10px; font-weight: 600; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }}
-        div.stButton > button:hover {{
-            border-color: var(--accent-blue);
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
-            transform: translateY(-1px);
-        }}
+        div.stButton > button:hover {{ border-color: var(--accent-blue); box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); transform: translateY(-1px); }}
 
-        /* --- KPI CARD DESIGN --- */
         .kpi-card {{
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--card-radius);
-            padding: 24px; position: relative; overflow: hidden;
-            backdrop-filter: blur(10px); transition: all 0.3s ease;
-            animation: fadeInUp 0.6s ease-out both;
-            z-index: 1;
+            border: 1px solid var(--glass-border); border-radius: var(--card-radius);
+            padding: 24px; position: relative; overflow: hidden; backdrop-filter: blur(10px); transition: all 0.3s ease;
+            animation: fadeInUp 0.6s ease-out both; z-index: 1;
         }}
-        
-        /* NEON BORDER EFFECT */
         .kpi-card::before, .pg-card::before, .smart-card::before {{
             content: ""; position: absolute; inset: -1px; z-index: -1;
             background: linear-gradient(45deg, #3b82f6, #8b5cf6, #ec4899, #3b82f6);
-            background-size: 400% 400%;
-            animation: border-flow 10s ease infinite;
-            border-radius: inherit; opacity: 0; transition: opacity 0.3s ease;
+            background-size: 400% 400%; animation: border-flow 10s ease infinite; border-radius: inherit; opacity: 0; transition: opacity 0.3s ease;
         }}
-        .kpi-card:hover::before, .pg-card:hover::before, .smart-card:hover::before {{
-            opacity: 0.6; filter: blur(10px);
-        }}
-
+        .kpi-card:hover::before, .pg-card:hover::before, .smart-card:hover::before {{ opacity: 0.6; filter: blur(10px); }}
         .kpi-card:hover {{
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
-            border-color: var(--glass-highlight);
-            transform: translateY(-4px);
-            box-shadow: 0 15px 30px -5px rgba(0,0,0,0.4), 0 0 20px rgba(255,255,255,0.05);
+            border-color: var(--glass-highlight); transform: translateY(-4px);
         }}
-        .kpi-bg-icon {{
-            position: absolute; right: -15px; bottom: -25px;
-            font-size: 100px; opacity: 0.04; transform: rotate(-15deg);
-            filter: blur(1px); pointer-events: none;
-        }}
+        .kpi-bg-icon {{ position: absolute; right: -15px; bottom: -25px; font-size: 100px; opacity: 0.04; transform: rotate(-15deg); filter: blur(1px); pointer-events: none; }}
         .kpi-title {{ font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-dim); letter-spacing: 1.5px; margin-bottom: 12px; }}
         .kpi-value {{ font-size: 36px; font-weight: 700; color: #fff; margin-bottom: 8px; letter-spacing: -1.5px; text-shadow: 0 4px 20px rgba(0,0,0,0.5); }}
         .kpi-sub {{ font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: var(--text-dim); background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 6px; width: fit-content; }}
 
-        /* --- PRODUCT GRID CARD --- */
+        /* Product Grid Card (Desktop Defaults) */
         .pg-card {{
-            background: rgba(20, 20, 25, 0.4);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 16px;
-            height: 150px;
-            display: flex; flex-direction: column; justify-content: space-between; align-items: center;
-            text-align: center;
-            transition: all 0.2s ease;
-            animation: fadeInUp 0.5s ease-out both;
-            position: relative; z-index: 1;
+            background: rgba(20, 20, 25, 0.4); border: 1px solid var(--glass-border); border-radius: 12px;
+            padding: 16px; height: 150px; display: flex; flex-direction: column; justify-content: space-between; align-items: center;
+            text-align: center; transition: all 0.2s ease; animation: fadeInUp 0.5s ease-out both; position: relative; z-index: 1;
         }}
-        .pg-card:hover {{
-            background: rgba(40, 40, 45, 0.6);
-            border-color: rgba(255,255,255,0.2);
-            transform: scale(1.03);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-        }}
+        .pg-card:hover {{ background: rgba(40, 40, 45, 0.6); border-color: rgba(255,255,255,0.2); transform: scale(1.03); }}
         .pg-name {{ font-size: 12px; font-weight: 500; color: #d4d4d8; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 32px; }}
         .pg-price {{ font-size: 18px; font-weight: 700; color: #fff; margin: 8px 0; }}
         .pg-badge {{ padding: 3px 10px; border-radius: 99px; font-size: 10px; font-weight: 700; border: 1px solid transparent; }}
@@ -305,40 +260,16 @@ def apply_theme():
         .pg-green {{ background: rgba(16, 185, 129, 0.1); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.2); }}
         .pg-yellow {{ background: rgba(255, 255, 255, 0.05); color: #ffd966; }}
 
-        /* --- TICKER --- */
-        .ticker-wrap {{
-            width: 100%; overflow: hidden;
-            background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(20,20,30,0.5) 15%, rgba(20,20,30,0.5) 85%, rgba(0,0,0,0) 100%);
-            border-top: 1px solid var(--glass-border);
-            border-bottom: 1px solid var(--glass-border);
-            padding: 12px 0; margin-bottom: 30px;
-            white-space: nowrap;
-        }}
+        .ticker-wrap {{ width: 100%; overflow: hidden; background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(20,20,30,0.5) 15%, rgba(20,20,30,0.5) 85%, rgba(0,0,0,0) 100%); border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); padding: 12px 0; margin-bottom: 30px; white-space: nowrap; }}
         .ticker-move {{ display: inline-block; padding-left: 100%; animation: marquee 45s linear infinite; font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.5px; }}
         @keyframes marquee {{ 0% {{ transform: translate(0, 0); }} 100% {{ transform: translate(-100%, 0); }} }}
 
-        /* --- SMART SECTOR CARDS --- */
-        .smart-card {{
-            background: rgba(30, 30, 35, 0.6);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px;
-            padding: 15px;
-            display: flex; flex-direction: column; gap: 5px;
-            transition: all 0.2s;
-            animation: fadeInUp 0.7s ease-out both;
-            position: relative; z-index: 1;
-        }}
+        .smart-card {{ background: rgba(30, 30, 35, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; display: flex; flex-direction: column; gap: 5px; transition: all 0.2s; animation: fadeInUp 0.7s ease-out both; position: relative; z-index: 1; }}
         .smart-card:hover {{ border-color: var(--accent-blue); transform: translateY(-2px); }}
         .sc-title {{ font-size: 11px; color: #a1a1aa; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }}
         .sc-val {{ font-size: 20px; color: #fff; font-weight:700; display:flex; align-items:center; gap:8px; }}
         
-        /* --- SKELETON LOADER --- */
-        .skeleton {{
-            background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
-            background-size: 200% 100%;
-            animation: loading 1.5s infinite;
-            border-radius: 8px;
-        }}
+        .skeleton {{ background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%); background-size: 200% 100%; animation: loading 1.5s infinite; border-radius: 8px; }}
         @keyframes loading {{ 0% {{ background-position: 200% 0; }} 100% {{ background-position: -200% 0; }} }}
     </style>
     """
@@ -559,7 +490,7 @@ def predict_inflation_prophet(df_trend):
     except Exception as e:
         return pd.DataFrame()
 
-# --- 6. SCRAPER (PROGRESS BAR GÜNCELLEMELİ) ---
+# --- 6. SCRAPER (PROGRESS BAR DESTEKLİ) ---
 def temizle_fiyat(t):
     if not t: return None
     t = str(t).replace('TL', '').replace('₺', '').strip()
@@ -691,7 +622,7 @@ def html_isleyici(progress_callback):
                                     islenen_kodlar.add(target['Kod']);
                                     hs += 1
             except Exception as e:
-                pass # Hataları sessiz geçiyoruz (Kullanıcı log istemiyor)
+                pass # Hataları sessiz geçiyoruz
         
         # 3. Aşama: Kaydetme (90% - 100%)
         progress_callback(0.95)
@@ -865,9 +796,9 @@ def style_chart(fig, is_pdf=False, is_sunburst=False):
         if not is_sunburst:
             layout_args.update(dict(
                 xaxis=dict(showgrid=False, zeroline=False, showline=True, linecolor="rgba(255,255,255,0.1)",
-                           gridcolor='rgba(255,255,255,0.05)', dtick="M1"),
+                            gridcolor='rgba(255,255,255,0.05)', dtick="M1"),
                 yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.03)", zeroline=False,
-                           gridwidth=1)
+                            gridwidth=1)
             ))
         fig.update_layout(**layout_args)
         fig.update_layout(modebar=dict(bgcolor='rgba(0,0,0,0)', color='#71717a', activecolor='#fff'))
@@ -1021,23 +952,20 @@ def dashboard_modu():
     """
     components.html(header_html_code, height=140)
 
-    # --- BUTON KONTROL PANELİ (SENKRONİZASYON PROGRESS BAR GÜNCELLEMESİ) ---
+    # --- BUTON KONTROL PANELİ (PROGRESS BAR DESTEKLİ) ---
     SHOW_SYNC_BUTTON = True 
 
     if SHOW_SYNC_BUTTON:
         col_btn1, col_btn2 = st.columns([3, 1])
         with col_btn2:
             if st.button("SİSTEMİ SENKRONİZE ET ⚡", type="primary", use_container_width=True):
-                # TEXT LOG YERİNE PROGRESS BAR
                 progress_bar = st.progress(0, text="Veri akışı sağlanıyor...")
                 
-                # Callback fonksiyonu artık sadece yüzdeyi günceller, yazı yazmaz
                 def progress_updater(percentage):
                     progress_bar.progress(min(1.0, max(0.0, percentage)), text="Senkronizasyon sürüyor...")
 
                 res = html_isleyici(progress_updater)
                 
-                # İşlem bitince %100 yap
                 progress_bar.progress(1.0, text="Tamamlandı!")
                 time.sleep(0.5)
                 progress_bar.empty()
@@ -1426,13 +1354,13 @@ def dashboard_modu():
 
                     f_col1, f_col2 = st.columns([1, 2])
                     with f_col1:
-                        # KATEGORİ SEÇİMİ (VARSAYILAN BOŞ EKLENDİ)
+                        # KATEGORİ SEÇİMİ (BOŞ VARSAYILAN)
                         kategoriler = ["Kategori Seçiniz..."] + sorted(df_analiz['Grup'].unique().tolist())
                         secilen_kategori = st.selectbox("Kategori Filtrele:", kategoriler)
                     with f_col2:
                         arama_terimi = st.text_input("Ürün Ara...", placeholder="Örn: Zeytinyağı, Beyaz Peynir...")
 
-                    # KOŞULLU GÖSTERİM (BOŞ İKEN GÖSTERME)
+                    # BOŞ KATEGORİ KONTROLÜ
                     if secilen_kategori != "Kategori Seçiniz...":
                         df_goster = df_analiz.copy()
                         df_goster = df_goster[df_goster['Grup'] == secilen_kategori]
