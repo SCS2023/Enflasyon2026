@@ -49,10 +49,10 @@ st.set_page_config(
     page_title="Piyasa Monitörü | Pro Analytics",
     layout="wide",
     page_icon="💎",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded" # Masaüstünde varsayılan açık gelir
 )
 
-# --- CSS MOTORU (MOBİL İÇİN ÖZEL OPTİMİZASYONLU) ---
+# --- CSS MOTORU (MOBİLDE SIDEBAR GİZLEME EKLENDİ) ---
 def apply_theme():
     st.session_state.plotly_template = "plotly_dark"
 
@@ -73,9 +73,19 @@ def apply_theme():
             --card-radius: 16px;
         }}
 
-        /* --- MOBİL UYUMLULUK (MEDIA QUERIES - KUSURSUZ) --- */
+        /* --- MOBİL UYUMLULUK VE SIDEBAR GİZLEME --- */
         @media only screen and (max-width: 768px) {{
-            /* Konteyner Boşluklarını Küçült */
+            /* 1. SIDEBAR'I MOBİLDE TAMAMEN GİZLE */
+            section[data-testid="stSidebar"] {{
+                display: none !important;
+                width: 0px !important;
+            }}
+            /* Sidebar Açma/Kapama Okunu (Button) da Gizle */
+            div[data-testid="stSidebarCollapsedControl"] {{
+                display: none !important;
+            }}
+            
+            /* 2. KONTEYNER AYARLARI */
             .block-container {{
                 padding-top: 1rem !important;
                 padding-left: 0.5rem !important;
@@ -83,13 +93,13 @@ def apply_theme():
                 max-width: 100% !important;
             }}
             
-            /* Header Mobilde Alt Alta ve Sola Hizalı */
+            /* 3. HEADER AYARLARI */
             .header-wrapper {{
                 flex-direction: column !important;
                 align-items: flex-start !important;
-                padding: 20px !important;
-                gap: 15px !important;
+                padding: 15px 20px !important;
                 height: auto !important;
+                gap: 15px !important;
             }}
             .app-title {{ 
                 font-size: 24px !important; 
@@ -103,25 +113,27 @@ def apply_theme():
                 margin-top: 10px !important;
                 padding-top: 10px !important;
                 border-top: 1px solid rgba(255,255,255,0.1);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
             }}
             
-            /* KPI Kartları Mobilde */
+            /* 4. KART DÜZENLEMELERİ */
             .kpi-card {{
                 margin-bottom: 10px !important;
                 padding: 16px !important;
                 height: auto !important;
-                min-height: auto !important;
             }}
             .kpi-value {{ font-size: 28px !important; margin-bottom: 4px !important; }}
             .kpi-title {{ font-size: 10px !important; margin-bottom: 8px !important; }}
 
-            /* Ürün Kartları (.pg-card) Mobilde Yatay Liste Olur */
+            /* 5. ÜRÜN KARTLARI (YATAY LİSTE) */
             .pg-card {{
                 width: 100% !important;
                 height: auto !important;
                 min-height: 70px !important;
                 margin-bottom: 10px !important;
-                flex-direction: row !important; /* Yan yana diz */
+                flex-direction: row !important;
                 justify-content: space-between !important;
                 align-items: center !important;
                 text-align: left !important;
@@ -132,20 +144,13 @@ def apply_theme():
                 font-size: 13px !important; 
                 -webkit-line-clamp: 1 !important; 
                 margin-bottom: 0 !important;
-                flex: 1; /* İsme yer aç */
+                flex: 1; 
                 text-align: left !important;
             }}
-            .pg-price {{ 
-                font-size: 15px !important; 
-                margin: 0 !important; 
-                white-space: nowrap;
-            }}
-            .pg-badge {{ 
-                font-size: 9px !important; 
-                padding: 2px 6px !important;
-            }}
+            .pg-price {{ font-size: 15px !important; margin: 0 !important; white-space: nowrap; }}
+            .pg-badge {{ font-size: 9px !important; padding: 2px 6px !important; }}
 
-            /* Sekmeler (Tabs) Kaydırılabilir Olsun */
+            /* 6. TABLO VE GRAFİK */
             .stTabs [data-baseweb="tab-list"] {{
                 flex-wrap: nowrap !important;
                 overflow-x: auto !important;
@@ -156,15 +161,11 @@ def apply_theme():
                 flex: 0 0 auto !important;
                 padding: 0 15px !important;
             }}
-            
-            /* Grafikler */
             .stPlotlyChart {{ width: 100% !important; }}
-            
-            /* Ticker Yazısı */
             .ticker-wrap {{ font-size: 10px !important; padding: 8px 0 !important; }}
         }}
 
-        /* --- GENEL STİLLER --- */
+        /* --- GENEL STİLLER (DEĞİŞMEDİ) --- */
         [data-testid="stAppViewContainer"]::before {{
             content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-image: 
@@ -176,7 +177,6 @@ def apply_theme():
             opacity: 0.07; z-index: 0; animation: star-move 200s linear infinite; pointer-events: none;
         }}
         @keyframes star-move {{ from {{ transform: translateY(0); }} to {{ transform: translateY(-2000px); }} }}
-
         @keyframes fadeInUp {{ from {{ opacity: 0; transform: translate3d(0, 20px, 0); }} to {{ opacity: 1; transform: translate3d(0, 0, 0); }} }}
         @keyframes border-flow {{ 0% {{ background-position: 0% 50%; }} 50% {{ background-position: 100% 50%; }} 100% {{ background-position: 0% 50%; }} }}
         .animate-enter {{ animation: fadeInUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }}
@@ -193,12 +193,13 @@ def apply_theme():
         ::-webkit-scrollbar-thumb {{ background: #3b82f6; border-radius: 4px; }}
         [data-testid="stHeader"] {{ visibility: hidden; height: 0px; }}
         [data-testid="stToolbar"] {{ display: none; }}
-        .block-container {{ padding-top: 1rem !important; padding-bottom: 5rem; max-width: 95% !important; }}
         
+        /* Side bar masaüstü için genel stil */
         section[data-testid="stSidebar"] {{
             background: linear-gradient(180deg, rgba(5, 5, 10, 0.95) 0%, rgba(0, 0, 0, 0.98) 100%) !important;
             border-right: 1px solid var(--glass-border); backdrop-filter: blur(20px); z-index: 99;
         }}
+        
         .stSelectbox > div > div, .stTextInput > div > div {{
             background-color: rgba(255, 255, 255, 0.03) !important; border: 1px solid var(--glass-border) !important;
             color: var(--text-main) !important; border-radius: 10px !important; transition: all 0.3s ease;
@@ -246,7 +247,6 @@ def apply_theme():
         .kpi-value {{ font-size: 36px; font-weight: 700; color: #fff; margin-bottom: 8px; letter-spacing: -1.5px; text-shadow: 0 4px 20px rgba(0,0,0,0.5); }}
         .kpi-sub {{ font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 8px; color: var(--text-dim); background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 6px; width: fit-content; }}
 
-        /* Product Grid Card (Desktop Defaults) */
         .pg-card {{
             background: rgba(20, 20, 25, 0.4); border: 1px solid var(--glass-border); border-radius: 12px;
             padding: 16px; height: 150px; display: flex; flex-direction: column; justify-content: space-between; align-items: center;
@@ -829,7 +829,7 @@ def dashboard_modu():
     else:
         tum_tarihler = []
 
-    # 2. SIDEBAR
+    # 2. SIDEBAR (MOBİLDE GÖRÜNMEZ, MASAÜSTÜNDE GÖRÜNÜR)
     with st.sidebar:
         lottie_url = "https://lottie.host/98606416-297c-4a37-9b2a-714013063529/5D6o8k8fW0.json" 
         try:
@@ -899,7 +899,6 @@ def dashboard_modu():
                         height=len(symbols) * 125)
 
     # 3. ANA EKRAN HEADER
-    # 3. ANA EKRAN HEADER (MOBİL UYUMLU - GÜNCELLENDİ)
     header_date = datetime.strptime(secilen_tarih, "%Y-%m-%d").strftime("%d.%m.%Y") if secilen_tarih else "--.--.----"
     
     header_html_code = f"""
@@ -910,14 +909,12 @@ def dashboard_modu():
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-            
             body {{ 
                 margin: 0; padding: 0; 
                 background: transparent; 
                 font-family: 'Inter', sans-serif; 
                 overflow: hidden; /* Scrollbar oluşmasını engelle */
             }}
-            
             .header-wrapper {{
                 background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
                 backdrop-filter: blur(16px);
@@ -929,7 +926,7 @@ def dashboard_modu():
                 align-items: center;
                 box-shadow: 0 20px 50px -20px rgba(0,0,0,0.5);
                 animation: fadeInUp 0.8s ease-out;
-                height: 90px; /* İçerik yüksekliği sabitlendi */
+                height: 90px;
                 box-sizing: border-box;
             }}
             
@@ -955,15 +952,12 @@ def dashboard_modu():
                 border: 1px solid rgba(59, 130, 246, 0.3); letter-spacing: 1px; box-shadow: 0 0 20px rgba(59,130,246,0.15);
                 position: relative; overflow: hidden; vertical-align: middle; white-space: nowrap;
             }}
-            
             .live-badge::after {{
                 content: ''; position: absolute; top:0; left:0; width:100%; height:100%;
                 background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
                 animation: shine 3s infinite;
             }}
-            
             @keyframes shine {{ 0% {{ transform: translateX(-100%); }} 100% {{ transform: translateX(100%); }} }}
-            
             .clock-container {{ text-align: right; min-width: 120px; }}
             .location-tag {{ font-size: 10px; color: #71717a; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; }}
             #report_date {{ font-family: 'Inter', sans-serif; font-size: 28px; font-weight: 800; color: #e4e4e7; letter-spacing: -1px; line-height: 1; }}
@@ -974,32 +968,16 @@ def dashboard_modu():
                     flex-direction: column;
                     align-items: flex-start;
                     padding: 15px 20px;
-                    height: auto; /* Yüksekliği serbest bırak */
+                    height: auto;
                     gap: 15px;
                 }}
-                
-                .app-title {{ 
-                    font-size: 22px; 
-                    flex-wrap: wrap;
-                }}
-                
-                .live-badge {{
-                    margin-top: 5px; /* Başlığın altına geçince boşluk ver */
-                }}
-
+                .app-title {{ font-size: 22px; flex-wrap: wrap; }}
+                .live-badge {{ margin-top: 5px; }}
                 .app-subtitle {{ font-size: 12px; }}
-                
                 .clock-container {{ 
-                    text-align: left; 
-                    width: 100%;
-                    border-top: 1px solid rgba(255,255,255,0.1);
-                    padding-top: 10px;
-                    margin-top: 5px;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
+                    text-align: left; width: 100%; border-top: 1px solid rgba(255,255,255,0.1);
+                    padding-top: 10px; margin-top: 5px; display: flex; justify-content: space-between; align-items: center;
                 }}
-                
                 .location-tag {{ margin-bottom: 0; }}
                 #report_date {{ font-size: 20px; }}
             }}
@@ -1022,7 +1000,6 @@ def dashboard_modu():
     </body>
     </html>
     """
-    # Yüksekliği mobilde içerik sığsın diye biraz artırdık (eski: 140, yeni: 165)
     components.html(header_html_code, height=165)
 
     # --- BUTON KONTROL PANELİ (PROGRESS BAR DESTEKLİ) ---
@@ -1679,4 +1656,3 @@ def dashboard_modu():
         
 if __name__ == "__main__":
     dashboard_modu()
-
