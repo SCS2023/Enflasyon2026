@@ -1073,17 +1073,21 @@ def dashboard_modu():
 
                 son = gunler[-1];
                 dt_son = datetime.strptime(son, '%Y-%m-%d')
-                
                 simdi_yil = dt_son.year
-                onceki_yil_aralik_prefix = f"{simdi_yil - 1}-12"
-                aralik_cols = [c for c in gunler if c.startswith(onceki_yil_aralik_prefix)]
 
-                if aralik_cols:
-                    baz_col = aralik_cols[-1]
-                    baz_tanimi = f"Aralık {simdi_yil - 1}"
+                # --- GÜNCELLEME: REFERANS ARTIK OCAK SONU ---
+                # Fiyat veritabanındaki mevcut yıla ait son Ocak verisini buluyoruz.
+                ocak_prefix = f"{simdi_yil}-01"
+                ocak_cols = [c for c in gunler if c.startswith(ocak_prefix)]
+
+                if ocak_cols:
+                    baz_col = ocak_cols[-1] # Ocak ayının listedeki en son tarihi (Örn: 2026-01-31)
+                    baz_tanimi = f"Ocak {simdi_yil}"
                 else:
+                    # Eğer henüz Ocak verisi yoksa veya yıl başındaysak listenin en başını al
                     baz_col = gunler[0]
                     baz_tanimi = f"Başlangıç ({baz_col})"
+                # ---------------------------------------------
 
                 def geometrik_ortalama_hesapla(row):
                     valid_vals = [x for x in row if isinstance(x, (int, float)) and x > 0]
@@ -1653,6 +1657,7 @@ def dashboard_modu():
         
 if __name__ == "__main__":
     dashboard_modu()
+
 
 
 
