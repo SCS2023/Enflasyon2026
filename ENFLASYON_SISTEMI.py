@@ -1291,8 +1291,8 @@ def dashboard_modu():
                 with c2:
                     kpi_card("Gıda Enflasyonu", f"%{enf_gida:.2f}", "Mutfak Sepeti", "#fca5a5", "#10b981", "🛒", "delay-2")
                 with c3:
-                    # ARTIK 31 OCAK REFERANS DEĞERİNİ BASIYOR
-                    kpi_card("Ocak Tahmini (31.01.2026)", f"%{month_end_forecast:.2f}", "Nihai Tahmin", "#a78bfa", "#8b5cf6", "🤖", "delay-3")
+                    # 31 OCAK DEĞERİ STATİK OLARAK 4.01 SABİTLENDİ
+                    kpi_card("Ocak Tahmini (31.01.2026)", "%4.01", "Nihai Tahmin", "#a78bfa", "#8b5cf6", "🤖", "delay-3")
                 with c4:
                     kpi_card("Resmi TÜİK Verisi", f"%{resmi_aylik_enf:.2f}", f"{resmi_tarih_str}", "#fbbf24", "#f59e0b",
                              "🏛️", "delay-3")
@@ -1672,6 +1672,7 @@ def dashboard_modu():
         
 if __name__ == "__main__":
     dashboard_modu()
+
 
 
 
