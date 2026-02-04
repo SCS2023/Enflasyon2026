@@ -1521,35 +1521,43 @@ def dashboard_modu():
                     
                     def fix_sparkline(row):
                         vals = row.tolist()
-                        # Eğer tüm değerler aynıysa grafik hata vermesin diye
-                        # son değeri mikroskobik düzeyde değiştiriyoruz.
                         if vals and min(vals) == max(vals):
                             vals[-1] += 0.00001
                         return vals
  
                     df_analiz['Fiyat_Trendi'] = df_analiz[gunler].apply(fix_sparkline, axis=1)
- 
+
+                    # --- HATAYI DÜZELTEN KISIM BURASI ---
+                    # Eğer baz tarih ve son tarih aynıysa, sadece birini gösterelim
+                    gosterilecek_sutunlar = ['Grup', ad_col, 'Fiyat_Trendi', baz_col, 'Gunluk_Degisim']
+                    
+                    column_config_ayarlari = {
+                        "Fiyat_Trendi": st.column_config.LineChartColumn(
+                            "Fiyat Grafiği", 
+                            width="medium", 
+                            help="Seçilen dönem içindeki fiyat hareketi",
+                            y_min=0
+                        ),
+                        ad_col: "Ürün", 
+                        "Grup": "Kategori",
+                        baz_col: st.column_config.NumberColumn(f"Fiyat ({baz_tanimi})", format="%.2f ₺"),
+                        "Gunluk_Degisim": st.column_config.ProgressColumn(
+                            "Günlük Değişim",
+                            help="Bir önceki güne göre değişim",
+                            format="%.2f%%",
+                            min_value=-0.5,
+                            max_value=0.5,
+                        ),
+                    }
+
+                    # Eğer baz tarih ile son tarih FARKLI ise, Son Fiyat sütununu da ekle
+                    if baz_col != son:
+                        gosterilecek_sutunlar.insert(3, son) # Araya ekle
+                        column_config_ayarlari[son] = st.column_config.NumberColumn(f"Fiyat ({son})", format="%.2f ₺")
+
                     st.data_editor(
-                        df_analiz[['Grup', ad_col, 'Fiyat_Trendi', baz_col, son, 'Gunluk_Degisim']], 
-                        column_config={
-                            "Fiyat_Trendi": st.column_config.LineChartColumn(
-                                "Fiyat Grafiği", 
-                                width="medium", 
-                                help="Seçilen dönem içindeki fiyat hareketi",
-                                y_min=0
-                            ),
-                            ad_col: "Ürün", 
-                            "Grup": "Kategori",
-                            baz_col: st.column_config.NumberColumn(f"Fiyat ({baz_tanimi})", format="%.2f ₺"),
-                            son: st.column_config.NumberColumn(f"Fiyat ({son})", format="%.2f ₺"),
-                            "Gunluk_Degisim": st.column_config.ProgressColumn(
-                                "Günlük Değişim",
-                                help="Bir önceki güne göre değişim",
-                                format="%.2f%%",
-                                min_value=-0.5,
-                                max_value=0.5,
-                            ),
-                        },
+                        df_analiz[gosterilecek_sutunlar], 
+                        column_config=column_config_ayarlari,
                         hide_index=True, use_container_width=True, height=600
                     )
                     
@@ -1563,7 +1571,8 @@ def dashboard_modu():
                     
                     final_cols = [c for c in export_cols if c in df_analiz.columns]
                     df_export = df_analiz[final_cols].copy()
-
+                    
+                    # ... (Excel indirme kısmı aynı kalabilir) ...
                     output = BytesIO()
                     try:
                         import xlsxwriter
@@ -1637,3 +1646,4 @@ def dashboard_modu():
         
 if __name__ == "__main__":
     dashboard_modu()
+
