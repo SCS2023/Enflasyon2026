@@ -800,7 +800,7 @@ def dashboard_modu():
         
         raw_dates = df_f['Tarih_Str'].unique().tolist()
         
-        # --- TARİH GÜNCELLEMESİ YAPILDI ---
+        # --- TARİH GÜNCELLEMESİ (DASHBOARD) ---
         BASLANGIC_LIMITI = "2026-02-04" 
         tum_tarihler = sorted([d for d in raw_dates if d >= BASLANGIC_LIMITI], reverse=True)
     else:
@@ -847,7 +847,6 @@ def dashboard_modu():
         else:
             secilen_tarih = None
             if 'df_f' in locals() and not df_f.empty:
-                # --- UYARI GÜNCELLENDİ ---
                 st.warning("2026-02-04 tarihinden sonrasına ait veri henüz oluşmadı.")
             else:
                 st.error("Veri bulunamadı.")
@@ -1055,7 +1054,10 @@ def dashboard_modu():
 
                 # Ana DataFrame Birleştirme
                 df_analiz = pd.merge(df_s, pivot, on='Kod', how='left')
-                tum_gunler_sirali = sorted([c for c in pivot.columns if c != 'Kod'])
+                
+                # --- KRİTİK DÜZELTME: 4 ŞUBAT ÖNCESİNİ SÜTUN OLARAK BİLE GÖRME ---
+                BASLANGIC_LIMITI = "2026-02-04" 
+                tum_gunler_sirali = sorted([c for c in pivot.columns if c != 'Kod' and c >= BASLANGIC_LIMITI])
                 
                 # --- TARİH SEÇİMİ ---
                 if secilen_tarih and secilen_tarih in tum_gunler_sirali:
@@ -1080,7 +1082,6 @@ def dashboard_modu():
                 # 🧠 ZİNCİRLEME ENDEKS & SIFIR NOKTASI (ZERO POINT)
                 # ============================================================
                 
-                # --- GÜNCELLENDİ: ZİNCİR TARİHİ 4 ŞUBAT ---
                 ZINCIR_TARIHI = datetime(2026, 2, 4)
                 aktif_agirlik_col = ""
                 baz_col = ""
