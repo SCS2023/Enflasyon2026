@@ -1008,7 +1008,7 @@ def dashboard_modu():
     else:
         st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
 
-    # 4. HESAPLAMA MOTORU (FİNAL DÜZELTME - ZİNCİRLEME ENDEKS)
+    # 4. HESAPLAMA MOTORU (ZİNCİRLEME ENDEKS - DUPLICATE FIX)
     if not df_f.empty and not df_s.empty:
         try:
             # --- 1. CONFIG VE SÜTUN AYARLARI ---
@@ -1024,14 +1024,23 @@ def dashboard_modu():
             df_f['Kod'] = df_f['Kod'].astype(str).apply(kod_standartlastir)
             df_s['Kod'] = df_s[kod_col].astype(str).apply(kod_standartlastir)
             
+            # --- !!! KRİTİK DÜZELTME 1: SEPETİ TEKİLLEŞTİR !!! ---
+            # Aynı koddan birden fazla varsa, tekrar edenleri sil (İlkini tut)
+            df_s = df_s.drop_duplicates(subset=['Kod'], keep='first')
+
             # --- 2. FİYAT VERİSİ HAZIRLIĞI ---
             df_f['Fiyat'] = pd.to_numeric(df_f['Fiyat'], errors='coerce')
             df_f = df_f[df_f['Fiyat'] > 0] 
             
-            # Pivot Tablo (Kod x Tarih)
-            pivot = df_f.pivot_table(index='Kod', columns='Tarih_Str', values='Fiyat', aggfunc='last')
+            # --- !!! KRİTİK DÜZELTME 2: FİYATLARI GRUPLA !!! ---
+            # Aynı ürün için aynı günde birden fazla fiyat varsa ortalamasını al
+            # Bu işlem pivot tablonun hata vermesini veya NaN üretmesini engeller
+            df_f = df_f.groupby(['Kod', 'Tarih_Str'])['Fiyat'].mean().reset_index()
             
-            # Veri boşluklarını doldur
+            # Pivot Tablo (Kod x Tarih)
+            pivot = df_f.pivot_table(index='Kod', columns='Tarih_Str', values='Fiyat')
+            
+            # Veri boşluklarını doldur (Süreklilik için)
             pivot = pivot.ffill(axis=1).bfill(axis=1).reset_index()
 
             if not pivot.empty:
@@ -1068,7 +1077,7 @@ def dashboard_modu():
                     st.error("Veri seti oluşturulamadı.")
                     return
 
-                # Fiyat sütunlarını sayıya çevir (HATA FIX)
+                # Fiyat sütunlarını sayıya çevir
                 for col in gunler:
                     df_analiz[col] = pd.to_numeric(df_analiz[col], errors='coerce')
 
@@ -1076,18 +1085,17 @@ def dashboard_modu():
                 dt_son = datetime.strptime(son, '%Y-%m-%d')
                 
                 # ============================================================
-                # 🧠 ZİNCİRLEME ENDEKS VE AKILLI TAMAMLAMA
+                # 🧠 ZİNCİRLEME ENDEKS
                 # ============================================================
                 
                 ZINCIR_TARIHI = datetime(2026, 2, 1)
                 aktif_agirlik_col = ""
                 baz_col = ""
-                baz_tanimi = "" # DEĞİŞKEN TANIMLANDI ✅
+                baz_tanimi = "" 
                 
                 if dt_son >= ZINCIR_TARIHI:
                     # YENİ DÖNEM (2026)
                     aktif_agirlik_col = col_w26
-                    # Baz Ayı Bul: Ocak 2026
                     ocak_2026_cols = [c for c in tum_gunler_sirali if c.startswith("2026-01")]
                     
                     if ocak_2026_cols:
@@ -1115,8 +1123,13 @@ def dashboard_modu():
                     if baz_col in df_analiz.columns:
                         df_analiz[baz_col] = df_analiz[baz_col].fillna(df_analiz[son])
 
-                # Ağırlıkları Hazırla
-                df_analiz[aktif_agirlik_col] = pd.to_numeric(df_analiz[aktif_agirlik_col], errors='coerce').fillna(0)
+                # --- !!! KRİTİK DÜZELTME 3: AĞIRLIK NaN TEMİZLİĞİ !!! ---
+                # Eğer ağırlık sütunu NaN ise 0 yap (Hesaplamayı bozmasın)
+                if active_agirlik_col in df_analiz.columns:
+                     df_analiz[aktif_agirlik_col] = pd.to_numeric(df_analiz[aktif_agirlik_col], errors='coerce').fillna(0)
+                else:
+                     # Eğer sütun yoksa (örn: eski excel kullanılıyorsa) 0 ata
+                     df_analiz[aktif_agirlik_col] = 0
                 
                 # Sadece sepette olanları al (Ağırlık > 0)
                 gecerli_veri_ham = df_analiz[df_analiz[aktif_agirlik_col] > 0].copy()
@@ -1134,7 +1147,7 @@ def dashboard_modu():
 
                 gecerli_veri_ham['Aylik_Ortalama'] = gecerli_veri_ham[bu_ay_cols].apply(geometrik_ortalama_hesapla, axis=1)
                 
-                # Final Veri Seti
+                # Final Veri Seti - NaN olanları temizle
                 gecerli_veri = gecerli_veri_ham.dropna(subset=['Aylik_Ortalama', baz_col])
 
                 enf_genel = 0.0
@@ -1153,7 +1166,6 @@ def dashboard_modu():
                     else:
                         enf_genel = 0.0
 
-                    # Gıda Endeksi (01 kodlu grup)
                     gida_df = gecerli_veri[gecerli_veri['Kod'].astype(str).str.startswith("01")]
                     if not gida_df.empty:
                         w_g = gida_df[aktif_agirlik_col]
@@ -1620,5 +1632,6 @@ def dashboard_modu():
         
 if __name__ == "__main__":
     dashboard_modu()
+
 
 
