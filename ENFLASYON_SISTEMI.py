@@ -1008,7 +1008,7 @@ def dashboard_modu():
     else:
         st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
 
-    # 4. HESAPLAMA MOTORU (ZİNCİRLEME ENDEKS - DUPLICATE FIX)
+    # 4. HESAPLAMA MOTORU (FİNAL DÜZELTME - ZİNCİRLEME ENDEKS)
     if not df_f.empty and not df_s.empty:
         try:
             # --- 1. CONFIG VE SÜTUN AYARLARI ---
@@ -1034,13 +1034,12 @@ def dashboard_modu():
             
             # --- !!! KRİTİK DÜZELTME 2: FİYATLARI GRUPLA !!! ---
             # Aynı ürün için aynı günde birden fazla fiyat varsa ortalamasını al
-            # Bu işlem pivot tablonun hata vermesini veya NaN üretmesini engeller
             df_f = df_f.groupby(['Kod', 'Tarih_Str'])['Fiyat'].mean().reset_index()
             
             # Pivot Tablo (Kod x Tarih)
             pivot = df_f.pivot_table(index='Kod', columns='Tarih_Str', values='Fiyat')
             
-            # Veri boşluklarını doldur (Süreklilik için)
+            # Veri boşluklarını doldur
             pivot = pivot.ffill(axis=1).bfill(axis=1).reset_index()
 
             if not pivot.empty:
@@ -1077,7 +1076,7 @@ def dashboard_modu():
                     st.error("Veri seti oluşturulamadı.")
                     return
 
-                # Fiyat sütunlarını sayıya çevir
+                # Fiyat sütunlarını sayıya çevir (HATA FIX)
                 for col in gunler:
                     df_analiz[col] = pd.to_numeric(df_analiz[col], errors='coerce')
 
@@ -1085,7 +1084,7 @@ def dashboard_modu():
                 dt_son = datetime.strptime(son, '%Y-%m-%d')
                 
                 # ============================================================
-                # 🧠 ZİNCİRLEME ENDEKS
+                # 🧠 ZİNCİRLEME ENDEKS VE AKILLI TAMAMLAMA
                 # ============================================================
                 
                 ZINCIR_TARIHI = datetime(2026, 2, 1)
@@ -1096,6 +1095,7 @@ def dashboard_modu():
                 if dt_son >= ZINCIR_TARIHI:
                     # YENİ DÖNEM (2026)
                     aktif_agirlik_col = col_w26
+                    # Baz Ayı Bul: Ocak 2026
                     ocak_2026_cols = [c for c in tum_gunler_sirali if c.startswith("2026-01")]
                     
                     if ocak_2026_cols:
@@ -1124,11 +1124,9 @@ def dashboard_modu():
                         df_analiz[baz_col] = df_analiz[baz_col].fillna(df_analiz[son])
 
                 # --- !!! KRİTİK DÜZELTME 3: AĞIRLIK NaN TEMİZLİĞİ !!! ---
-                # Eğer ağırlık sütunu NaN ise 0 yap (Hesaplamayı bozmasın)
-                if active_agirlik_col in df_analiz.columns:
+                if aktif_agirlik_col in df_analiz.columns:
                      df_analiz[aktif_agirlik_col] = pd.to_numeric(df_analiz[aktif_agirlik_col], errors='coerce').fillna(0)
                 else:
-                     # Eğer sütun yoksa (örn: eski excel kullanılıyorsa) 0 ata
                      df_analiz[aktif_agirlik_col] = 0
                 
                 # Sadece sepette olanları al (Ağırlık > 0)
@@ -1147,7 +1145,7 @@ def dashboard_modu():
 
                 gecerli_veri_ham['Aylik_Ortalama'] = gecerli_veri_ham[bu_ay_cols].apply(geometrik_ortalama_hesapla, axis=1)
                 
-                # Final Veri Seti - NaN olanları temizle
+                # Final Veri Seti
                 gecerli_veri = gecerli_veri_ham.dropna(subset=['Aylik_Ortalama', baz_col])
 
                 enf_genel = 0.0
@@ -1244,7 +1242,7 @@ def dashboard_modu():
                 ticker_html_content = " &nbsp;&nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp;&nbsp; ".join(items) if items else "<span style='color:#71717a'>Piyasada yatay seyir izlenmektedir.</span>"
                 st.markdown(f"""<div class="ticker-wrap animate-enter"><div class="ticker-move">{ticker_html_content}</div></div>""", unsafe_allow_html=True)
                 st.markdown(f"""<script>document.title = "🔴 %{enf_genel:.2f} | Piyasa Monitörü";</script>""", unsafe_allow_html=True)
-                
+
                 df_resmi, msg = get_official_inflation()
                 resmi_aylik_enf = 0.0;
                 resmi_tarih_str = "-";
@@ -1632,6 +1630,3 @@ def dashboard_modu():
         
 if __name__ == "__main__":
     dashboard_modu()
-
-
-
