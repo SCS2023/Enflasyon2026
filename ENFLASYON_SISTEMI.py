@@ -104,9 +104,9 @@ def apply_theme():
             .clock-container {{ 
                 text-align: left !important; 
                 width: 100% !important; 
-                margin-top: 10px !important;
-                padding-top: 10px !important;
-                border-top: 1px solid rgba(255,255,255,0.1);
+                margin-top: 10px !important; 
+                padding-top: 10px !important; 
+                border-top: 1px solid rgba(255,255,255,0.1); 
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
@@ -1008,7 +1008,6 @@ def dashboard_modu():
     else:
         st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
 
-    # 4. HESAPLAMA MOTORU
     # 4. HESAPLAMA MOTORU (ZİNCİRLEME ENDEKS - HATA KORUMALI)
     if not df_f.empty and not df_s.empty:
         try:
@@ -1086,6 +1085,7 @@ def dashboard_modu():
                 
                 aktif_agirlik_col = ""
                 baz_col = ""
+                baz_tanimi = ""
                 
                 if dt_son >= ZINCIR_TARIHI:
                     # --- YENİ DÖNEM (2026) ---
@@ -1094,8 +1094,10 @@ def dashboard_modu():
                     ocak_2026_cols = [c for c in tum_gunler_sirali if c.startswith("2026-01")]
                     if ocak_2026_cols:
                         baz_col = ocak_2026_cols[-1]
+                        baz_tanimi = "Ocak 2026"
                     else:
                         baz_col = gunler[0]
+                        baz_tanimi = "Başlangıç"
                 else:
                     # --- ESKİ DÖNEM (2025) ---
                     aktif_agirlik_col = col_w25
@@ -1103,8 +1105,10 @@ def dashboard_modu():
                     aralik_2025_cols = [c for c in tum_gunler_sirali if c.startswith("2025-12")]
                     if aralik_2025_cols:
                         baz_col = aralik_2025_cols[-1]
+                        baz_tanimi = "Aralık 2025"
                     else:
                         baz_col = gunler[0]
+                        baz_tanimi = "Başlangıç"
 
                 # Ağırlıkları Sayıya Çevir (Hata önleme)
                 df_analiz[aktif_agirlik_col] = pd.to_numeric(df_analiz[aktif_agirlik_col], errors='coerce').fillna(0)
@@ -1303,29 +1307,6 @@ def dashboard_modu():
                 ai_placeholder = st.empty()
                 stream_text(durum_mesaji, ai_placeholder, kutu_rengi, kenar_rengi, durum_emoji, durum_baslik)
                 
-                def style_chart(fig, is_pdf=False, is_sunburst=False):
-                    if is_pdf:
-                        fig.update_layout(template="plotly_white", font=dict(family="Arial", size=14, color="black"))
-                    else:
-                        layout_args = dict(
-                            template="plotly_dark",
-                            paper_bgcolor="rgba(0,0,0,0)",
-                            plot_bgcolor="rgba(0,0,0,0)",
-                            font=dict(family="Inter, sans-serif", color="#a1a1aa", size=12),
-                            margin=dict(l=0, r=0, t=40, b=0),
-                            hoverlabel=dict(bgcolor="#18181b", bordercolor="rgba(255,255,255,0.1)", font=dict(color="#fff")),
-                        )
-                        if not is_sunburst:
-                            layout_args.update(dict(
-                                xaxis=dict(showgrid=False, zeroline=False, showline=True, linecolor="rgba(255,255,255,0.1)",
-                                           gridcolor='rgba(255,255,255,0.05)', dtick="M1"),
-                                yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.03)", zeroline=False,
-                                           gridwidth=1)
-                            ))
-                        fig.update_layout(**layout_args)
-                        fig.update_layout(modebar=dict(bgcolor='rgba(0,0,0,0)', color='#71717a', activecolor='#fff'))
-                    return fig
-                
                 df_analiz['Fark_Yuzde'] = df_analiz['Fark'] * 100
                 
                 t_sektor, t_ozet, t_veri, t_rapor = st.tabs(
@@ -1337,11 +1318,11 @@ def dashboard_modu():
                     df_analiz['Agirlikli_Fark'] = df_analiz['Fark'] * df_analiz[agirlik_col]
                     sektor_ozet = df_analiz.groupby('Grup').agg({
                         'Agirlikli_Fark': 'sum',
-                        'Agirlik_2025': 'sum'
+                        agirlik_col: 'sum'
                     }).reset_index()
-                    sektor_ozet['Ortalama_Degisim'] = (sektor_ozet['Agirlikli_Fark'] / sektor_ozet['Agirlik_2025']) * 100
+                    sektor_ozet['Ortalama_Degisim'] = (sektor_ozet['Agirlikli_Fark'] / sektor_ozet[agirlik_col]) * 100
                     
-                    top_sektorler = sektor_ozet.sort_values('Agirlik_2025', ascending=False).head(4)
+                    top_sektorler = sektor_ozet.sort_values(agirlik_col, ascending=False).head(4)
                     
                     sc_cols = st.columns(4)
                     for idx, (i, row) in enumerate(top_sektorler.iterrows()):
@@ -1512,9 +1493,9 @@ def dashboard_modu():
                         if vals and min(vals) == max(vals):
                             vals[-1] += 0.00001
                         return vals
-    
+ 
                     df_analiz['Fiyat_Trendi'] = df_analiz[gunler].apply(fix_sparkline, axis=1)
-    
+ 
                     st.data_editor(
                         df_analiz[['Grup', ad_col, 'Fiyat_Trendi', baz_col, son, 'Gunluk_Degisim']], 
                         column_config={
@@ -1623,5 +1604,3 @@ def dashboard_modu():
         
 if __name__ == "__main__":
     dashboard_modu()
-
-
