@@ -1233,7 +1233,7 @@ def sayfa_metodoloji():
     </p>
 </article>
 
-<ar<article class="step-box step-purple">
+<article class="step-box step-purple">
     <div class="step-title">
         <span>2.</span> Veri Temizleme ve Kalite Kontrol
     </div>
@@ -1264,7 +1264,6 @@ def sayfa_metodoloji():
         </div>
     </div>
 </article>
-
 
 <article class="step-box step-yellow">
     <div class="step-title">
@@ -1299,6 +1298,7 @@ def sayfa_metodoloji():
         Fiyat serisi, düzeltme katsayısı ile süreklilik sağlayacak şekilde bağlanır.
     </p>
 </article>
+
 
 </section>
 """
@@ -1427,5 +1427,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
