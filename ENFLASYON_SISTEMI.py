@@ -560,6 +560,14 @@ def main():
     df_s = df_s.drop_duplicates(subset=['Kod'])
     
     # Pivot ve Merge
+    # Pivot ve Merge
+    # --- DÜZELTME BAŞLANGICI ---
+    # Önce Fiyat sütununu sayıya çeviriyoruz, hatalı verileri (metin vb.) NaN yapıyoruz
+    df_f['Fiyat'] = pd.to_numeric(df_f['Fiyat'], errors='coerce')
+    # NaN olan (sayıya çevrilemeyen) satırları siliyoruz
+    df_f = df_f.dropna(subset=['Fiyat'])
+    # --- DÜZELTME BİTİŞİ ---
+    
     df_f = df_f[df_f['Fiyat'] > 0]
     df_f_grp = df_f.groupby(['Kod', 'Tarih_Str'])['Fiyat'].mean().reset_index()
     pivot = df_f_grp.pivot_table(index='Kod', columns='Tarih_Str', values='Fiyat').ffill(axis=1).bfill(axis=1).reset_index()
@@ -776,3 +784,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
