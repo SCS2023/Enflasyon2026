@@ -1233,8 +1233,10 @@ def sayfa_metodoloji():
     </p>
 </article>
 
-<article class="step-box step-purple">
-    <div class="step-title"><span>2.</span> Veri Temizleme ve Kalite Kontrol</div>
+<ar<article class="step-box step-purple">
+    <div class="step-title">
+        <span>2.</span> Veri Temizleme ve Kalite Kontrol
+    </div>
 
     <div class="list-item">
         <span class="bullet">➤</span>
@@ -1263,8 +1265,11 @@ def sayfa_metodoloji():
     </div>
 </article>
 
+
 <article class="step-box step-yellow">
-    <div class="step-title"><span>3.</span> Endeks Hesaplama</div>
+    <div class="step-title">
+        <span>3.</span> Endeks Hesaplama
+    </div>
 
     <p class="step-text">
         Sistem, <strong>Zincirleme Laspeyres Fiyat Endeksi</strong> yaklaşımını kullanır.
@@ -1422,4 +1427,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
