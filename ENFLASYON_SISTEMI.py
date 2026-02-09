@@ -193,6 +193,13 @@ def apply_theme():
         .sc-val {{ font-size: 18px; color: #fff; font-weight:700; }}
         
         .skeleton {{ background: rgba(255,255,255,0.05); animation: blinker 1.5s infinite; border-radius: 8px; }}
+        
+        /* BUTON STİLİ */
+        div.stButton > button {
+            background: linear-gradient(145deg, rgba(40,40,45,0.8), rgba(20,20,25,0.9)); border: 1px solid var(--glass-border);
+            color: #fff; border-radius: 10px; font-weight: 600; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        div.stButton > button:hover { border-color: var(--accent-blue); box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); transform: translateY(-1px); }
     </style>
     """
     st.markdown(final_css, unsafe_allow_html=True)
@@ -777,8 +784,8 @@ def veri_motoru_calistir():
     # Grup Eşleştirme
     if 'Grup' not in df_s.columns:
         grup_map = {"01": "Gıda", "02": "Alkol-Tütün", "03": "Giyim", "04": "Konut",
-                   "05": "Ev Eşyası", "06": "Sağlık", "07": "Ulaşım", "08": "Haberleşme", 
-                   "09": "Eğlence", "10": "Eğitim", "11": "Lokanta", "12": "Çeşitli"}
+                    "05": "Ev Eşyası", "06": "Sağlık", "07": "Ulaşım", "08": "Haberleşme", 
+                    "09": "Eğlence", "10": "Eğitim", "11": "Lokanta", "12": "Çeşitli"}
         df_s['Grup'] = df_s['Kod'].str[:2].map(grup_map).fillna("Diğer")
 
     df_analiz = pd.merge(df_s, pivot, on='Kod', how='left')
@@ -1016,7 +1023,7 @@ def sayfa_piyasa_ozeti(ctx):
         
     st.subheader("Sektörel Isı Haritası")
     fig_tree = px.treemap(df, path=[px.Constant("Piyasa"), 'Grup', ctx['ad_col']], 
-                         values=ctx['agirlik_col'], color='Fark', color_continuous_scale='RdYlGn_r')
+                          values=ctx['agirlik_col'], color='Fark', color_continuous_scale='RdYlGn_r')
     
     st.plotly_chart(style_chart(fig_tree, is_sunburst=True), use_container_width=True, key="ozet_treemap")
 
@@ -1382,6 +1389,33 @@ def main():
         </div>
     """, unsafe_allow_html=True)
     
+    # --- SENKRONİZASYON BUTONU (EKLENDİ) ---
+    col_btn1, col_btn2 = st.columns([3, 1])
+    with col_btn2:
+        if st.button("SİSTEMİ SENKRONİZE ET ⚡", type="primary", use_container_width=True):
+            progress_bar = st.progress(0, text="Veri akışı sağlanıyor...")
+            
+            def progress_updater(percentage):
+                progress_bar.progress(min(1.0, max(0.0, percentage)), text="Senkronizasyon sürüyor...")
+
+            res = html_isleyici(progress_updater)
+            
+            progress_bar.progress(1.0, text="Tamamlandı!")
+            time.sleep(0.5)
+            progress_bar.empty()
+            
+            if "OK" in res:
+                st.cache_data.clear()
+                st.toast('Sistem Senkronize Edildi!', icon='🚀') 
+                st.balloons() 
+                time.sleep(1)
+                st.rerun()
+            elif "Veri bulunamadı" in res:
+                st.warning("⚠️ Yeni veri akışı yok.")
+            else:
+                st.error(res)
+    # ---------------------------------------
+
     # 1. Önce Veriyi Yükle (Ana Sayfa İstatistikleri İçin Gerekli)
     with st.spinner("Piyasa verileri analiz ediliyor..."):
         ctx = veri_motoru_calistir()
@@ -1420,17 +1454,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
