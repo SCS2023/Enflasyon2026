@@ -57,12 +57,13 @@ st.set_page_config(
 def apply_theme():
     st.session_state.plotly_template = "plotly_dark"
 
-    final_css = f"""
+    # f""" yerine sadece """ kullanıyoruz, böylece {{ }} yapmaya gerek kalmıyor.
+    final_css = """
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
 
-        :root {{
+        :root {
             --bg-deep: #02040a;
             --glass-bg: rgba(255, 255, 255, 0.02);
             --glass-border: rgba(255, 255, 255, 0.08);
@@ -72,10 +73,10 @@ def apply_theme():
             --accent-blue: #3b82f6;
             --accent-glow: rgba(59, 130, 246, 0.5);
             --card-radius: 16px;
-        }}
+        }
 
         /* --- ÜST NAVİGASYON MENÜSÜ --- */
-        .stRadio > div {{
+        .stRadio > div {
             display: flex;
             justify-content: center;
             gap: 15px;
@@ -85,11 +86,11 @@ def apply_theme():
             border-radius: 20px;
             border: 1px solid var(--glass-border);
             margin-bottom: 20px;
-            margin-top: -50px; /* Header boşluğunu al */
+            margin-top: -50px;
             overflow-x: auto;
-        }}
+        }
         
-        .stRadio button {{
+        .stRadio button {
             background: transparent !important;
             border: none !important;
             color: #71717a !important;
@@ -97,27 +98,27 @@ def apply_theme():
             font-size: 14px !important;
             transition: all 0.3s ease !important;
             border-radius: 8px !important;
-        }}
+        }
         
-        .stRadio button:hover {{
+        .stRadio button:hover {
             color: #fff !important;
             background: rgba(255,255,255,0.05) !important;
-        }}
+        }
         
-        .stRadio button[aria-checked="true"] {{
+        .stRadio button[aria-checked="true"] {
             color: #fff !important;
             background: rgba(59, 130, 246, 0.15) !important;
             border: 1px solid rgba(59, 130, 246, 0.3) !important;
             box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
-        }}
+        }
 
         /* --- MOBİL UYUMLULUK --- */
-        @media only screen and (max-width: 768px) {{
-            .stRadio > div {{ justify-content: flex-start; }}
-        }}
+        @media only screen and (max-width: 768px) {
+            .stRadio > div { justify-content: flex-start; }
+        }
 
         /* --- GENEL STİLLER --- */
-        [data-testid="stAppViewContainer"]::before {{
+        [data-testid="stAppViewContainer"]::before {
             content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-image: 
                 radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 3px),
@@ -126,62 +127,62 @@ def apply_theme():
             background-size: 550px 550px, 350px 350px, 250px 250px;
             background-position: 0 0, 40 60, 130 270;
             opacity: 0.07; z-index: 0; animation: star-move 200s linear infinite; pointer-events: none;
-        }}
-        @keyframes star-move {{ from {{ transform: translateY(0); }} to {{ transform: translateY(-2000px); }} }}
-        @keyframes fadeInUp {{ from {{ opacity: 0; transform: translate3d(0, 20px, 0); }} to {{ opacity: 1; transform: translate3d(0, 0, 0); }} }}
-        @keyframes border-flow {{ 0% {{ background-position: 0% 50%; }} 50% {{ background-position: 100% 50%; }} 100% {{ background-position: 0% 50%; }} }}
-        .animate-enter {{ animation: fadeInUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }}
-        .delay-1 {{ animation-delay: 0.1s; }} .delay-2 {{ animation-delay: 0.2s; }} .delay-3 {{ animation-delay: 0.3s; }}
-        .blink {{ animation: blinker 1s linear infinite; }} @keyframes blinker {{ 50% {{ opacity: 0; }} }}
+        }
+        @keyframes star-move { from { transform: translateY(0); } to { transform: translateY(-2000px); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translate3d(0, 20px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+        @keyframes border-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .animate-enter { animation: fadeInUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+        .delay-1 { animation-delay: 0.1s; } .delay-2 { animation-delay: 0.2s; } .delay-3 { animation-delay: 0.3s; }
+        .blink { animation: blinker 1s linear infinite; } @keyframes blinker { 50% { opacity: 0; } }
 
-        [data-testid="stAppViewContainer"] {{
+        [data-testid="stAppViewContainer"] {
             background-color: var(--bg-deep);
             background-image: radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.06), transparent 25%), radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.06), transparent 25%);
             background-attachment: fixed; font-family: 'Inter', sans-serif !important; color: var(--text-main) !important;
-        }}
-        ::-webkit-scrollbar {{ width: 8px; height: 8px; }}
-        ::-webkit-scrollbar-track {{ background: #02040a; }}
-        ::-webkit-scrollbar-thumb {{ background: #3b82f6; border-radius: 4px; }}
-        [data-testid="stHeader"] {{ visibility: hidden; height: 0px; }}
-        [data-testid="stToolbar"] {{ display: none; }}
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #02040a; }
+        ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 4px; }
+        [data-testid="stHeader"] { visibility: hidden; height: 0px; }
+        [data-testid="stToolbar"] { display: none; }
         
-        .stSelectbox > div > div, .stTextInput > div > div {{
+        .stSelectbox > div > div, .stTextInput > div > div {
             background-color: rgba(255, 255, 255, 0.03) !important; border: 1px solid var(--glass-border) !important;
             color: var(--text-main) !important; border-radius: 10px !important; transition: all 0.3s ease;
-        }}
-        .stSelectbox > div > div:hover, .stTextInput > div > div:focus-within {{
+        }
+        .stSelectbox > div > div:hover, .stTextInput > div > div:focus-within {
             border-color: var(--accent-blue) !important; background-color: rgba(255, 255, 255, 0.06) !important;
-        }}
-        [data-testid="stDataEditor"], [data-testid="stDataFrame"] {{
+        }
+        [data-testid="stDataEditor"], [data-testid="stDataFrame"] {
             border: 1px solid var(--glass-border); border-radius: 12px; background: rgba(10, 10, 15, 0.4) !important;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3); animation: fadeInUp 0.8s ease-out;
-        }}
+        }
         
         /* KART STİLLERİ */
-        .kpi-card {{
+        .kpi-card {
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
             border: 1px solid var(--glass-border); border-radius: var(--card-radius);
             padding: 24px; position: relative; overflow: hidden; backdrop-filter: blur(10px); transition: all 0.3s ease;
             animation: fadeInUp 0.6s ease-out both; z-index: 1;
-        }}
-        .kpi-card:hover {{ transform: translateY(-4px); border-color: var(--accent-blue); }}
-        .kpi-title {{ font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-dim); letter-spacing: 1.5px; margin-bottom: 12px; }}
-        .kpi-value {{ font-size: 36px; font-weight: 700; color: #fff; margin-bottom: 8px; letter-spacing: -1.5px; text-shadow: 0 4px 20px rgba(0,0,0,0.5); }}
+        }
+        .kpi-card:hover { transform: translateY(-4px); border-color: var(--accent-blue); }
+        .kpi-title { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-dim); letter-spacing: 1.5px; margin-bottom: 12px; }
+        .kpi-value { font-size: 36px; font-weight: 700; color: #fff; margin-bottom: 8px; letter-spacing: -1.5px; text-shadow: 0 4px 20px rgba(0,0,0,0.5); }
         
-        .pg-card {{
+        .pg-card {
             background: rgba(20, 20, 25, 0.4); border: 1px solid var(--glass-border); border-radius: 12px;
             padding: 16px; height: 150px; display: flex; flex-direction: column; justify-content: space-between; align-items: center;
             text-align: center; transition: all 0.2s ease; animation: fadeInUp 0.5s ease-out both; position: relative; z-index: 1;
-        }}
-        .pg-name {{ font-size: 12px; font-weight: 500; color: #d4d4d8; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 32px; }}
-        .pg-price {{ font-size: 18px; font-weight: 700; color: #fff; margin: 8px 0; }}
-        .pg-badge {{ padding: 3px 10px; border-radius: 99px; font-size: 10px; font-weight: 700; border: 1px solid transparent; }}
-        .pg-red {{ background: rgba(239, 68, 68, 0.1); color: #fca5a5; border-color: rgba(239, 68, 68, 0.2); }}
-        .pg-green {{ background: rgba(16, 185, 129, 0.1); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.2); }}
-        .pg-yellow {{ background: rgba(255, 255, 255, 0.05); color: #ffd966; }}
+        }
+        .pg-name { font-size: 12px; font-weight: 500; color: #d4d4d8; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 32px; }
+        .pg-price { font-size: 18px; font-weight: 700; color: #fff; margin: 8px 0; }
+        .pg-badge { padding: 3px 10px; border-radius: 99px; font-size: 10px; font-weight: 700; border: 1px solid transparent; }
+        .pg-red { background: rgba(239, 68, 68, 0.1); color: #fca5a5; border-color: rgba(239, 68, 68, 0.2); }
+        .pg-green { background: rgba(16, 185, 129, 0.1); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.2); }
+        .pg-yellow { background: rgba(255, 255, 255, 0.05); color: #ffd966; }
 
-        .skeleton {{ background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%); background-size: 200% 100%; animation: loading 1.5s infinite; border-radius: 8px; }}
-        @keyframes loading {{ 0% {{ background-position: 200% 0; }} 100% {{ background-position: -200% 0; }} }}
+        .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%); background-size: 200% 100%; animation: loading 1.5s infinite; border-radius: 8px; }
+        @keyframes loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
         
         .pdf-btn {
             display: inline-flex; align-items: center; justify-content: center;
@@ -1115,3 +1116,4 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
+
