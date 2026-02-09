@@ -1169,6 +1169,143 @@ def sayfa_raporlama(ctx):
         type="primary"
     )
 
+# --- YENİ SAYFA: MADDELER (Detaylı Bar Chart) ---
+def sayfa_maddeler(ctx):
+    df = ctx["df_analiz"]
+    st.markdown("### 📦 Madde Bazlı Değişim Analizi")
+    st.markdown("<p style='color:#a1a1aa; font-size:14px;'>Seçilen kategorideki ürünlerin, baz alınan tarihe göre oransal değişimlerini gösterir.</p>", unsafe_allow_html=True)
+
+    # Kategori Seçimi
+    kategoriler = sorted(df['Grup'].unique().tolist())
+    
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        secilen_kat = st.selectbox("Kategori Seçiniz:", options=kategoriler, index=0)
+    
+    # Veriyi Filtrele
+    df_sub = df[df['Grup'] == secilen_kat].copy()
+    
+    # Sıralama (En çok artandan en çok düşene)
+    df_sub = df_sub.sort_values('Fark_Yuzde', ascending=True) # Bar chart için ters sıralama daha iyi durur
+    
+    if not df_sub.empty:
+        # Renk Skalası (Negatifler Yeşil, Pozitifler Kırmızı)
+        colors = ['#10b981' if x < 0 else '#ef4444' for x in df_sub['Fark_Yuzde']]
+        
+        # Grafik
+        fig = go.Figure(go.Bar(
+            x=df_sub['Fark_Yuzde'],
+            y=df_sub[ctx['ad_col']],
+            orientation='h',
+            marker_color=colors,
+            text=df_sub['Fark_Yuzde'].apply(lambda x: f"%{x:.2f}"),
+            textposition='outside',
+            hovertemplate='<b>%{y}</b><br>Değişim: %%{x:.2f}<extra></extra>'
+        ))
+
+        fig.update_layout(
+            height=max(500, len(df_sub) * 30), # Dinamik yükseklik
+            title=f"{secilen_kat} Grubu Fiyat Değişimleri",
+            xaxis_title="Değişim Oranı (%)",
+            yaxis=dict(
+                title="",
+                showgrid=False
+            ),
+            margin=dict(l=0, r=0, t=40, b=0)
+        )
+        
+        st.plotly_chart(style_chart(fig), use_container_width=True)
+    else:
+        st.warning("Bu kategoride veri bulunamadı.")
+
+# --- YENİ SAYFA: TREND ANALİZİ (Line Chart) ---
+def sayfa_trend_analizi(ctx):
+    st.markdown("### 📈 Zaman Serisi ve Enflasyon Trendleri")
+    
+    df = ctx["df_analiz"]
+    gunler = ctx["gunler"]
+    agirlik_col = ctx["agirlik_col"]
+    baz_col = ctx["baz_col"] # Referans alınan ilk gün (Endeksleme için)
+    
+    # --- BÖLÜM 1: GENEL ENDEKS HESAPLAMASI (Tüm Tarihler İçin) ---
+    endeks_verisi = []
+    
+    # Her gün için ağırlıklı ortalama hesapla
+    for gun in gunler:
+        temp_df = df.dropna(subset=[gun, agirlik_col])
+        if not temp_df.empty:
+            # Basit Laspeyres mantığı simülasyonu (Fiyat * Ağırlık toplamı)
+            toplam_agirlik = temp_df[agirlik_col].sum()
+            if toplam_agirlik > 0:
+                weighted_sum = (temp_df[gun] * temp_df[agirlik_col]).sum()
+                index_val = weighted_sum / toplam_agirlik
+                endeks_verisi.append({"Tarih": gun, "Deger": index_val})
+    
+    df_endeks = pd.DataFrame(endeks_verisi)
+    
+    if not df_endeks.empty:
+        # İlk günü 100 veya 0 kabul ederek kümülatif değişim hesapla
+        ilk_deger = df_endeks.iloc[0]['Deger']
+        df_endeks['Kümülatif_Degisim'] = ((df_endeks['Deger'] / ilk_deger) - 1) * 100
+        
+        fig_genel = px.line(
+            df_endeks, 
+            x='Tarih', 
+            y='Kümülatif_Degisim',
+            title=f"GENEL ENFLASYON TRENDİ (Kümülatif %)",
+            markers=True
+        )
+        
+        fig_genel.update_traces(line_color='#3b82f6', line_width=4)
+        fig_genel = make_neon_chart(fig_genel) # Neon efekti ekle
+        
+        st.plotly_chart(style_chart(fig_genel), use_container_width=True)
+        
+        st.info(f"ℹ️ Grafik, {gunler[0]} tarihini baz alarak hesaplanan kümülatif sepet değişimini gösterir.")
+
+    st.markdown("---")
+    
+    # --- BÖLÜM 2: MADDE BAZLI KARŞILAŞTIRMA ---
+    st.subheader("Ürün Bazlı Fiyat Trendleri")
+    
+    seçilen_urunler = st.multiselect(
+        "Grafiğe eklenecek ürünleri seçin (Çoklu seçim yapılabilir):",
+        options=df[ctx['ad_col']].unique(),
+        default=df.sort_values('Fark_Yuzde', ascending=False).head(3)[ctx['ad_col']].tolist() # En çok artan 3 ürün varsayılan
+    )
+    
+    if seçilen_urunler:
+        # Seçilen ürünler için veriyi 'Long' formata çevir
+        mask = df[ctx['ad_col']].isin(seçilen_urunler)
+        df_filtered = df[mask]
+        
+        # Sadece tarih kolonlarını ve isim kolonunu al
+        cols_to_keep = [ctx['ad_col']] + gunler
+        df_melted = df_filtered[cols_to_keep].melt(id_vars=[ctx['ad_col']], var_name='Tarih', value_name='Fiyat')
+        
+        # Yüzdelik Değişim Hesapla (Her ürünün kendi baz fiyatına göre)
+        # Önce her ürünün ilk günkü fiyatını bulalım
+        base_prices = df_melted[df_melted['Tarih'] == gunler[0]].set_index(ctx['ad_col'])['Fiyat'].to_dict()
+        
+        def calc_pct(row):
+            base = base_prices.get(row[ctx['ad_col']], 0)
+            if base > 0:
+                return ((row['Fiyat'] / base) - 1) * 100
+            return 0
+            
+        df_melted['Yuzde_Degisim'] = df_melted.apply(calc_pct, axis=1)
+        
+        fig_urun = px.line(
+            df_melted, 
+            x='Tarih', 
+            y='Yuzde_Degisim', 
+            color=ctx['ad_col'],
+            title="Ürün Bazlı Kümülatif Değişim (%)",
+            markers=True
+        )
+        
+        st.plotly_chart(style_chart(fig_urun), use_container_width=True)
+
 def sayfa_metodoloji():
     html_content = """
 <style>
@@ -1483,6 +1620,8 @@ def main():
     tabs = st.tabs([
         "🏠 ANA SAYFA", 
         "📊 PİYASA ÖZETİ", 
+        "📈 TRENDLER",  # YENİ
+        "📦 MADDELER",  # YENİ
         "📂 KATEGORİ DETAY", 
         "📋 TAM LİSTE", 
         "📝 RAPORLAMA", 
@@ -1491,21 +1630,21 @@ def main():
 
     # 3. Sayfaları Yükle
     with tabs[0]:
-        sayfa_ana_sayfa(ctx) # Context'i buraya gönderiyoruz
+        sayfa_ana_sayfa(ctx) 
 
     if ctx:
         with tabs[1]: sayfa_piyasa_ozeti(ctx)
-        with tabs[2]: sayfa_kategori_detay(ctx)
-        with tabs[3]: sayfa_tam_liste(ctx)
-        with tabs[4]: sayfa_raporlama(ctx)
+        with tabs[2]: sayfa_trend_analizi(ctx) # YENİ FONKSİYON ÇAĞRISI
+        with tabs[3]: sayfa_maddeler(ctx)      # YENİ FONKSİYON ÇAĞRISI
+        with tabs[4]: sayfa_kategori_detay(ctx)
+        with tabs[5]: sayfa_tam_liste(ctx)
+        with tabs[6]: sayfa_raporlama(ctx)
     else:
-        err_msg = "<br><div style='text-align:center; padding:20px; background:rgba(255,0,0,0.1); border-radius:10px; color:#fff;'>⚠️ Veri seti yüklenemedi. Lütfen internet bağlantınızı kontrol edin veya yöneticiye başvurun.</div>"
-        with tabs[1]: st.markdown(err_msg, unsafe_allow_html=True)
-        with tabs[2]: st.markdown(err_msg, unsafe_allow_html=True)
-        with tabs[3]: st.markdown(err_msg, unsafe_allow_html=True)
-        with tabs[4]: st.markdown(err_msg, unsafe_allow_html=True)
+        err_msg = "<br><div style='text-align:center; padding:20px; background:rgba(255,0,0,0.1); border-radius:10px; color:#fff;'>⚠️ Veri seti yüklenemedi.</div>"
+        for i in range(1, 7): # Hata mesajını tüm sekmelere yay
+            with tabs[i]: st.markdown(err_msg, unsafe_allow_html=True)
 
-    with tabs[5]:
+    with tabs[7]:
         sayfa_metodoloji()
 
     # Footer
@@ -1513,3 +1652,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
