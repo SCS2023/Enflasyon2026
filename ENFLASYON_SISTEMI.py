@@ -1168,51 +1168,167 @@ def sayfa_hakkimizda():
                 <div style="font-size:12px; color:#a1a1aa;">{titles[i]}</div>
             </div>
             """, unsafe_allow_html=True)
+            
 def sayfa_metodoloji():
     st.markdown("""
-    <div style="padding:20px; background:rgba(255,255,255,0.02); border-radius:12px; border:1px solid rgba(255,255,255,0.1);">
-        <h2 style="color:#fff; border-bottom:1px solid #333; padding-bottom:10px;">📐 Metodoloji ve Hesaplama Yöntemi</h2>
-        
-        <h3 style="color:#60a5fa; margin-top:20px;">1. Veri Toplama (Web Scraping)</h3>
-        <p style="color:#d1d5db; line-height:1.6;">
-            Piyasa Monitörü, Türkiye'nin en büyük zincir marketleri ve e-ticaret platformlarından 
-            <strong>Python tabanlı botlar</strong> (Selenium, BeautifulSoup, Playwright) aracılığıyla günlük veri toplar. 
-            Botlarımız, "User-Agent Rotation" ve "Rate Limiting" prensiplerine uygun olarak, hedef sunucuları yormadan çalışır.
-            Her ürün için benzersiz bir ürün kodu (Barkod/SKU) ve URL eşleştirmesi kullanılır.
-        </p>
+    <style>
+        .method-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 30px;
+            font-family: 'Inter', sans-serif;
+            color: #e4e4e7;
+            line-height: 1.7;
+        }
+        .method-header {
+            font-size: 24px;
+            font-weight: 700;
+            color: #fff;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .step-box {
+            margin-bottom: 30px;
+            padding-left: 20px;
+            border-left: 3px solid #3b82f6;
+        }
+        .step-title {
+            color: #60a5fa;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tech-tag {
+            background: rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        .formula-box {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+            font-family: 'Times New Roman', serif;
+            font-size: 20px;
+            font-style: italic;
+            color: #fbbf24;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+        }
+        .list-item {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: start;
+            gap: 10px;
+            font-size: 14px;
+            color: #d1d5db;
+        }
+        .bullet {
+            color: #10b981;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+    </style>
 
-        <h3 style="color:#60a5fa; margin-top:20px;">2. Veri Temizleme ve Kalite Kontrol</h3>
-        <p style="color:#d1d5db; line-height:1.6;">
-            Ham veriler işlenmeden önce aşağıdaki filtrelerden geçer:
-        </p>
-        <ul style="color:#d1d5db; list-style-type:square; margin-left:20px;">
-            <li><strong>Anomali Tespiti:</strong> Bir önceki güne göre %50'den fazla fiyat değişimi olan ürünler "Şüpheli" olarak işaretlenir ve manuel kontrole düşer.</li>
-            <li><strong>Birim Dönüşümü:</strong> Kg, Litre, Adet gibi birimler standartlaştırılır.</li>
-            <li><strong>Stok Kontrolü:</strong> Stokta olmayan ürünlerin fiyatları, endeks hesaplamasında "sabit fiyat" (carry-forward) yöntemiyle taşınır.</li>
-        </ul>
-
-        <h3 style="color:#60a5fa; margin-top:20px;">3. Endeks Hesaplama Formülü</h3>
-        <p style="color:#d1d5db; line-height:1.6;">
-            Sistemimiz, <strong>Zincirleme Laspeyres Fiyat Endeksi</strong> yöntemini kullanır. 
-            Formül şu şekildedir:
-        </p>
-        <div style="background:rgba(0,0,0,0.3); padding:15px; border-radius:8px; font-family:'Courier New'; color:#fbbf24; text-align:center;">
-            I = Σ (Pn / P0) * W
+    <div class="method-card animate-enter">
+        <div class="method-header">
+            <span>📐</span> Metodoloji ve Akademik Çerçeve
         </div>
-        <p style="color:#71717a; font-size:12px; text-align:center;">
-            (I: Endeks, Pn: Güncel Fiyat, P0: Baz Fiyat, W: Ağırlık)
-        </p>
-        <p style="color:#d1d5db; line-height:1.6;">
-            Bu yöntemde, her bir ürünün sepetteki ağırlığı (W), hanehalkı tüketim anketlerine ve TÜİK ağırlıklarına göre belirlenir. 
-            Aylık fiyat ortalaması alınırken <strong>Geometrik Ortalama</strong> tercih edilerek uç değerlerin etkisi azaltılır.
-        </p>
 
-        <h3 style="color:#60a5fa; margin-top:20px;">4. Eşleştirme ve İkame (Substitution)</h3>
-        <p style="color:#d1d5db; line-height:1.6;">
-            Takip edilen bir ürün piyasadan kalktığında, sistem otomatik olarak "En Yakın Benzer Ürün" algoritmasını çalıştırır. 
-            Aynı marka, aynı gramaj ve aynı kategorideki en yakın ikame ürün (Substitute) sepete dahil edilir ve 
-            fiyat serisi düzeltme katsayısı ile bağlanır.
-        </p>
+        <div class="step-box">
+            <div class="step-title">
+                <span>1.</span> Veri Toplama (Web Scraping)
+            </div>
+            <p style="color:#a1a1aa; margin-bottom:10px;">
+                Piyasa Monitörü, Türkiye'nin en büyük zincir marketleri ve e-ticaret platformlarından özelleştirilmiş botlar aracılığıyla günlük veri toplar. 
+                Bu süreçte sunucu yükünü minimize eden etik tarama protokolleri uygulanır.
+            </p>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <span class="tech-tag">Python 3.12</span>
+                <span class="tech-tag">Selenium WebDriver</span>
+                <span class="tech-tag">Playwright</span>
+                <span class="tech-tag">User-Agent Rotation</span>
+            </div>
+        </div>
+
+        <div class="step-box" style="border-left-color: #8b5cf6;">
+            <div class="step-title" style="color: #a78bfa;">
+                <span>2.</span> Veri Temizleme ve Kalite Kontrol
+            </div>
+            <p style="color:#a1a1aa;">Ham veriler işlenmeden önce aşağıdaki algoritmik filtrelerden geçer:</p>
+            <div style="margin-top:10px;">
+                <div class="list-item">
+                    <span class="bullet">➤</span>
+                    <div>
+                        <strong style="color:#fff;">Anomali Tespiti (Outlier Detection):</strong> 
+                        Bir önceki güne göre <span style="color:#f87171">%50</span>'den fazla fiyat değişimi olan ürünler (Z-Score > 3) otomatik olarak karantinaya alınır.
+                    </div>
+                </div>
+                <div class="list-item">
+                    <span class="bullet">➤</span>
+                    <div>
+                        <strong style="color:#fff;">Birim Standardizasyonu:</strong> 
+                        Farklı marketlerdeki "750ml", "0.75L", "750 GR" gibi tanımlar RegEx motoru ile standart birime dönüştürülür.
+                    </div>
+                </div>
+                <div class="list-item">
+                    <span class="bullet">➤</span>
+                    <div>
+                        <strong style="color:#fff;">Stok Kontrolü:</strong> 
+                        Stokta olmayan ürünler için "Carry-Forward" yöntemi uygulanarak son geçerli fiyat endekste sabit tutulur.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-box" style="border-left-color: #f59e0b;">
+            <div class="step-title" style="color: #fbbf24;">
+                <span>3.</span> Endeks Hesaplama Modeli
+            </div>
+            <p style="color:#a1a1aa;">
+                Sistemimiz, uluslararası standartlara uygun olarak <strong>Zincirleme Laspeyres Fiyat Endeksi</strong> yöntemini kullanır. 
+                Alt kalemlerde (Elementary Aggregates) Jevons Endeksi (Geometrik Ortalama) tercih edilir.
+            </p>
+            
+            <div class="formula-box">
+                I<sub>t</sub> = Σ ( P<sub>t</sub> / P<sub>0</sub> ) × W
+            </div>
+            
+            <div style="display:flex; justify-content:center; gap:20px; font-size:12px; color:#71717a; font-family:'JetBrains Mono';">
+                <div>I : Endeks Değeri</div>
+                <div>P(t) : Güncel Fiyat</div>
+                <div>P(0) : Baz Fiyat</div>
+                <div>W : Sepet Ağırlığı</div>
+            </div>
+        </div>
+
+        <div class="step-box" style="border-left-color: #10b981; border-left:none; padding-left:0;">
+             <div class="step-title" style="color: #34d399; padding-left:20px; border-left: 3px solid #10b981;">
+                <span>4.</span> Dinamik Eşleştirme (Substitution)
+            </div>
+            <p style="color:#a1a1aa; padding-left:20px;">
+                Takip edilen bir ürün piyasadan kalktığında veya barkod değiştirdiğinde, NLP (Doğal Dil İşleme) tabanlı "En Yakın Benzer Ürün" algoritması devreye girer. 
+                Aynı marka, gramaj ve özelliklere sahip en yakın ikame ürün (Substitute) sepete dahil edilir ve 
+                fiyat serisi bir düzeltme katsayısı ile bağlanır (Quality Adjustment).
+            </p>
+        </div>
+        
+        <div style="font-size:12px; color:#52525b; text-align:right; margin-top:20px;">
+            *Bu metodoloji TÜİK ve Eurostat standartları referans alınarak geliştirilmiştir.
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1338,6 +1454,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
