@@ -223,94 +223,111 @@ def load_lottieurl(url: str):
 
 # --- 3. WORD MOTORU ---
 def create_word_report(text_content, tarih, df_analiz=None):
-    doc = Document()
-    matplotlib.use('Agg')
-    
-    style = doc.styles['Normal']
-    font = style.font
-    font.name = 'Arial'
-    font.size = Pt(11)
-
-    head = doc.add_heading(f'PİYASA GÖRÜNÜM RAPORU', 0)
-    head.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    
-    subhead = doc.add_paragraph(f'Rapor Tarihi: {tarih}')
-    subhead.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    doc.add_paragraph("")
-
-    paragraphs = text_content.split('\n')
-    
-    for p_text in paragraphs:
-        if not p_text.strip(): 
-            continue
-            
-        p = doc.add_paragraph()
-        p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    try:
+        doc = Document()
+        matplotlib.use('Agg')
         
-        parts = p_text.split('**')
-        for i, part in enumerate(parts):
-            run = p.add_run(part)
-            if i % 2 == 1: 
-                run.bold = True
-                run.font.color.rgb = RGBColor(0, 50, 100) 
+        style = doc.styles['Normal']
+        font = style.font
+        font.name = 'Arial'
+        font.size = Pt(11)
 
-    if df_analiz is not None and not df_analiz.empty:
-        doc.add_page_break()
-        doc.add_heading('EKLER: GÖRSEL ANALİZLER', 1)
+        head = doc.add_heading(f'PİYASA GÖRÜNÜM RAPORU', 0)
+        head.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        subhead = doc.add_paragraph(f'Rapor Tarihi: {tarih}')
+        subhead.alignment = WD_ALIGN_PARAGRAPH.RIGHT
         doc.add_paragraph("")
 
-        try:
-            fig, ax = plt.subplots(figsize=(6, 4))
-            data = df_analiz['Fark'].dropna() * 100
-            ax.hist(data, bins=20, color='#3b82f6', edgecolor='white', alpha=0.7)
-            ax.set_title(f"Fiyat Değişim Dağılımı (%) - {tarih}", fontsize=12, fontweight='bold')
-            ax.set_xlabel("Değişim Oranı (%)")
-            ax.set_ylabel("Ürün Sayısı")
-            ax.grid(axis='y', linestyle='--', alpha=0.5)
+        paragraphs = text_content.split('\n')
+        
+        for p_text in paragraphs:
+            if not p_text.strip(): 
+                continue
+                
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
             
-            memfile = BytesIO()
-            plt.savefig(memfile, format='png', dpi=100)
-            doc.add_picture(memfile, width=Inches(5.5))
-            memfile.close()
-            plt.close()
-            
-            doc.add_paragraph("Grafik 1: Ürünlerin fiyat değişim oranlarına göre dağılımı.")
+            parts = p_text.split('**')
+            for i, part in enumerate(parts):
+                run = p.add_run(part)
+                if i % 2 == 1: 
+                    run.bold = True
+                    run.font.color.rgb = RGBColor(0, 50, 100) 
+
+        if df_analiz is not None and not df_analiz.empty:
+            doc.add_page_break()
+            doc.add_heading('EKLER: GÖRSEL ANALİZLER', 1)
             doc.add_paragraph("")
 
-            if 'Grup' in df_analiz.columns and 'Agirlik_2025' in df_analiz.columns:
-                df_analiz['Agirlikli_Fark'] = df_analiz['Fark'] * df_analiz['Agirlik_2025']
-                sektor_grp = df_analiz.groupby('Grup')['Agirlikli_Fark'].sum().sort_values(ascending=False).head(7)
-                
-                if not sektor_grp.empty:
-                    fig, ax = plt.subplots(figsize=(7, 4))
-                    colors = ['#ef4444' if x > 0 else '#10b981' for x in sektor_grp.values]
-                    sektor_grp.plot(kind='barh', ax=ax, color=colors)
-                    ax.set_title("Enflasyona En Çok Etki Eden Sektörler (Puan)", fontsize=12, fontweight='bold')
-                    ax.set_xlabel("Puan Katkısı")
-                    ax.invert_yaxis() 
-                    plt.tight_layout()
+            try:
+                # Veri temizliği ve kontrol
+                if 'Fark' in df_analiz.columns:
+                    data = pd.to_numeric(df_analiz['Fark'], errors='coerce').dropna() * 100
+                    if not data.empty:
+                        fig, ax = plt.subplots(figsize=(6, 4))
+                        ax.hist(data, bins=20, color='#3b82f6', edgecolor='white', alpha=0.7)
+                        ax.set_title(f"Fiyat Değişim Dağılımı (%) - {tarih}", fontsize=12, fontweight='bold')
+                        ax.set_xlabel("Değişim Oranı (%)")
+                        ax.set_ylabel("Ürün Sayısı")
+                        ax.grid(axis='y', linestyle='--', alpha=0.5)
+                        
+                        memfile = BytesIO()
+                        plt.savefig(memfile, format='png', dpi=100)
+                        plt.close(fig) # Memory leak önlemi
+                        
+                        doc.add_picture(memfile, width=Inches(5.5))
+                        memfile.close()
+                        doc.add_paragraph("Grafik 1: Ürünlerin fiyat değişim oranlarına göre dağılımı.")
+                        doc.add_paragraph("")
 
-                    memfile2 = BytesIO()
-                    plt.savefig(memfile2, format='png', dpi=100)
-                    doc.add_picture(memfile2, width=Inches(6.0))
-                    memfile2.close()
-                    plt.close()
+                if 'Grup' in df_analiz.columns and 'Agirlik_2025' in df_analiz.columns and 'Fark' in df_analiz.columns:
+                    df_analiz['Agirlik_2025'] = pd.to_numeric(df_analiz['Agirlik_2025'], errors='coerce').fillna(0)
+                    df_analiz['Fark'] = pd.to_numeric(df_analiz['Fark'], errors='coerce').fillna(0)
                     
-                    doc.add_paragraph("Grafik 2: Genel endeks üzerinde en çok baskı oluşturan ana harcama grupları.")
+                    df_analiz['Agirlikli_Fark'] = df_analiz['Fark'] * df_analiz['Agirlik_2025']
+                    sektor_grp = df_analiz.groupby('Grup')['Agirlikli_Fark'].sum().sort_values(ascending=False).head(7)
+                    
+                    if not sektor_grp.empty:
+                        fig, ax = plt.subplots(figsize=(7, 4))
+                        colors = ['#ef4444' if x > 0 else '#10b981' for x in sektor_grp.values]
+                        sektor_grp.plot(kind='barh', ax=ax, color=colors)
+                        ax.set_title("Enflasyona En Çok Etki Eden Sektörler (Puan)", fontsize=12, fontweight='bold')
+                        ax.set_xlabel("Puan Katkısı")
+                        ax.invert_yaxis() 
+                        plt.tight_layout()
 
-        except Exception as e:
-            doc.add_paragraph(f"[Grafik oluşturulurken teknik bir sorun oluştu: {str(e)}]")
+                        memfile2 = BytesIO()
+                        plt.savefig(memfile2, format='png', dpi=100)
+                        plt.close(fig) # Memory leak önlemi
+                        
+                        doc.add_picture(memfile2, width=Inches(6.0))
+                        memfile2.close()
+                        doc.add_paragraph("Grafik 2: Genel endeks üzerinde en çok baskı oluşturan ana harcama grupları.")
 
-    section = doc.sections[0]
-    footer = section.footer
-    p_foot = footer.paragraphs[0]
-    p_foot.text = "Validasyon Müdürlüğü © 2026 - Gizli Belge"
-    p_foot.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            except Exception as e:
+                doc.add_paragraph(f"[Grafik oluşturulurken teknik bir sorun oluştu: {str(e)}]")
+                plt.close('all')
 
-    buffer = BytesIO()
-    doc.save(buffer)
-    buffer.seek(0)
-    return buffer
+        section = doc.sections[0]
+        footer = section.footer
+        p_foot = footer.paragraphs[0]
+        p_foot.text = "Validasyon Müdürlüğü © 2026 - Gizli Belge"
+        p_foot.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        buffer = BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+        return buffer
+    except Exception as e:
+        # Hata durumunda boş ama geçerli bir dosya dön
+        error_doc = Document()
+        error_doc.add_heading('HATA RAPORU', 0)
+        error_doc.add_paragraph(f"Rapor oluşturulurken bir hata meydana geldi: {str(e)}")
+        err_buffer = BytesIO()
+        error_doc.save(err_buffer)
+        err_buffer.seek(0)
+        return err_buffer
 
 # --- 4. GITHUB İŞLEMLERİ ---
 def get_github_repo():
@@ -1108,7 +1125,13 @@ def sayfa_raporlama(ctx):
     """, unsafe_allow_html=True)
     
     word_buffer = create_word_report(rap_text, ctx["son"], ctx["df_analiz"])
-    st.download_button("📥 Word Raporu İndir", data=word_buffer, file_name="Rapor.docx", type="primary")
+    st.download_button(
+        label="📥 Word Raporu İndir", 
+        data=word_buffer, 
+        file_name="Strateji_Raporu.docx", 
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        type="primary"
+    )
 
 def sayfa_metodoloji():
     html_content = """
@@ -1389,7 +1412,43 @@ def main():
         </div>
     """, unsafe_allow_html=True)
     
-    # --- SENKRONİZASYON BUTONU (EKLENDİ) ---
+    # --- TRADINGVIEW WIDGETLARI ---
+    # Widgetları yan yana dizeceğiz (5 sütun)
+    symbols = [
+        {"s": "FX_IDC:USDTRY", "d": "Dolar / TL"},
+        {"s": "FX_IDC:EURTRY", "d": "Euro / TL"},
+        {"s": "FX_IDC:XAUTRYG", "d": "Gram Altın"},
+        {"s": "TVC:UKOIL", "d": "Brent Petrol"},
+        {"s": "BINANCE:BTCUSDT", "d": "Bitcoin ($)"}
+    ]
+    
+    tv_cols = st.columns(5)
+    for idx, sym in enumerate(symbols):
+        with tv_cols[idx]:
+            # TradingView Mini Symbol Overview Widget HTML
+            widget_code = f"""
+            <div class="tradingview-widget-container" style="border-radius:12px; overflow:hidden;">
+              <div class="tradingview-widget-container__widget"></div>
+              <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+              {{
+              "symbol": "{sym['s']}",
+              "width": "100%",
+              "height": 110,
+              "locale": "tr",
+              "dateRange": "1D",
+              "colorTheme": "dark",
+              "isTransparent": false,
+              "autosize": true,
+              "largeChartUrl": ""
+            }}
+              </script>
+            </div>
+            """
+            components.html(widget_code, height=120)
+    
+    # ---------------------------------------
+
+    # --- SENKRONİZASYON BUTONU ---
     col_btn1, col_btn2 = st.columns([3, 1])
     with col_btn2:
         if st.button("SİSTEMİ SENKRONİZE ET ⚡", type="primary", use_container_width=True):
