@@ -1106,268 +1106,267 @@ def sayfa_raporlama(ctx):
 def sayfa_metodoloji():
     html_content = """
 <style>
-/* === GENEL KART === */
-.method-card {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 40px;
+/* === GENEL KAPSAYICI VE TYPOGRAPHY === */
+.methodology-container {
     font-family: 'Inter', sans-serif;
     color: #e4e4e7;
-    line-height: 1.7;
+    max-width: 900px;
+    margin: 0 auto;
 }
 
-/* === BAŞLIK === */
-.method-header {
-    font-size: 26px;
+/* === ANA KART YAPISI === */
+.method-card {
+    background: rgba(26, 28, 35, 0.6); /* Hafif koyu transparan zemin */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 30px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    transition: transform 0.2s;
+}
+
+.method-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+/* === BAŞLIKLAR === */
+h1.main-title {
+    font-size: 32px;
     font-weight: 800;
-    margin-bottom: 35px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: -webkit-linear-gradient(0deg, #fff, #94a3b8);
+    text-align: center;
+    margin-bottom: 40px;
+    background: linear-gradient(90deg, #60a5fa, #a78bfa, #f472b6);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    padding-bottom: 20px;
+    letter-spacing: -0.5px;
 }
 
-/* === ADIM KUTULARI === */
-.step-box {
-    margin-bottom: 35px;
-    padding-left: 25px;
-    border-left: 4px solid;
-}
-
-.step-title {
-    font-size: 18px;
+h2.section-title {
+    font-size: 22px;
     font-weight: 700;
-    margin-bottom: 12px;
+    margin-top: 0;
+    margin-bottom: 15px;
     display: flex;
     align-items: center;
     gap: 10px;
-    letter-spacing: 0.4px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
-/* === RENKLER === */
-.step-blue { border-color:#3b82f6; }
-.step-blue .step-title { color:#60a5fa; }
-
-.step-purple { border-color:#8b5cf6; }
-.step-purple .step-title { color:#a78bfa; }
-
-.step-yellow { border-color:#f59e0b; }
-.step-yellow .step-title { color:#fbbf24; }
-
-.step-green { border-color:#10b981; }
-.step-green .step-title { color:#34d399; }
-
-/* === METİN === */
-.step-text {
-    color:#cbd5e1;
-    font-size: 15px;
-}
-
-/* === LİSTE === */
-.list-item {
-    margin-bottom: 12px;
-    display: flex;
-    align-items: start;
-    gap: 12px;
-    font-size: 15px;
-    color: #d1d5db;
-    background: rgba(255,255,255,0.02);
-    padding: 10px;
-    border-radius: 8px;
-}
-
-.bullet {
-    color: #10b981;
-    font-weight: bold;
+h3.sub-title {
     font-size: 18px;
-    margin-top: 2px;
-}
-
-.highlight {
-    color: #ffffff;
     font-weight: 600;
+    color: #e2e8f0;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    display: inline-block;
+    border-left: 3px solid #fbbf24;
+    padding-left: 10px;
 }
 
-/* === FORMÜL === */
+/* === RENK TEMALARI (Border ve Text için) === */
+.theme-blue h2 { color: #60a5fa; border-bottom-color: rgba(96, 165, 250, 0.3); }
+.theme-purple h2 { color: #a78bfa; border-bottom-color: rgba(167, 139, 250, 0.3); }
+.theme-yellow h2 { color: #fbbf24; border-bottom-color: rgba(251, 191, 36, 0.3); }
+.theme-green h2 { color: #34d399; border-bottom-color: rgba(52, 211, 153, 0.3); }
+.theme-gray h2 { color: #94a3b8; }
+
+/* === METİN VE LİSTELER === */
+p {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #cbd5e1;
+    margin-bottom: 15px;
+}
+
+ul.styled-list {
+    list-style: none;
+    padding: 0;
+    margin: 15px 0;
+}
+
+ul.styled-list li {
+    position: relative;
+    padding-left: 25px;
+    margin-bottom: 10px;
+    color: #d1d5db;
+}
+
+ul.styled-list li::before {
+    content: "➤";
+    position: absolute;
+    left: 0;
+    top: 2px;
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.theme-blue ul li::before { color: #60a5fa; }
+.theme-purple ul li::before { color: #a78bfa; }
+.theme-yellow ul li::before { color: #fbbf24; }
+.theme-green ul li::before { color: #34d399; }
+
+/* === FORMÜL KUTUSU === */
 .formula-box {
-    background: linear-gradient(135deg, rgba(0,0,0,0.6), rgba(20,20,25,0.6));
-    border: 1px solid rgba(251, 191, 36, 0.25);
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px dashed rgba(251, 191, 36, 0.4);
     border-radius: 12px;
-    padding: 25px;
+    padding: 20px;
     text-align: center;
-    margin: 25px 0;
-    font-family: 'Times New Roman', serif;
-    font-size: 22px;
-    font-style: italic;
+    margin: 20px 0;
     color: #fbbf24;
+    font-family: 'Courier New', monospace;
+    font-size: 18px;
+    font-weight: bold;
 }
 
-.formula-note {
-    font-size: 13px;
+.formula-desc {
+    font-size: 14px;
     color: #9ca3af;
     text-align: center;
-    margin-top: -10px;
-    margin-bottom: 20px;
+    font-style: italic;
 }
+
 </style>
 
-<section id="metodoloji" class="methodology-container">
+<div class="methodology-container">
 
-  <h1>Metodoloji ve Akademik Çerçeve</h1>
+  <h1 class="main-title">Metodoloji ve Akademik Çerçeve</h1>
 
-  <p>
-    Piyasa Monitörü, Türkiye’de faaliyet gösteren zincir marketler ve e-ticaret platformları üzerinden
-    yüksek frekanslı fiyat verisi toplayarak tüketici fiyatlarındaki değişimi gerçek zamanlıya yakın
-    bir yaklaşımla izlemeyi amaçlayan alternatif bir fiyat endeksidir.
-    Bu metodoloji, uluslararası istatistik standartları ve TÜİK fiyat endeksi prensipleri ile uyumlu
-    olacak şekilde tasarlanmıştır.
-  </p>
+  <div class="method-card theme-gray">
+    <p>
+      Piyasa Monitörü, Türkiye’de faaliyet gösteren zincir marketler ve e-ticaret platformları üzerinden
+      yüksek frekanslı fiyat verisi toplayarak tüketici fiyatlarındaki değişimi gerçek zamanlıya yakın
+      bir yaklaşımla izlemeyi amaçlayan alternatif bir fiyat endeksidir.
+      Bu metodoloji, uluslararası istatistik standartları ve TÜİK fiyat endeksi prensipleri ile uyumlu
+      olacak şekilde tasarlanmıştır.
+    </p>
+  </div>
 
-  <h2>1. Veri Toplama (Web Scraping)</h2>
+  <div class="method-card theme-blue">
+    <h2 class="section-title">1. Veri Toplama (Web Scraping)</h2>
+    <p>
+      Fiyat verileri, Python tabanlı web scraping altyapısı aracılığıyla günlük bazda otomatik olarak
+      toplanmaktadır. Sistem; Selenium, BeautifulSoup ve Playwright kütüphanelerini içeren hibrit
+      bir mimariye sahiptir.
+    </p>
+    <p>
+      Veri toplama süreci, hedef platformların teknik ve etik kullanım sınırlarına uygun şekilde
+      yapılandırılmıştır. Bu kapsamda:
+    </p>
+    <ul class="styled-list">
+      <li>User-Agent rotasyonu uygulanarak farklı tarayıcı profilleri simüle edilir.</li>
+      <li>Rate limiting mekanizması ile istek sıklığı sınırlandırılır.</li>
+      <li>Platform altyapılarına aşırı yük bindirilmesi engellenir.</li>
+    </ul>
+    <p>
+      Her ürün, barkod (EAN/SKU) ve ürün URL’si üzerinden benzersiz olarak tanımlanır.
+      Bu yaklaşım, ürün isimlerindeki varyasyonlardan kaynaklanan eşleştirme hatalarını minimize eder
+      ve zaman serilerinin tutarlılığını sağlar.
+    </p>
+  </div>
 
-  <p>
-    Fiyat verileri, Python tabanlı web scraping altyapısı aracılığıyla günlük bazda otomatik olarak
-    toplanmaktadır. Sistem; Selenium, BeautifulSoup ve Playwright kütüphanelerini içeren hibrit
-    bir mimariye sahiptir.
-  </p>
+  <div class="method-card theme-purple">
+    <h2 class="section-title">2. Veri Temizleme ve Kalite Kontrol</h2>
+    <p>
+      Ham fiyat verileri, endeks hesaplamasına dahil edilmeden önce çok aşamalı bir kalite kontrol
+      sürecinden geçirilir. Bu süreç, fiyat serilerindeki gürültüyü azaltmayı ve metodolojik
+      tutarlılığı sağlamayı amaçlar.
+    </p>
 
-  <p>
-    Veri toplama süreci, hedef platformların teknik ve etik kullanım sınırlarına uygun şekilde
-    yapılandırılmıştır. Bu kapsamda:
-  </p>
+    <h3 class="sub-title">2.1 Anomali Tespiti</h3>
+    <p>
+      Bir ürünün fiyatında bir önceki güne kıyasla %50’den fazla artış veya azalış tespit edilmesi
+      durumunda ilgili gözlem şüpheli olarak işaretlenir. Bu eşik değeri, kampanya etkileri ile
+      veri kaynaklı hataları ayırt edebilecek şekilde belirlenmiştir.
+    </p>
 
-  <ul>
-    <li>User-Agent rotasyonu uygulanarak farklı tarayıcı profilleri simüle edilir.</li>
-    <li>Rate limiting mekanizması ile istek sıklığı sınırlandırılır.</li>
-    <li>Platform altyapılarına aşırı yük bindirilmesi engellenir.</li>
-  </ul>
+    <h3 class="sub-title">2.2 Birim ve Miktar Standartlaştırma</h3>
+    <p>
+      Farklı platformlarda aynı ürünün farklı gramaj veya hacim bilgileriyle sunulması nedeniyle
+      tüm ürün fiyatları standart birimlere dönüştürülür:
+    </p>
+    <ul class="styled-list">
+      <li>Gram → kilogram</li>
+      <li>Mililitre → litre</li>
+      <li>Çoklu paketler → birim başına fiyat</li>
+    </ul>
+    <p>Bu sayede fiyatlar birim fiyat bazında karşılaştırılabilir hale getirilir.</p>
 
-  <p>
-    Her ürün, barkod (EAN/SKU) ve ürün URL’si üzerinden benzersiz olarak tanımlanır.
-    Bu yaklaşım, ürün isimlerindeki varyasyonlardan kaynaklanan eşleştirme hatalarını minimize eder
-    ve zaman serilerinin tutarlılığını sağlar.
-  </p>
+    <h3 class="sub-title">2.3 Stok Durumu ve Eksik Gözlemler</h3>
+    <p>
+      Stokta bulunmayan ürünler nedeniyle oluşan geçici fiyat boşluklarında,
+      zaman serisi sürekliliğini korumak amacıyla son gözlemi taşıma
+      (carry-forward) yöntemi uygulanır.
+    </p>
+  </div>
 
-  <h2>2. Veri Temizleme ve Kalite Kontrol</h2>
+  <div class="method-card theme-yellow">
+    <h2 class="section-title">3. Endeks Hesaplama Metodolojisi</h2>
+    <p>
+      Piyasa Monitörü fiyat endeksi, Zincirleme Laspeyres Fiyat Endeksi yaklaşımı kullanılarak
+      hesaplanmaktadır. Bu yöntem, kısa dönemli fiyat hareketlerini doğru şekilde yansıtması ve
+      resmi istatistik metodolojileriyle uyumlu olması nedeniyle tercih edilmiştir.
+    </p>
 
-  <p>
-    Ham fiyat verileri, endeks hesaplamasına dahil edilmeden önce çok aşamalı bir kalite kontrol
-    sürecinden geçirilir. Bu süreç, fiyat serilerindeki gürültüyü azaltmayı ve metodolojik
-    tutarlılığı sağlamayı amaçlar.
-  </p>
+    <h3 class="sub-title">3.1 Endeks Formülü</h3>
+    <p>Endeks hesaplamasında kullanılan temel formül aşağıdaki gibidir:</p>
+    
+    <div class="formula-box">
+      I<sub>t</sub> = Σ ( P<sub>i,t</sub> / P<sub>i,0</sub> ) × W<sub>i</sub>
+    </div>
+    <div class="formula-desc">
+       I<sub>t</sub>: Endeks Değeri | P<sub>i,t</sub>: Cari Fiyat | P<sub>i,0</sub>: Baz Fiyat | W<sub>i</sub>: Ağırlık
+    </div>
+    <br>
 
-  <h3>2.1 Anomali Tespiti</h3>
+    <h3 class="sub-title">3.2 Ağırlıklandırma Yapısı</h3>
+    <p>
+      Ürün ağırlıkları, TÜİK Hanehalkı Bütçe Anketleri ve tüketim kalıpları esas alınarak
+      belirlenmektedir. Böylece endeks, hanehalkı tüketim davranışlarını temsil etme
+      kabiliyetine sahip olur.
+    </p>
 
-  <p>
-    Bir ürünün fiyatında bir önceki güne kıyasla %50’den fazla artış veya azalış tespit edilmesi
-    durumunda ilgili gözlem şüpheli olarak işaretlenir. Bu eşik değeri, kampanya etkileri ile
-    veri kaynaklı hataları ayırt edebilecek şekilde belirlenmiştir.
-  </p>
+    <h3 class="sub-title">3.3 Ortalama Yöntemi</h3>
+    <p>
+      Aylık fiyat seviyeleri hesaplanırken aritmetik ortalama yerine geometrik ortalama
+      kullanılmaktadır. Bu yaklaşım, uç fiyat hareketlerinin endeks üzerindeki etkisini azaltır
+      ve fiyat dağılımını daha sağlıklı yansıtır.
+    </p>
+  </div>
 
-  <h3>2.2 Birim ve Miktar Standartlaştırma</h3>
+  <div class="method-card theme-green">
+    <h2 class="section-title">4. Ürün Eşleştirme ve İkame Mekanizması</h2>
+    <p>
+      Takip edilen bir ürünün kalıcı olarak piyasadan çekilmesi durumunda,
+      endeks sepetinde boşluk oluşmaması için otomatik ikame mekanizması devreye girer.
+    </p>
+    <p>İkame sürecinde aşağıdaki kriterler sırasıyla dikkate alınır:</p>
+    <ul class="styled-list">
+      <li>Aynı marka (öncelikli)</li>
+      <li>Aynı veya en yakın gramaj</li>
+      <li>Aynı alt kategori</li>
+      <li>Benzer fiyat aralığı</li>
+    </ul>
+    <p>
+      İkame edilen ürün, mevcut fiyat serisine zincirleme yöntemle bağlanarak
+      metodolojik süreklilik korunur ve endeks seviyesinde yapısal kırılmaların
+      önüne geçilir.
+    </p>
+  </div>
+  
+  <div class="method-card theme-gray">
+    <h2 class="section-title">5. Metodolojik Güçlü Yönler</h2>
+    <ul class="styled-list">
+      <li>Günlük ve yüksek frekanslı veri yapısı</li>
+      <li>Şeffaf ve tekrarlanabilir hesaplama süreci</li>
+      <li>Resmi istatistik metodolojileriyle uyum</li>
+      <li>Kısa vadeli fiyat hareketlerini yakalama kabiliyeti</li>
+    </ul>
+  </div>
 
-  <p>
-    Farklı platformlarda aynı ürünün farklı gramaj veya hacim bilgileriyle sunulması nedeniyle
-    tüm ürün fiyatları standart birimlere dönüştürülür:
-  </p>
-
-  <ul>
-    <li>Gram → kilogram</li>
-    <li>Mililitre → litre</li>
-    <li>Çoklu paketler → birim başına fiyat</li>
-  </ul>
-
-  <p>
-    Bu sayede fiyatlar birim fiyat bazında karşılaştırılabilir hale getirilir.
-  </p>
-
-  <h3>2.3 Stok Durumu ve Eksik Gözlemler</h3>
-
-  <p>
-    Stokta bulunmayan ürünler nedeniyle oluşan geçici fiyat boşluklarında,
-    zaman serisi sürekliliğini korumak amacıyla son gözlemi taşıma
-    (carry-forward) yöntemi uygulanır.
-  </p>
-
-  <h2>3. Endeks Hesaplama Metodolojisi</h2>
-
-  <p>
-    Piyasa Monitörü fiyat endeksi, Zincirleme Laspeyres Fiyat Endeksi yaklaşımı kullanılarak
-    hesaplanmaktadır. Bu yöntem, kısa dönemli fiyat hareketlerini doğru şekilde yansıtması ve
-    resmi istatistik metodolojileriyle uyumlu olması nedeniyle tercih edilmiştir.
-  </p>
-
-  <h3>3.1 Endeks Formülü</h3>
-
-  <p>
-    Endeks hesaplamasında kullanılan temel formül aşağıdaki gibidir:
-  </p>
-
-  <pre>
-I<sub>t</sub> = Σ ( P<sub>i,t</sub> / P<sub>i,0</sub> ) × W<sub>i</sub>
-  </pre>
-
-  <p>
-    Burada; I<sub>t</sub> ilgili dönemdeki endeks değerini, P<sub>i,t</sub> ürünün cari fiyatını,
-    P<sub>i,0</sub> baz dönem fiyatını ve W<sub>i</sub> ürün ağırlığını ifade eder.
-  </p>
-
-  <h3>3.2 Ağırlıklandırma Yapısı</h3>
-
-  <p>
-    Ürün ağırlıkları, TÜİK Hanehalkı Bütçe Anketleri ve tüketim kalıpları esas alınarak
-    belirlenmektedir. Böylece endeks, hanehalkı tüketim davranışlarını temsil etme
-    kabiliyetine sahip olur.
-  </p>
-
-  <h3>3.3 Ortalama Yöntemi</h3>
-
-  <p>
-    Aylık fiyat seviyeleri hesaplanırken aritmetik ortalama yerine geometrik ortalama
-    kullanılmaktadır. Bu yaklaşım, uç fiyat hareketlerinin endeks üzerindeki etkisini azaltır
-    ve fiyat dağılımını daha sağlıklı yansıtır.
-  </p>
-
-  <h2>4. Ürün Eşleştirme ve İkame Mekanizması</h2>
-
-  <p>
-    Takip edilen bir ürünün kalıcı olarak piyasadan çekilmesi durumunda,
-    endeks sepetinde boşluk oluşmaması için otomatik ikame mekanizması devreye girer.
-  </p>
-
-  <p>
-    İkame sürecinde aşağıdaki kriterler sırasıyla dikkate alınır:
-  </p>
-
-  <ul>
-    <li>Aynı marka (öncelikli)</li>
-    <li>Aynı veya en yakın gramaj</li>
-    <li>Aynı alt kategori</li>
-    <li>Benzer fiyat aralığı</li>
-  </ul>
-
-  <p>
-    İkame edilen ürün, mevcut fiyat serisine zincirleme yöntemle bağlanarak
-    metodolojik süreklilik korunur ve endeks seviyesinde yapısal kırılmaların
-    önüne geçilir.
-  </p>
-
-  <h2>5. Metodolojik Güçlü Yönler</h2>
-
-  <ul>
-    <li>Günlük ve yüksek frekanslı veri yapısı</li>
-    <li>Şeffaf ve tekrarlanabilir hesaplama süreci</li>
-    <li>Resmi istatistik metodolojileriyle uyum</li>
-    <li>Kısa vadeli fiyat hareketlerini yakalama kabiliyeti</li>
-  </ul>
-
-</section>
-
+</div>
 """
     st.markdown(html_content, unsafe_allow_html=True)
 
@@ -1494,6 +1493,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
