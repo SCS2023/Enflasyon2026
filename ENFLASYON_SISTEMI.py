@@ -1114,7 +1114,7 @@ def sayfa_metodoloji():
     margin: 0 auto;
 }
 
-/* KART YAPISI */
+/* ANA KART YAPISI */
 .method-card {
     background: rgba(26, 28, 35, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1122,11 +1122,6 @@ def sayfa_metodoloji():
     padding: 30px;
     margin-bottom: 25px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    transition: transform 0.2s;
-}
-.method-card:hover {
-    border-color: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
 }
 
 /* BAŞLIKLAR */
@@ -1281,7 +1276,7 @@ ul.styled-list li::before { content: "➤"; position: absolute; left: 0; top: 2p
 
         <h3 class="sub-title">3.1 Endeks Formülü</h3>
         <p>Endeks hesaplamasında kullanılan temel formül aşağıdaki gibidir:</p>
-        
+
         <div class="formula-box">
           I<sub>t</sub> = Σ ( P<sub>i,t</sub> / P<sub>i,0</sub> ) × W<sub>i</sub>
         </div>
@@ -1335,8 +1330,7 @@ ul.styled-list li::before { content: "➤"; position: absolute; left: 0; top: 2p
         </ul>
     </div>
 
-  </div> </div>
-"""
+  </div> </div> """
     st.markdown(html_content, unsafe_allow_html=True)
 # --- ANA YÖNLENDİRİCİ ---
 
@@ -1460,6 +1454,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
