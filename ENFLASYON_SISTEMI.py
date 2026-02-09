@@ -786,14 +786,12 @@ def style_chart(fig, is_pdf=False, is_sunburst=False):
 # 1. ADIM: VERİ VE HESAPLAMA MOTORU (Arayüzden Bağımsız)
 def veri_motoru_calistir():
     """
-    Bu fonksiyon arayüz çizmez, sadece hesaplama yapar ve
-    sonuçları bir sözlük (dictionary) paketi olarak döndürür.
-    Böylece bu veriyi her sekmede tekrar tekrar hesaplamadan kullanabiliriz.
+    Veriyi çeker, işler ve Arayüz için gerekli istatistikleri hazırlar.
     """
-    # --- Sidebar ve Tarih Seçimi ---
+    # Sidebar Ayarları
     st.sidebar.markdown("### ⚙️ Veri Ayarları")
     
-    # Lottie Animasyonu
+    # Lottie (Opsiyonel)
     lottie_url = "https://lottie.host/98606416-297c-4a37-9b2a-714013063529/5D6o8k8fW0.json"
     try:
         lottie_json = load_lottieurl(lottie_url)
@@ -814,6 +812,7 @@ def veri_motoru_calistir():
     df_f['Tarih_Str'] = df_f['Tarih_DT'].dt.strftime('%Y-%m-%d')
     raw_dates = df_f['Tarih_Str'].unique().tolist()
     
+    # Başlangıç Tarihi Limiti
     BASLANGIC_LIMITI = "2026-02-04"
     tum_tarihler = sorted([d for d in raw_dates if d >= BASLANGIC_LIMITI], reverse=True)
     
@@ -823,7 +822,7 @@ def veri_motoru_calistir():
 
     secilen_tarih = st.sidebar.selectbox("Rapor Tarihi:", options=tum_tarihler, index=0)
     
-    # --- HESAPLAMA ÇEKİRDEĞİ (Eski kodundan alındı) ---
+    # --- İŞLEME ---
     df_s.columns = df_s.columns.str.strip()
     kod_col = next((c for c in df_s.columns if c.lower() == 'kod'), 'Kod')
     ad_col = next((c for c in df_s.columns if 'ad' in c.lower()), 'Madde_Adi')
@@ -835,14 +834,14 @@ def veri_motoru_calistir():
     
     df_f['Fiyat'] = pd.to_numeric(df_f['Fiyat'], errors='coerce')
     df_f = df_f[df_f['Fiyat'] > 0]
-    df_f = df_f.groupby(['Kod', 'Tarih_Str'])['Fiyat'].mean().reset_index()
     
-    pivot = df_f.pivot_table(index='Kod', columns='Tarih_Str', values='Fiyat')
+    # Pivot
+    pivot = df_f.pivot_table(index='Kod', columns='Tarih_Str', values='Fiyat', aggfunc='mean')
     pivot = pivot.ffill(axis=1).bfill(axis=1).reset_index()
     
     if pivot.empty: return None
 
-    # Grup Map
+    # Grup Eşleştirme
     if 'Grup' not in df_s.columns:
         grup_map = {"01": "Gıda", "02": "Alkol-Tütün", "03": "Giyim", "04": "Konut",
                    "05": "Ev Eşyası", "06": "Sağlık", "07": "Ulaşım", "08": "Haberleşme", 
@@ -852,6 +851,7 @@ def veri_motoru_calistir():
     df_analiz = pd.merge(df_s, pivot, on='Kod', how='left')
     tum_gunler_sirali = sorted([c for c in pivot.columns if c != 'Kod' and c >= BASLANGIC_LIMITI])
     
+    # Tarih Filtresi
     if secilen_tarih in tum_gunler_sirali:
         idx = tum_gunler_sirali.index(secilen_tarih)
         gunler = tum_gunler_sirali[:idx+1]
@@ -860,29 +860,24 @@ def veri_motoru_calistir():
 
     if not gunler: return None
 
+    # Sayısallaştırma
     for col in gunler: df_analiz[col] = pd.to_numeric(df_analiz[col], errors='coerce')
     son = gunler[-1]
     dt_son = datetime.strptime(son, '%Y-%m-%d')
     
-    # Baz ve Endeks Hesabı
+    # Baz ve Endeks Mantığı
     ZINCIR_TARIHI = datetime(2026, 2, 4)
     if dt_son >= ZINCIR_TARIHI:
         aktif_agirlik_col = col_w26
         gunler_2026 = [c for c in tum_gunler_sirali if c >= "2026-01-01"]
         baz_col = gunler_2026[0] if gunler_2026 else gunler[0]
-        baz_tanimi = f"Başlangıç ({baz_col})"
         if baz_col in df_analiz.columns: df_analiz[baz_col] = df_analiz[baz_col].fillna(df_analiz[son])
     else:
         aktif_agirlik_col = col_w25
         baz_col = gunler[0]
-        baz_tanimi = "Başlangıç"
         if baz_col in df_analiz.columns: df_analiz[baz_col] = df_analiz[baz_col].fillna(df_analiz[son])
         
-    if aktif_agirlik_col in df_analiz.columns:
-        df_analiz[aktif_agirlik_col] = pd.to_numeric(df_analiz[aktif_agirlik_col], errors='coerce').fillna(0)
-    else:
-        df_analiz[aktif_agirlik_col] = 0
-
+    df_analiz[aktif_agirlik_col] = pd.to_numeric(df_analiz.get(aktif_agirlik_col, 0), errors='coerce').fillna(0)
     gecerli_veri = df_analiz[df_analiz[aktif_agirlik_col] > 0].copy()
     
     def geo_mean(row):
@@ -896,7 +891,7 @@ def veri_motoru_calistir():
     gecerli_veri['Aylik_Ortalama'] = gecerli_veri[bu_ay_cols].apply(geo_mean, axis=1)
     gecerli_veri = gecerli_veri.dropna(subset=['Aylik_Ortalama', baz_col])
 
-    # Enflasyon Hesapla
+    # Enflasyon Hesaplamaları
     enf_genel = 0.0; enf_gida = 0.0
     if not gecerli_veri.empty:
         w = gecerli_veri[aktif_agirlik_col]
@@ -911,12 +906,11 @@ def veri_motoru_calistir():
         df_analiz.loc[gecerli_veri.index, 'Fark'] = (gecerli_veri['Aylik_Ortalama'] / gecerli_veri[baz_col]) - 1
         df_analiz['Fark_Yuzde'] = df_analiz['Fark'] * 100
     
-    # Günlük Değişim ve Anomaliler
-    gun_farki = 0; anomaliler = pd.DataFrame()
+    # Günlük Değişim
+    gun_farki = 0
     if len(gunler) >= 2:
         onceki_gun = gunler[-2]
         df_analiz['Gunluk_Degisim'] = (df_analiz[son] / df_analiz[onceki_gun].replace(0, np.nan)) - 1
-        anomaliler = df_analiz[(df_analiz['Gunluk_Degisim'].abs() > 0.05) & (df_analiz[aktif_agirlik_col] > 0)].sort_values('Gunluk_Degisim', ascending=False)
     else:
         df_analiz['Gunluk_Degisim'] = 0
         onceki_gun = son
@@ -931,75 +925,150 @@ def veri_motoru_calistir():
         if not gecerli_t.empty and gecerli_t[aktif_agirlik_col].sum() > 0:
              month_end_forecast = ((gecerli_t[aktif_agirlik_col] * (gecerli_t['Fixed_Ort']/gecerli_t[baz_col])).sum() / gecerli_t[aktif_agirlik_col].sum() * 100) - 100
 
-    # Resmi Veri
-    df_resmi, _ = get_official_inflation()
-    
-    # PAKETLE VE GÖNDER
+    # Resmi Veri (TÜİK) - AYLIK DEĞİŞİM HESABI
+    resmi_aylik_degisim = 0.0
+    try:
+        df_resmi, _ = get_official_inflation()
+        if df_resmi is not None and not df_resmi.empty:
+             df_resmi = df_resmi.sort_values('Tarih')
+             # Son iki veriyi al
+             if len(df_resmi) >= 2:
+                 son_endeks = df_resmi.iloc[-1]['Resmi_TUFE']
+                 onceki_endeks = df_resmi.iloc[-2]['Resmi_TUFE']
+                 resmi_aylik_degisim = ((son_endeks / onceki_endeks) - 1) * 100
+    except:
+        resmi_aylik_degisim = 0.0
+
+    # İSTATİSTİKLER (Ana Sayfa İçin)
+    toplam_urun_sayisi = len(df_analiz)
+    toplam_kategori_sayisi = df_analiz['Grup'].nunique()
+    veri_noktasi_tahmini = toplam_urun_sayisi * len(tum_gunler_sirali)
+
     return {
         "df_analiz": df_analiz,
         "enf_genel": enf_genel,
         "enf_gida": enf_gida,
         "tahmin": month_end_forecast,
+        "resmi_aylik_degisim": resmi_aylik_degisim,
         "son": son,
         "onceki_gun": onceki_gun,
         "gunler": gunler,
         "ad_col": ad_col,
         "agirlik_col": aktif_agirlik_col,
         "baz_col": baz_col,
-        "baz_tanimi": baz_tanimi,
-        "anomaliler": anomaliler,
-        "df_resmi": df_resmi,
-        "gun_farki": gun_farki
+        "gun_farki": gun_farki,
+        # Ana sayfa istatistikleri
+        "stats_urun": toplam_urun_sayisi,
+        "stats_kategori": toplam_kategori_sayisi,
+        "stats_veri_noktasi": veri_noktasi_tahmini
     }
 
 # --- 2. ADIM: SAYFA GÖRÜNÜMLERİ ---
 
-def sayfa_ana_sayfa():
-    st.markdown("""
-    <div style="text-align:center; padding: 60px 20px;">
+def sayfa_ana_sayfa(ctx):
+    # Dinamik verileri context'ten alıyoruz
+    urun_sayisi = ctx["stats_urun"] if ctx else "..."
+    kategori_sayisi = ctx["stats_kategori"] if ctx else "..."
+    veri_noktasi = ctx["stats_veri_noktasi"] if ctx else "..."
+
+    st.markdown(f"""
+    <div style="text-align:center; padding: 40px 20px;">
         <h1 style="font-size: 56px; font-weight: 800; margin-bottom: 20px; background: -webkit-linear-gradient(45deg, #3b82f6, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-            Piyasa Monitörü Simülasyonu
+            Gerçek Enflasyonu Keşfedin
         </h1>
         <p style="font-size: 20px; color: #a1a1aa; max-width: 800px; margin: 0 auto; line-height: 1.6;">
-            Yapay zeka destekli algoritmalarımızla binlerce ürünün fiyatını günlük olarak takip ediyor, 
-            resmi verilerle kıyaslıyor ve piyasanın gerçek nabzını tutuyoruz.
+            Türkiye'nin en kapsamlı yapay zeka destekli fiyat takip sistemi. <br>
+            <strong>{kategori_sayisi}</strong> farklı kategorideki <strong>{urun_sayisi}</strong> ürünü anlık izliyor, resmi verilerle kıyaslıyoruz.
         </p>
         <br><br>
         <div style="display:flex; justify-content:center; gap:30px; flex-wrap:wrap;">
-            <div class="kpi-card" style="width:250px; text-align:center;">
+            <div class="kpi-card" style="width:250px; text-align:center; padding:30px;">
+                <div style="font-size:42px; margin-bottom:10px;">📦</div>
+                <div style="font-size:32px; font-weight:bold; color:#fff;">{urun_sayisi}</div>
+                <div style="color:#a1a1aa; font-size:14px; font-weight:600;">TAKİP EDİLEN ÜRÜN</div>
+            </div>
+            <div class="kpi-card" style="width:250px; text-align:center; padding:30px;">
                 <div style="font-size:42px; margin-bottom:10px;">📊</div>
-                <div style="font-size:24px; font-weight:bold; color:#fff;">50K+</div>
-                <div style="color:#a1a1aa; font-size:14px;">Günlük Veri Noktası</div>
+                <div style="font-size:32px; font-weight:bold; color:#fff;">{kategori_sayisi}</div>
+                <div style="color:#a1a1aa; font-size:14px; font-weight:600;">ANA KATEGORİ</div>
             </div>
-            <div class="kpi-card" style="width:250px; text-align:center;">
-                <div style="font-size:42px; margin-bottom:10px;">🎯</div>
-                <div style="font-size:24px; font-weight:bold; color:#fff;">%98</div>
-                <div style="color:#a1a1aa; font-size:14px;">Doğruluk Oranı</div>
-            </div>
-            <div class="kpi-card" style="width:250px; text-align:center;">
+            <div class="kpi-card" style="width:250px; text-align:center; padding:30px;">
                 <div style="font-size:42px; margin-bottom:10px;">⚡</div>
-                <div style="font-size:24px; font-weight:bold; color:#fff;">24/7</div>
-                <div style="color:#a1a1aa; font-size:14px;">Canlı Takip</div>
+                <div style="font-size:32px; font-weight:bold; color:#fff;">{veri_noktasi}+</div>
+                <div style="color:#a1a1aa; font-size:14px; font-weight:600;">İŞLENEN VERİ NOKTASI</div>
             </div>
+        </div>
+        <br><br>
+        <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); padding: 15px; border-radius: 12px; display: inline-block;">
+            <span style="color: #60a5fa; font-weight: bold;">🚀 SİSTEM DURUMU:</span> 
+            <span style="color: #d1d5db;">Veri botları aktif. Fiyatlar <strong>{datetime.now().strftime('%H:%M')}</strong> itibarıyla güncel.</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
 def sayfa_piyasa_ozeti(ctx):
-    # KPI Kartları (En üste alıyoruz)
+    # KPI Kartları
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.markdown(f'<div class="kpi-card"><div class="kpi-title">GENEL ENFLASYON</div><div class="kpi-value">%{ctx["enf_genel"]:.2f}</div><div class="kpi-sub" style="color:#ef4444">Bu Ayın Tahmini</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-card"><div class="kpi-title">GENEL ENFLASYON</div><div class="kpi-value">%{ctx["enf_genel"]:.2f}</div><div class="kpi-sub" style="color:#ef4444">Aylık Değişim</div></div>', unsafe_allow_html=True)
     with c2:
         st.markdown(f'<div class="kpi-card"><div class="kpi-title">GIDA ENFLASYONU</div><div class="kpi-value">%{ctx["enf_gida"]:.2f}</div><div class="kpi-sub" style="color:#fca5a5">Mutfak Sepeti</div></div>', unsafe_allow_html=True)
     with c3:
-        st.markdown(f'<div class="kpi-card"><div class="kpi-title">AY SONU BEKLENTİ</div><div class="kpi-value">%{ctx["tahmin"]:.2f}</div><div class="kpi-sub" style="color:#a78bfa">Projeksiyon</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-card"><div class="kpi-title">AY SONU BEKLENTİ</div><div class="kpi-value">%{ctx["tahmin"]:.2f}</div><div class="kpi-sub" style="color:#a78bfa">AI Projeksiyonu</div></div>', unsafe_allow_html=True)
     with c4:
-        # Resmi Veri Entegrasyonu
-        resmi_val = 0
-        if ctx["df_resmi"] is not None and not ctx["df_resmi"].empty:
-             resmi_val = ctx["df_resmi"].iloc[-1]['Resmi_TUFE'] if len(ctx["df_resmi"]) > 0 else 0
-        st.markdown(f'<div class="kpi-card"><div class="kpi-title">RESMİ ENDEKS</div><div class="kpi-value">{resmi_val:.0f}</div><div class="kpi-sub" style="color:#fbbf24">TÜİK Verisi</div></div>', unsafe_allow_html=True)
+        # TÜİK Verisi (Artık Değişim Oranı)
+        st.markdown(f'<div class="kpi-card"><div class="kpi-title">RESMİ (TÜİK) VERİSİ</div><div class="kpi-value">%{ctx["resmi_aylik_degisim"]:.2f}</div><div class="kpi-sub" style="color:#fbbf24">Son Açıklanan Aylık</div></div>', unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Haber Bandı
+    df = ctx["df_analiz"]
+    inc = df.sort_values('Gunluk_Degisim', ascending=False).head(5)
+    dec = df.sort_values('Gunluk_Degisim', ascending=True).head(5)
+    items = []
+    for _, r in inc.iterrows():
+        if r['Gunluk_Degisim'] > 0: items.append(f"<span style='color:#f87171'>▲ {r[ctx['ad_col']]} %{r['Gunluk_Degisim']*100:.1f}</span>")
+    for _, r in dec.iterrows():
+        if r['Gunluk_Degisim'] < 0: items.append(f"<span style='color:#34d399'>▼ {r[ctx['ad_col']]} %{r['Gunluk_Degisim']*100:.1f}</span>")
+    ticker_html = " &nbsp;&nbsp; • &nbsp;&nbsp; ".join(items)
+    st.markdown(f"""<div class="ticker-wrap"><div class="ticker-move">{ticker_html}</div></div>""", unsafe_allow_html=True)
+    
+    # GRAFİKLER
+    col_g1, col_g2 = st.columns([2, 1])
+    with col_g1:
+        # --- HISTOGRAM DÜZELTMESİ ---
+        # X Eksenini temizlemek için tick format ve açı ayarları
+        fig_hist = px.histogram(df, x="Fark_Yuzde", nbins=40, title="Fiyat Değişim Dağılımı", color_discrete_sequence=["#3b82f6"])
+        fig_hist.update_layout(bargap=0.1)
+        # X Ekseni Ayarları: Açılı Yazı ve Format
+        fig_hist.update_xaxes(
+            title_text="Değişim Oranı (%)",
+            tickangle=-45,          # Yazıları 45 derece eğ
+            tickformat=".1f",       # Virgülden sonra 1 hane
+            dtick=2.5,              # 2.5'er artış (sıklığı azaltmak için)
+        )
+        st.plotly_chart(style_chart(fig_hist), use_container_width=True)
+
+    with col_g2:
+        rising = len(df[df['Fark'] > 0])
+        falling = len(df[df['Fark'] < 0])
+        st.markdown(f"""
+        <div class="smart-card">
+            <div class="sc-title">YÜKSELENLER</div>
+            <div class="sc-val" style="color:#ef4444">{rising} Ürün</div>
+            <div style="font-size:11px; color:#71717a;">Enflasyonist baskı</div>
+        </div>
+        <div class="smart-card" style="margin-top:10px;">
+            <div class="sc-title">DÜŞENLER</div>
+            <div class="sc-val" style="color:#10b981">{falling} Ürün</div>
+            <div style="font-size:11px; color:#71717a;">Deflasyonist etki</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    st.subheader("Sektörel Isı Haritası")
+    fig_tree = px.treemap(df, path=[px.Constant("Piyasa"), 'Grup', ctx['ad_col']], 
+                         values=ctx['agirlik_col'], color='Fark', color_continuous_scale='RdYlGn_r')
+    st.plotly_chart(style_chart(fig_tree, is_sunburst=True), use_container_width=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     
@@ -1136,44 +1205,155 @@ def sayfa_hakkimizda():
                 <div style="font-size:12px; color:#a1a1aa;">{titles[i]}</div>
             </div>
             """, unsafe_allow_html=True)
+def sayfa_metodoloji():
+    st.markdown("""
+    <div style="padding:20px; background:rgba(255,255,255,0.02); border-radius:12px; border:1px solid rgba(255,255,255,0.1);">
+        <h2 style="color:#fff; border-bottom:1px solid #333; padding-bottom:10px;">📐 Metodoloji ve Hesaplama Yöntemi</h2>
+        
+        <h3 style="color:#60a5fa; margin-top:20px;">1. Veri Toplama (Web Scraping)</h3>
+        <p style="color:#d1d5db; line-height:1.6;">
+            Piyasa Monitörü, Türkiye'nin en büyük zincir marketleri ve e-ticaret platformlarından 
+            <strong>Python tabanlı botlar</strong> (Selenium, BeautifulSoup, Playwright) aracılığıyla günlük veri toplar. 
+            Botlarımız, "User-Agent Rotation" ve "Rate Limiting" prensiplerine uygun olarak, hedef sunucuları yormadan çalışır.
+            Her ürün için benzersiz bir ürün kodu (Barkod/SKU) ve URL eşleştirmesi kullanılır.
+        </p>
+
+        <h3 style="color:#60a5fa; margin-top:20px;">2. Veri Temizleme ve Kalite Kontrol</h3>
+        <p style="color:#d1d5db; line-height:1.6;">
+            Ham veriler işlenmeden önce aşağıdaki filtrelerden geçer:
+        </p>
+        <ul style="color:#d1d5db; list-style-type:square; margin-left:20px;">
+            <li><strong>Anomali Tespiti:</strong> Bir önceki güne göre %50'den fazla fiyat değişimi olan ürünler "Şüpheli" olarak işaretlenir ve manuel kontrole düşer.</li>
+            <li><strong>Birim Dönüşümü:</strong> Kg, Litre, Adet gibi birimler standartlaştırılır.</li>
+            <li><strong>Stok Kontrolü:</strong> Stokta olmayan ürünlerin fiyatları, endeks hesaplamasında "sabit fiyat" (carry-forward) yöntemiyle taşınır.</li>
+        </ul>
+
+        <h3 style="color:#60a5fa; margin-top:20px;">3. Endeks Hesaplama Formülü</h3>
+        <p style="color:#d1d5db; line-height:1.6;">
+            Sistemimiz, <strong>Zincirleme Laspeyres Fiyat Endeksi</strong> yöntemini kullanır. 
+            Formül şu şekildedir:
+        </p>
+        <div style="background:rgba(0,0,0,0.3); padding:15px; border-radius:8px; font-family:'Courier New'; color:#fbbf24; text-align:center;">
+            I = Σ (Pn / P0) * W
+        </div>
+        <p style="color:#71717a; font-size:12px; text-align:center;">
+            (I: Endeks, Pn: Güncel Fiyat, P0: Baz Fiyat, W: Ağırlık)
+        </p>
+        <p style="color:#d1d5db; line-height:1.6;">
+            Bu yöntemde, her bir ürünün sepetteki ağırlığı (W), hanehalkı tüketim anketlerine ve TÜİK ağırlıklarına göre belirlenir. 
+            Aylık fiyat ortalaması alınırken <strong>Geometrik Ortalama</strong> tercih edilerek uç değerlerin etkisi azaltılır.
+        </p>
+
+        <h3 style="color:#60a5fa; margin-top:20px;">4. Eşleştirme ve İkame (Substitution)</h3>
+        <p style="color:#d1d5db; line-height:1.6;">
+            Takip edilen bir ürün piyasadan kalktığında, sistem otomatik olarak "En Yakın Benzer Ürün" algoritmasını çalıştırır. 
+            Aynı marka, aynı gramaj ve aynı kategorideki en yakın ikame ürün (Substitute) sepete dahil edilir ve 
+            fiyat serisi düzeltme katsayısı ile bağlanır.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
 # --- 3. ADIM: ANA YÖNLENDİRİCİ ---
 
+# --- ANA YÖNLENDİRİCİ ---
+
 def main():
-    # Header Tasarımı
+    # --- YENİ HEADER TASARIMI (Piyasa Monitörü) ---
     st.markdown("""
-        <div class="header-wrapper">
-            <div class="left-section">
-                <div class="app-title">Piyasa Monitörü <span class="live-badge">SİMÜLASYON</span></div>
-                <div class="app-subtitle">Yapay Zeka Destekli Enflasyon Analiz Platformu</div>
+        <style>
+            .monitor-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 25px 35px;
+                background: linear-gradient(90deg, #0f172a 0%, #1e1b4b 100%);
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 16px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+                margin-bottom: 25px;
+            }
+            .mh-title {
+                font-family: 'Inter', sans-serif;
+                font-weight: 800;
+                font-size: 36px;
+                color: #fff;
+                letter-spacing: -1px;
+                line-height: 1;
+            }
+            .mh-badge {
+                background: rgba(16, 185, 129, 0.2);
+                color: #34d399;
+                font-size: 11px;
+                padding: 4px 10px;
+                border-radius: 6px;
+                vertical-align: middle;
+                margin-left: 10px;
+                border: 1px solid rgba(16, 185, 129, 0.3);
+                letter-spacing: 1px;
+            }
+            .mh-subtitle {
+                font-size: 14px;
+                color: #94a3b8;
+                margin-top: 5px;
+                font-weight: 400;
+            }
+            .mh-right {
+                text-align: right;
+            }
+            .mh-location {
+                font-size: 12px;
+                color: #64748b;
+                font-weight: 700;
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                margin-bottom: 5px;
+            }
+            .mh-date {
+                font-size: 28px;
+                font-weight: 700;
+                color: #e2e8f0;
+                font-family: 'JetBrains Mono', monospace;
+            }
+            
+            /* Mobil */
+            @media (max-width: 768px) {
+                .monitor-header { flex-direction: column; text-align: center; gap: 20px; }
+                .mh-right { text-align: center; }
+            }
+        </style>
+
+        <div class="monitor-header">
+            <div class="mh-left">
+                <div class="mh-title">
+                    Piyasa Monitörü
+                    <span class="mh-badge">SİMÜLASYON</span>
+                </div>
+                <div class="mh-subtitle">Yapay Zeka Destekli Enflasyon Analiz Platformu</div>
             </div>
-            <div class="clock-container">
-                <div class="location-tag">İSTANBUL</div>
-                <div id="report_date">""" + datetime.now().strftime("%d.%m.%Y") + """</div>
+            <div class="mh-right">
+                <div class="mh-location">İSTANBUL</div>
+                <div class="mh-date">""" + datetime.now().strftime("%d.%m.%Y") + """</div>
             </div>
         </div>
-        <br>
     """, unsafe_allow_html=True)
     
-    # Üst Menü
+    # 1. Önce Veriyi Yükle (Ana Sayfa İstatistikleri İçin Gerekli)
+    with st.spinner("Piyasa verileri analiz ediliyor..."):
+        ctx = veri_motoru_calistir()
+
+    # 2. Menü (Sadeleştirildi)
     tabs = st.tabs([
         "🏠 ANA SAYFA", 
         "📊 PİYASA ÖZETİ", 
         "📂 KATEGORİ DETAY", 
         "📋 TAM LİSTE", 
         "📝 RAPORLAMA", 
-        "📐 METODOLOJİ", 
-        "👥 HAKKIMIZDA",
-        "📬 İLETİŞİM"
+        "📐 METODOLOJİ"
     ])
 
-    # 1. Ana Sayfa (Veri gerekmez)
+    # 3. Sayfaları Yükle
     with tabs[0]:
-        sayfa_ana_sayfa()
-
-    # --- VERİ YÜKLEME ---
-    # Sadece analiz sekmelerinde veriyi yükle
-    ctx = veri_motoru_calistir()
+        sayfa_ana_sayfa(ctx) # Context'i buraya gönderiyoruz
 
     if ctx:
         with tabs[1]: sayfa_piyasa_ozeti(ctx)
@@ -1181,32 +1361,21 @@ def main():
         with tabs[3]: sayfa_tam_liste(ctx)
         with tabs[4]: sayfa_raporlama(ctx)
     else:
-        # Veri Yüklenemezse Uyarı
-        msg = "<br><div style='text-align:center; padding:20px; background:rgba(255,0,0,0.1); border-radius:10px;'>⚠️ Veri seti yüklenirken bir sorun oluştu veya henüz veri yok.</div>"
-        with tabs[1]: st.markdown(msg, unsafe_allow_html=True)
-        with tabs[2]: st.markdown(msg, unsafe_allow_html=True)
-        with tabs[3]: st.markdown(msg, unsafe_allow_html=True)
-        with tabs[4]: st.markdown(msg, unsafe_allow_html=True)
+        err_msg = "<br><div style='text-align:center; padding:20px; background:rgba(255,0,0,0.1); border-radius:10px; color:#fff;'>⚠️ Veri seti yüklenemedi. Lütfen internet bağlantınızı kontrol edin veya yöneticiye başvurun.</div>"
+        with tabs[1]: st.markdown(err_msg, unsafe_allow_html=True)
+        with tabs[2]: st.markdown(err_msg, unsafe_allow_html=True)
+        with tabs[3]: st.markdown(err_msg, unsafe_allow_html=True)
+        with tabs[4]: st.markdown(err_msg, unsafe_allow_html=True)
 
-    # Diğer Sayfalar (Veri gerekmez)
     with tabs[5]:
-        st.markdown("## 📐 Metodoloji")
-        st.write("Veriler web kazıma yöntemleri ile toplanıp, Laspeyres endeksi ile hesaplanmaktadır.")
-    
-    with tabs[6]:
-        sayfa_hakkimizda()
-        
-    with tabs[7]:
-        st.markdown("## 📬 İletişim")
-        st.text_input("E-Posta")
-        st.text_area("Mesaj")
-        st.button("Gönder")
-        
+        sayfa_metodoloji()
+
     # Footer
-    st.markdown('<div style="text-align:center; color:#52525b; font-size:11px; margin-top:50px; opacity:0.6;">VALIDASYON MUDURLUGU © 2026 - CONFIDENTIAL</div>', unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center; color:#52525b; font-size:11px; margin-top:50px; opacity:0.6;">VALIDASYON MUDURLUGU © 2026 - GİZLİ ANALİZ BELGESİ</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
+
 
 
 
