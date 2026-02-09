@@ -195,11 +195,11 @@ def apply_theme():
         .skeleton {{ background: rgba(255,255,255,0.05); animation: blinker 1.5s infinite; border-radius: 8px; }}
         
         /* BUTON STİLİ */
-        div.stButton > button {
+        div.stButton > button {{
             background: linear-gradient(145deg, rgba(40,40,45,0.8), rgba(20,20,25,0.9)); border: 1px solid var(--glass-border);
             color: #fff; border-radius: 10px; font-weight: 600; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        div.stButton > button:hover { border-color: var(--accent-blue); box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); transform: translateY(-1px); }
+        }}
+        div.stButton > button:hover {{ border-color: var(--accent-blue); box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); transform: translateY(-1px); }}
     </style>
     """
     st.markdown(final_css, unsafe_allow_html=True)
