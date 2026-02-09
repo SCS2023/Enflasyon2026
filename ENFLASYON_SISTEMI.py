@@ -1106,7 +1106,7 @@ def sayfa_raporlama(ctx):
 def sayfa_metodoloji():
     html_content = """
 <style>
-/* === GENEL KAPSAYICI VE TYPOGRAPHY === */
+/* === CSS STİLLERİ === */
 .methodology-container {
     font-family: 'Inter', sans-serif;
     color: #e4e4e7;
@@ -1114,9 +1114,9 @@ def sayfa_metodoloji():
     margin: 0 auto;
 }
 
-/* === ANA KART YAPISI === */
+/* KART YAPISI */
 .method-card {
-    background: rgba(26, 28, 35, 0.6); /* Hafif koyu transparan zemin */
+    background: rgba(26, 28, 35, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     padding: 30px;
@@ -1124,13 +1124,12 @@ def sayfa_metodoloji():
     box-shadow: 0 4px 20px rgba(0,0,0,0.2);
     transition: transform 0.2s;
 }
-
 .method-card:hover {
     border-color: rgba(255, 255, 255, 0.2);
     transform: translateY(-2px);
 }
 
-/* === BAŞLIKLAR === */
+/* BAŞLIKLAR */
 h1.main-title {
     font-size: 32px;
     font-weight: 800;
@@ -1139,7 +1138,6 @@ h1.main-title {
     background: linear-gradient(90deg, #60a5fa, #a78bfa, #f472b6);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    letter-spacing: -0.5px;
 }
 
 h2.section-title {
@@ -1165,49 +1163,27 @@ h3.sub-title {
     padding-left: 10px;
 }
 
-/* === RENK TEMALARI (Border ve Text için) === */
+/* RENK TEMALARI */
 .theme-blue h2 { color: #60a5fa; border-bottom-color: rgba(96, 165, 250, 0.3); }
 .theme-purple h2 { color: #a78bfa; border-bottom-color: rgba(167, 139, 250, 0.3); }
 .theme-yellow h2 { color: #fbbf24; border-bottom-color: rgba(251, 191, 36, 0.3); }
 .theme-green h2 { color: #34d399; border-bottom-color: rgba(52, 211, 153, 0.3); }
 .theme-gray h2 { color: #94a3b8; }
 
-/* === METİN VE LİSTELER === */
-p {
-    font-size: 16px;
-    line-height: 1.6;
-    color: #cbd5e1;
-    margin-bottom: 15px;
-}
+/* LİSTELER VE METİN */
+p { font-size: 16px; line-height: 1.6; color: #cbd5e1; margin-bottom: 15px; }
 
-ul.styled-list {
-    list-style: none;
-    padding: 0;
-    margin: 15px 0;
-}
-
-ul.styled-list li {
-    position: relative;
-    padding-left: 25px;
-    margin-bottom: 10px;
-    color: #d1d5db;
-}
-
-ul.styled-list li::before {
-    content: "➤";
-    position: absolute;
-    left: 0;
-    top: 2px;
-    font-size: 12px;
-    opacity: 0.7;
-}
+ul.styled-list { list-style: none; padding: 0; margin: 15px 0; }
+ul.styled-list li { position: relative; padding-left: 25px; margin-bottom: 10px; color: #d1d5db; }
+ul.styled-list li::before { content: "➤"; position: absolute; left: 0; top: 2px; font-size: 12px; opacity: 0.7; }
 
 .theme-blue ul li::before { color: #60a5fa; }
 .theme-purple ul li::before { color: #a78bfa; }
 .theme-yellow ul li::before { color: #fbbf24; }
 .theme-green ul li::before { color: #34d399; }
+.theme-gray ul li::before { color: #94a3b8; }
 
-/* === FORMÜL KUTUSU === */
+/* FORMÜL KUTUSU */
 .formula-box {
     background: rgba(0, 0, 0, 0.3);
     border: 1px dashed rgba(251, 191, 36, 0.4);
@@ -1220,14 +1196,7 @@ ul.styled-list li::before {
     font-size: 18px;
     font-weight: bold;
 }
-
-.formula-desc {
-    font-size: 14px;
-    color: #9ca3af;
-    text-align: center;
-    font-style: italic;
-}
-
+.formula-desc { font-size: 14px; color: #9ca3af; text-align: center; font-style: italic; }
 </style>
 
 <div class="methodology-container">
@@ -1269,7 +1238,6 @@ ul.styled-list li::before {
 
   <div class="method-card theme-purple">
     <h2 class="section-title">2. Veri Temizleme ve Kalite Kontrol</h2>
-    
     <p>
       Ham fiyat verileri, endeks hesaplamasına dahil edilmeden önce çok aşamalı bir kalite kontrol
       sürecinden geçirilir. Bu süreç, fiyat serilerindeki gürültüyü azaltmayı ve metodolojik
@@ -1305,7 +1273,6 @@ ul.styled-list li::before {
 
   <div class="method-card theme-yellow">
     <h2 class="section-title">3. Endeks Hesaplama Metodolojisi</h2>
-    
     <p>
       Piyasa Monitörü fiyat endeksi, Zincirleme Laspeyres Fiyat Endeksi yaklaşımı kullanılarak
       hesaplanmaktadır. Bu yöntem, kısa dönemli fiyat hareketlerini doğru şekilde yansıtması ve
@@ -1357,7 +1324,7 @@ ul.styled-list li::before {
       önüne geçilir.
     </p>
   </div>
-  
+
   <div class="method-card theme-gray">
     <h2 class="section-title">5. Metodolojik Güçlü Yönler</h2>
     <ul class="styled-list">
@@ -1371,7 +1338,6 @@ ul.styled-list li::before {
 </div>
 """
     st.markdown(html_content, unsafe_allow_html=True)
-
 
 # --- ANA YÖNLENDİRİCİ ---
 
@@ -1495,6 +1461,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
