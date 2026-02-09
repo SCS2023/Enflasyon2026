@@ -13,3 +13,4 @@ scipy
 streamlit-lottie
 python-docx
 xlsxwriter
+streamlit-option-menu
