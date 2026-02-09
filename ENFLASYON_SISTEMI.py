@@ -685,6 +685,7 @@ def style_chart(fig, is_pdf=False, is_sunburst=False):
     return fig
 
 # --- 8. DASHBOARD MODU (SAYFALI YAPI) ---
+# --- 8. DASHBOARD MODU (DÜZELTİLMİŞ) ---
 def dashboard_modu():
     loader_placeholder = st.empty()
     with loader_placeholder.container():
@@ -699,13 +700,15 @@ def dashboard_modu():
     # --- NAVIGASYON MENÜSÜ ---
     menu = ["ANA SAYFA", "AĞIRLIKLAR", "TÜFE", "ANA GRUPLAR", "MADDELER", "METODOLOJİ"]
     
-    # Menüyü Header'ın altına yerleştirelim
     st.markdown('<div style="margin-bottom: 20px;"></div>', unsafe_allow_html=True)
     selected_tab = st.radio("", menu, horizontal=True, label_visibility="collapsed")
     st.markdown("<br>", unsafe_allow_html=True)
 
     # --- VERİ İŞLEME VE TARİH FİLTRESİ ---
     if not df_f.empty:
+        # HATA DÜZELTME: Fiyat sütununu hemen sayıya çeviriyoruz
+        df_f['Fiyat'] = pd.to_numeric(df_f['Fiyat'], errors='coerce')
+        
         df_f['Tarih_DT'] = pd.to_datetime(df_f['Tarih'], errors='coerce')
         df_f = df_f.dropna(subset=['Tarih_DT']).sort_values('Tarih_DT')
         df_f['Tarih_Str'] = df_f['Tarih_DT'].dt.strftime('%Y-%m-%d')
@@ -714,8 +717,6 @@ def dashboard_modu():
         BASLANGIC_LIMITI = "2026-02-04" 
         tum_tarihler = sorted([d for d in raw_dates if d >= BASLANGIC_LIMITI], reverse=True)
         
-        # Tarih Seçimi (Sadece Ana Sayfa için Sidebar'a koyuyoruz veya üstte tutabiliriz)
-        # Menü yapısında tarih seçimini global tutmak daha iyi.
         with st.sidebar:
             st.markdown("### ⚙️ Ayarlar")
             if tum_tarihler:
@@ -723,7 +724,6 @@ def dashboard_modu():
             else:
                 secilen_tarih = None
                 
-            # Senkronizasyon Butonu (Sidebar'a taşındı)
             if st.button("Sistemi Senkronize Et ⚡"):
                 progress_bar = st.progress(0, text="Veri akışı sağlanıyor...")
                 def progress_updater(percentage):
@@ -738,7 +738,6 @@ def dashboard_modu():
                     time.sleep(1); st.rerun()
                 else:
                     st.error(res)
-
     else:
         st.error("Veri bulunamadı veya GitHub bağlantısı hatası.")
         return
@@ -755,8 +754,9 @@ def dashboard_modu():
         df_s['Kod'] = df_s[kod_col].astype(str).apply(kod_standartlastir)
         df_s = df_s.drop_duplicates(subset=['Kod'], keep='first')
         
-        # Fiyat Pivot
+        # Fiyat Pivot (HATA BURADAYDI, ARTIK FİYAT NUMERIC OLDUĞU İÇİN ÇALIŞIR)
         df_f_filt = df_f[df_f['Fiyat'] > 0]
+        
         df_f_grp = df_f_filt.groupby(['Kod', 'Tarih_Str'])['Fiyat'].mean().reset_index()
         pivot = df_f_grp.pivot_table(index='Kod', columns='Tarih_Str', values='Fiyat')
         pivot = pivot.ffill(axis=1).bfill(axis=1).reset_index()
@@ -775,6 +775,12 @@ def dashboard_modu():
         
         # Tarih Filtresi
         gunler = sorted([c for c in pivot.columns if c != 'Kod' and c >= BASLANGIC_LIMITI])
+        
+        # Eğer veri yoksa hata vermemesi için kontrol
+        if not gunler:
+            st.warning("Seçilen tarih aralığında gösterilecek veri bulunamadı.")
+            return
+
         if secilen_tarih and secilen_tarih in gunler:
             idx = gunler.index(secilen_tarih)
             gunler = gunler[:idx+1]
@@ -830,7 +836,7 @@ def dashboard_modu():
             df_analiz['Gunluk_Degisim'] = 0
             gunluk_enf_genel = 0
 
-        # Yıllık Simülasyon (Gerçek veri oluşana kadar)
+        # Yıllık Simülasyon
         yillik_enf_genel = enf_genel + 32.72 
 
     # ==============================================================================
@@ -887,21 +893,20 @@ def dashboard_modu():
             trend_days = gunler[-14:]
             trend_vals = []
             for d in trend_days:
-                # Basit ortalama trendi
                 val = df_analiz[d].mean()
                 trend_vals.append(val)
             
             # Normalize
-            trend_vals = [v/trend_vals[0]*100 - 100 for v in trend_vals]
-            fig_mini = px.bar(x=trend_days, y=trend_vals, title="Günlük Piyasa Volatilitesi", 
-                              labels={'x':'Tarih', 'y':'Değişim'}, color=trend_vals, color_continuous_scale="RdYlGn_r")
-            fig_mini.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", height=250)
-            st.plotly_chart(fig_mini, use_container_width=True)
+            if trend_vals:
+                trend_vals = [v/trend_vals[0]*100 - 100 for v in trend_vals]
+                fig_mini = px.bar(x=trend_days, y=trend_vals, title="Günlük Piyasa Volatilitesi", 
+                                  labels={'x':'Tarih', 'y':'Değişim'}, color=trend_vals, color_continuous_scale="RdYlGn_r")
+                fig_mini.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", height=250)
+                st.plotly_chart(fig_mini, use_container_width=True)
 
         # ANA GRUP TABLOSU
         st.markdown("### 📊 Piyasa Monitörü Şubat Ayı Ana Grup Artış Oranları")
         
-        # Grup İstatistikleri
         df_analiz['Grup_Agirlikli_Fark'] = df_analiz['Fark'] * df_analiz[aktif_agirlik_col]
         grp_stats = df_analiz.groupby("Grup").agg({
             aktif_agirlik_col: 'sum',
@@ -909,7 +914,7 @@ def dashboard_modu():
         }).reset_index()
         
         grp_stats['Aylık %'] = (grp_stats['Grup_Agirlikli_Fark'] / grp_stats[aktif_agirlik_col]) * 100
-        grp_stats['Yıllık %'] = grp_stats['Aylık %'] + 35.0 # Simüle
+        grp_stats['Yıllık %'] = grp_stats['Aylık %'] + 35.0 
         
         st.dataframe(
             grp_stats[['Grup', 'Aylık %', 'Yıllık %']].sort_values('Aylık %', ascending=False).style.format({"Aylık %": "{:.2f}%", "Yıllık %": "{:.2f}%"})
@@ -966,15 +971,13 @@ def dashboard_modu():
             chart_type = st.radio("Grafik:", ["Çizgi (Line)", "Sütun (Bar)"], horizontal=True)
 
         if selection == "GENEL TÜFE":
-            # Genel endeks serisini oluştur
             ts_data = []
             for d in gunler:
-                # O günkü ortalama fiyat (basitleştirilmiş)
                 val = df_analiz[d].mean()
                 ts_data.append(val)
             
-            # Normalize (100)
-            ts_data = [x/ts_data[0]*100 for x in ts_data]
+            if ts_data:
+                ts_data = [x/ts_data[0]*100 for x in ts_data]
             plot_df = pd.DataFrame({'Tarih': gunler, 'Deger': ts_data})
             title = "Genel TÜFE Endeks Seyri"
             y_col = 'Deger'
@@ -1001,7 +1004,6 @@ def dashboard_modu():
     elif selected_tab == "ANA GRUPLAR":
         st.header("🏢 Ana Harcama Grupları Performansı")
         
-        # Grupların zaman serisi
         grp_series = []
         for grp in df_analiz['Grup'].unique():
             grp_df = df_analiz[df_analiz['Grup'] == grp]
@@ -1012,8 +1014,8 @@ def dashboard_modu():
                 v = grp_df[d].mean()
                 vals.append(v)
             
-            # Normalize
-            vals = [x/vals[0]*100 for x in vals]
+            if vals:
+                vals = [x/vals[0]*100 for x in vals]
             
             for d, v in zip(gunler, vals):
                 grp_series.append({'Tarih': d, 'Grup': grp, 'Endeks': v})
@@ -1116,4 +1118,5 @@ def dashboard_modu():
 
 if __name__ == "__main__":
     dashboard_modu()
+
 
