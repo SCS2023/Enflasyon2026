@@ -758,18 +758,19 @@ def sayfa_ana_sayfa(ctx):
             </div>
         </div>
         <br><br>
-        <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); 
-             padding: 15px; border-radius: 99px; display: inline-block; animation: pulseGlow 3s infinite;">
-            <span style="color: #60a5fa; font-weight: bold;">🚀 SİSTEM DURUMU:</span> 
-            <span style="color: #d1d5db;">Veri botları aktif. Fiyatlar <strong>{datetime.now().strftime('%H:%M')}</strong> itibarıyla güncel.</span>
+        
+        <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); 
+             padding: 20px; border-radius: 24px; display: inline-block; max-width: 850px; animation: pulseGlow 3s infinite;">
+            <div style="margin-bottom: 8px;">
+                <span style="color: #60a5fa; font-weight: bold; font-size: 14px;">🚀 SİSTEM DURUMU:</span> 
+                <span style="color: #d1d5db; font-size: 14px;">Veri botları aktif. Fiyatlar <strong>{datetime.now().strftime('%H:%M')}</strong> itibarıyla güncel.</span>
+            </div>
+            <div style="border-top: 1px solid rgba(59, 130, 246, 0.2); padding-top: 8px; margin-top: 8px; font-size: 11px; color: #94a3b8; line-height: 1.4;">
+                ⚠️ Bu platformda sunulan veriler deneysel ve akademik çalışma amaçlıdır. 
+                Resmi enflasyon verilerinin yerine geçmez ve yatırım tavsiyesi niteliği taşımaz.
+            </div>
         </div>
         
-        <div style="margin-top: 40px; padding: 15px; border-top: 1px solid rgba(255,255,255,0.1); text-align: center;">
-            <p style="color: #94a3b8; font-size: 12px; font-style: italic;">
-                Bu platformda sunulan veriler deneysel ve akademik çalışma amaçlıdır. 
-                Resmi enflasyon verilerinin yerine geçmez ve yatırım tavsiyesi niteliği taşımaz.
-            </p>
-        </div>
     </div>""", unsafe_allow_html=True)
 
 def sayfa_piyasa_ozeti(ctx):
@@ -996,3 +997,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
