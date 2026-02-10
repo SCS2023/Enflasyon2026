@@ -795,12 +795,8 @@ def sayfa_ana_sayfa(ctx):
     <br><br>
     <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); 
             padding: 15px; border-radius: 99px; display: inline-block; animation: pulseGlow 3s infinite;">
-        <span style="color: #60a5fa; font-weight: bold;">🚀 SİSTEM DURUMU:</span> 
-        <span style="color: #d1d5db;">Veri botları aktif. Saat: <strong id="live_clock" style="color:#fff; font-family:'JetBrains Mono';">--:--:--</strong></span>
-        <p style="color: #94a3b8; font-size: 12px; font-style: italic; margin-top:5px;">
-            Bu platformda sunulan veriler deneysel ve akademik çalışma amaçlıdır. 
-            Resmi enflasyon verilerinin yerine geçmez ve yatırım tavsiyesi niteliği taşımaz.
-        </p>
+        <span style="color: #d1d5db;">Bu platformda sunulan veriler deneysel ve akademik çalışma amaçlıdır. 
+            Resmi enflasyon verilerinin yerine geçmez ve yatırım tavsiyesi niteliği taşımaz.</span>
     </div>
 
 <script>
@@ -1109,6 +1105,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
