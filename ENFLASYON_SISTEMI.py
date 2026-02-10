@@ -32,7 +32,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- CSS MOTORU (SADECE BURASI VE HTML KISIMLARI GÜÇLENDİRİLDİ) ---
+# --- CSS MOTORU ---
 def apply_theme():
     if 'plotly_template' not in st.session_state:
         st.session_state.plotly_template = "plotly_dark"
@@ -41,6 +41,12 @@ def apply_theme():
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+        /* --- HEADER VE TOOLBAR GİZLEME (İSTEK 2) --- */
+        header {visibility: hidden;}
+        [data-testid="stHeader"] { visibility: hidden; height: 0px; }
+        [data-testid="stToolbar"] { display: none; }
+        .main .block-container { padding-top: 1rem; }
 
         /* --- ANİMASYON TANIMLARI --- */
         @keyframes fadeInUp {
@@ -78,7 +84,60 @@ def apply_theme():
             border-right: 1px solid var(--border);
         }
 
-        /* --- KART TASARIMLARI & ANİMASYONLAR --- */
+        /* --- YATAY MENÜ (İSTEK 1) --- */
+        [data-testid="stRadio"] > div {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            background: rgba(30, 33, 40, 0.4);
+            padding: 10px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+        }
+
+        [data-testid="stRadio"] label {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 14px;
+            color: #a1a1aa !important;
+            min-width: 100px;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        [data-testid="stRadio"] label:hover {
+            background-color: rgba(59, 130, 246, 0.2);
+            border-color: var(--accent);
+            color: #fff !important;
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Seçili Olan Tab */
+        [data-testid="stRadio"] label[data-checked="true"] {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white !important;
+            border-color: #60a5fa;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        /* Radyo butonunun yuvarlağını gizle */
+        [data-testid="stRadio"] div[role="radiogroup"] > :first-child {
+            display: none;
+        }
+
+        /* --- KART TASARIMLARI --- */
         .kpi-card {
             background: var(--card-bg);
             border: 1px solid var(--border);
@@ -128,7 +187,7 @@ def apply_theme():
             text-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
         }
         
-        /* --- TICKER (KAYAN YAZI) --- */
+        /* --- TICKER --- */
         .ticker-wrap {
             width: 100%;
             overflow: hidden;
@@ -466,7 +525,7 @@ Tahmin modelimiz, ay sonu kapanışının **%{tahmin:.2f}** bandında olacağın
 """
     return text.strip()
 
-# --- YENİ GRAFİK STİLİ (ESTETİK) ---
+# --- GRAFİK STİLİ ---
 def style_chart(fig, is_pdf=False, is_sunburst=False):
     if is_pdf:
         fig.update_layout(template="plotly_white", font=dict(family="Arial", size=14, color="black"))
@@ -857,20 +916,7 @@ def main():
         </div>
     """, unsafe_allow_html=True)
 
-    # --- 2. SENKRONİZASYON BUTONU ---
-    col_btn1, col_btn2 = st.columns([3, 1])
-    with col_btn2:
-        if st.button("SİSTEMİ SENKRONİZE ET ⚡", type="primary", use_container_width=True):
-            progress_bar = st.progress(0, text="Veri akışı sağlanıyor...")
-            res = html_isleyici(lambda p: progress_bar.progress(min(1.0, max(0.0, p)), text="Senkronizasyon sürüyor..."))
-            progress_bar.progress(1.0, text="Tamamlandı!"); time.sleep(0.5); progress_bar.empty()
-            if "OK" in res:
-                st.cache_data.clear(); st.toast('Sistem Senkronize Edildi!', icon='🚀'); time.sleep(1); st.rerun()
-            elif "Veri bulunamadı" in res: st.warning("⚠️ Yeni veri akışı yok.")
-            else: st.error(res)
-
-    # --- 3. MENÜ (SIDEBAR'DA) ---
-    # Bu kısmı orijinal yapına sadık kalarak, st.sidebar üzerinde tuttum ama CSS ile güzelleştirdim.
+    # --- 2. YATAY MENÜ (BAŞLIK ALTINA TAŞINDI) ---
     menu_items = {
         "🏠 Ana Sayfa": "Ana Sayfa", 
         "📊 Piyasa Özeti": "Piyasa Özeti",
@@ -882,14 +928,27 @@ def main():
         "ℹ️ Metodoloji": "Metodoloji"
     }
     
-    with st.sidebar:
-        secilen_etiket = st.radio(
-            "Navigasyon", 
-            options=list(menu_items.keys()), 
-            label_visibility="collapsed", 
-            key="nav_radio"
-        )
+    # st.sidebar yerine direkt main akışta kullanıyoruz
+    secilen_etiket = st.radio(
+        "Navigasyon", 
+        options=list(menu_items.keys()), 
+        label_visibility="collapsed", 
+        key="nav_radio",
+        horizontal=True
+    )
     secim = menu_items[secilen_etiket]
+
+    # --- 3. SENKRONİZASYON BUTONU (MENU ALTINA) ---
+    col_btn1, col_btn2 = st.columns([4, 1])
+    with col_btn2:
+        if st.button("SİSTEMİ SENKRONİZE ET ⚡", type="primary", use_container_width=True):
+            progress_bar = st.progress(0, text="Veri akışı sağlanıyor...")
+            res = html_isleyici(lambda p: progress_bar.progress(min(1.0, max(0.0, p)), text="Senkronizasyon sürüyor..."))
+            progress_bar.progress(1.0, text="Tamamlandı!"); time.sleep(0.5); progress_bar.empty()
+            if "OK" in res:
+                st.cache_data.clear(); st.toast('Sistem Senkronize Edildi!', icon='🚀'); time.sleep(1); st.rerun()
+            elif "Veri bulunamadı" in res: st.warning("⚠️ Yeni veri akışı yok.")
+            else: st.error(res)
 
     # --- 4. VERİ YÜKLEME ---
     with st.spinner("Veri tabanına bağlanılıyor..."):
