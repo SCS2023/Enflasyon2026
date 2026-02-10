@@ -934,7 +934,7 @@ def sayfa_trend_analizi(ctx):
 
 # --- YENİLENEN METODOLOJİ SAYFASI ---
 def sayfa_metodoloji(ctx=None):
-    # CSS: Grid yapısı, özel numaralar ve vurgular
+    # CSS: Grid yapısı, özel numaralar ve vurgular (GÜÇLENDİRİLMİŞ KOYU ZEMİN)
     st.markdown("""
     <style>
         .method-container {
@@ -944,18 +944,18 @@ def sayfa_metodoloji(ctx=None):
         
         .method-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr); /* 2 Kolonlu yapı */
+            grid-template-columns: repeat(2, 1fr);
             gap: 25px;
             margin-top: 30px;
         }
         
-        /* Mobil uyumluluk için */
         @media (max-width: 768px) {
             .method-grid { grid-template-columns: 1fr; }
         }
 
         .method-card {
-            background: rgba(255, 255, 255, 0.03);
+            /* BURASI DEĞİŞTİ: Şeffaf yerine KATI KOYU renk veriyoruz */
+            background: linear-gradient(145deg, #1e293b, #0f172a); 
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 16px;
             padding: 30px;
@@ -963,24 +963,24 @@ def sayfa_metodoloji(ctx=None):
             overflow: hidden;
             transition: all 0.3s ease;
             height: 100%;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); /* Gölge ekledik */
         }
 
         .method-card:hover {
             transform: translateY(-5px);
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(255, 255, 255, 0.2);
-            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+            border-color: rgba(59, 130, 246, 0.4);
+            box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.5);
         }
 
         /* Arkaplandaki Dev Numara */
         .bg-number {
             position: absolute;
             top: -20px;
-            right: -10px;
+            right: 10px; /* Biraz daha içeri aldık */
             font-family: 'JetBrains Mono', monospace;
-            font-size: 120px;
+            font-size: 100px;
             font-weight: 800;
-            opacity: 0.05;
+            color: rgba(255, 255, 255, 0.03) !important; /* Rengi sabitledik */
             line-height: 1;
             z-index: 0;
             pointer-events: none;
@@ -991,58 +991,84 @@ def sayfa_metodoloji(ctx=None):
             display: flex;
             align-items: center;
             gap: 15px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             position: relative;
             z-index: 1;
         }
         
         .method-icon {
-            font-size: 24px;
-            padding: 10px;
+            font-size: 28px;
+            padding: 12px;
             border-radius: 12px;
             background: rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .method-title {
             font-family: 'Inter', sans-serif;
             font-weight: 700;
-            font-size: 18px;
-            color: #ffffff;
+            font-size: 16px;
+            color: #ffffff !important; /* Başlık kesinlikle beyaz */
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
         }
 
         .method-body {
             font-family: 'Inter', sans-serif;
             font-size: 14px;
-            color: #94a3b8; /* Hafif gri metin, okunaklı */
+            color: #cbd5e1 !important; /* Gövde metni açık gri */
             line-height: 1.6;
             position: relative;
             z-index: 1;
         }
         
-        .method-body strong { color: #fff; }
-        .method-body ul { padding-left: 20px; margin-top: 10px; }
-        .method-body li { margin-bottom: 8px; }
+        /* Liste elemanlarını düzelt */
+        .method-body ul {
+            list-style-type: none;
+            padding-left: 0;
+            margin-top: 15px;
+        }
+        
+        .method-body li {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 10px;
+            color: #94a3b8 !important;
+        }
+        
+        .method-body li::before {
+            content: "•";
+            color: #3b82f6;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        .method-body strong {
+            color: #ffffff !important;
+            font-weight: 600;
+        }
 
         /* Formül Kutusu */
         .formula-box {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(59, 130, 246, 0.3);
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 8px;
             padding: 15px;
             text-align: center;
             font-family: 'JetBrains Mono', monospace;
-            color: #3b82f6;
+            color: #60a5fa !important; /* Açık mavi */
             margin: 15px 0;
-            font-size: 16px;
+            font-size: 15px;
         }
 
-        /* Renk Temaları */
-        .theme-blue .method-icon { color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
-        .theme-green .method-icon { color: #10b981; background: rgba(16, 185, 129, 0.1); }
-        .theme-purple .method-icon { color: #a855f7; background: rgba(168, 85, 247, 0.1); }
-        .theme-orange .method-icon { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+        /* Renk Temaları - İkonlar için */
+        .theme-blue .method-icon { color: #60a5fa; background: rgba(37, 99, 235, 0.2); }
+        .theme-green .method-icon { color: #34d399; background: rgba(5, 150, 105, 0.2); }
+        .theme-purple .method-icon { color: #c084fc; background: rgba(147, 51, 234, 0.2); }
+        .theme-orange .method-icon { color: #fbbf24; background: rgba(217, 119, 6, 0.2); }
 
     </style>
     """, unsafe_allow_html=True)
@@ -1050,10 +1076,10 @@ def sayfa_metodoloji(ctx=None):
     html_content = """
     <div class="method-container">
         <div style="text-align: center; margin-bottom: 50px;">
-            <h1 style="font-size: 42px; font-weight: 800; background: linear-gradient(to right, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px;">
+            <h1 style="font-size: 42px; font-weight: 800; background: linear-gradient(to right, #ffffff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px;">
                 Metodoloji ve Teknik Altyapı
             </h1>
-            <p style="color: #64748b; font-size: 16px;">
+            <p style="color: #94a3b8; font-size: 16px;">
                 Piyasa Monitörü, veriden karara giden süreçte şeffaf, denetlenebilir ve akademik standartlara uygun bir boru hattı (pipeline) kullanır.
             </p>
         </div>
@@ -1102,7 +1128,7 @@ def sayfa_metodoloji(ctx=None):
                     <div class="formula-box">
                         I<sub>t</sub> = Σ ( P<sub>i,t</sub> / P<sub>i,0</sub> ) × W<sub>i</sub>
                     </div>
-                    <p style="font-size:12px; text-align:center; opacity:0.7;">P: Fiyat, W: Ağırlık, t: Zaman</p>
+                    <p style="font-size:12px; text-align:center; opacity:0.7; color:#94a3b8 !important;">P: Fiyat, W: Ağırlık, t: Zaman</p>
                 </div>
             </div>
 
@@ -1214,4 +1240,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
