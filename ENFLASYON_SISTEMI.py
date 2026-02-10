@@ -32,7 +32,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- CSS MOTORU (DÜZELTİLDİ: DROPDOWN VE RENKLER) ---
+# --- CSS MOTORU ---
 def apply_theme():
     if 'plotly_template' not in st.session_state:
         st.session_state.plotly_template = "plotly_dark"
@@ -49,52 +49,32 @@ def apply_theme():
         .main .block-container { padding-top: 1rem; }
 
         /* --- GLOBAL YAZI RENGİ (BEYAZ) --- */
-        /* Ama renkli olması gereken span ve class'ları ezmemesi için :not kullanıyoruz */
-        .stApp, p, h1, h2, h3, h4, h5, h6, label, .stMarkdown {
+        .stApp, p, h1, h2, h3, h4, h5, h6, label, .stMarkdown, .stDataFrame div, .stDataFrame span {
             color: #ffffff;
-        }
-        
-        /* Tablo ve veri alanları */
-        .stDataFrame div, .stDataFrame span {
-            color: #ffffff !important;
         }
 
         /* --- DROPDOWN (SELECT-BOX) DÜZELTMESİ --- */
-        
-        /* 1. Kapalı Kutu (Seçili Olan): Beyaz Yazı */
         div[data-baseweb="select"] > div {
             color: #ffffff !important;
-            background-color: rgba(255, 255, 255, 0.05); /* Hafif belli olsun */
+            background-color: rgba(255, 255, 255, 0.05);
         }
-        
-        /* 2. AÇILAN LİSTE (POPOVER): SİYAH YAZI */
-        /* Bu kısım açılır menünün içindeki seçeneklerdir */
         div[data-baseweb="popover"] div, 
         div[data-baseweb="popover"] li,
         div[data-baseweb="popover"] span {
-            color: #000000 !important;  /* Yazılar Siyah */
+            color: #000000 !important; 
         }
-        
-        /* Açılır menü arka planını beyaz/gri yapalım ki siyah yazı okunsun */
         div[data-baseweb="menu"] {
             background-color: #f0f2f6 !important;
         }
-        
-        /* Hover (Üzerine gelince) durumu */
         div[data-baseweb="menu"] li:hover {
             background-color: #e2e8f0 !important;
         }
 
         /* --- RENKLENDİRME İÇİN ÖZEL SINIFLAR --- */
-        /* Bu sınıflar global beyaz kuralını ezer */
         .pg-red { color: #fca5a5 !important; }
         .pg-green { color: #6ee7b7 !important; }
         .pg-yellow { color: #fde047 !important; }
-        
-        /* Inline style ile renk verilmiş span'ları koru (Ticker vb. için) */
-        span[style*="color"] {
-            color: inherit !important;
-        }
+        span[style*="color"] { color: inherit !important; }
 
         /* --- ANİMASYON TANIMLARI --- */
         @keyframes fadeInUp {
@@ -131,7 +111,12 @@ def apply_theme():
             border-right: 1px solid var(--border);
         }
 
-        /* --- YATAY MENÜ --- */
+        /* --- YATAY MENÜ (Label Gizleme Güncellendi) --- */
+        /* Label alanını tamamen yok et */
+        [data-testid="stRadio"] > label {
+            display: none !important;
+        }
+        
         [data-testid="stRadio"] > div {
             display: flex;
             flex-direction: row;
@@ -142,6 +127,7 @@ def apply_theme():
             padding: 10px;
             border-radius: 16px;
             border: 1px solid var(--border);
+            margin-top: -20px; /* Biraz yukarı çekelim */
         }
 
         [data-testid="stRadio"] label {
@@ -154,7 +140,7 @@ def apply_theme():
             font-family: 'Inter', sans-serif;
             font-weight: 500;
             font-size: 14px;
-            color: #ffffff !important; /* Menü yazıları BEYAZ */
+            color: #ffffff !important;
             min-width: 100px;
             text-align: center;
             display: flex;
@@ -162,9 +148,7 @@ def apply_theme():
             align-items: center;
         }
         
-        [data-testid="stRadio"] label p {
-             color: #ffffff !important;
-        }
+        [data-testid="stRadio"] label p { color: #ffffff !important; }
 
         [data-testid="stRadio"] label:hover {
             background-color: rgba(59, 130, 246, 0.2);
@@ -180,9 +164,7 @@ def apply_theme():
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
         }
 
-        [data-testid="stRadio"] div[role="radiogroup"] > :first-child {
-            display: none;
-        }
+        [data-testid="stRadio"] div[role="radiogroup"] > :first-child { display: none; }
 
         /* --- KART TASARIMLARI --- */
         .kpi-card {
@@ -219,7 +201,7 @@ def apply_theme():
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 1.2px;
-            color: #94a3b8 !important; /* Alt başlıklar hafif gri kalsın */
+            color: #94a3b8 !important;
             font-weight: 600;
             margin-bottom: 8px;
         }
@@ -256,7 +238,6 @@ def apply_theme():
             padding: 0 2rem;
             font-family: 'JetBrains Mono', monospace;
             font-size: 13px;
-            /* Ticker içindeki renklerin çalışması için buraya color:white VERMİYORUZ */
         }
 
         /* --- ÜRÜN KARTLARI --- */
@@ -283,12 +264,10 @@ def apply_theme():
             font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; 
             margin-top: 8px; display: inline-block;
         }
-        /* Renklendirme sınıfları !important ile beyazı ezer */
         .pg-red { background: rgba(239, 68, 68, 0.2); color: #fca5a5 !important; border: 1px solid rgba(239, 68, 68, 0.3); }
         .pg-green { background: rgba(16, 185, 129, 0.2); color: #6ee7b7 !important; border: 1px solid rgba(16, 185, 129, 0.3); }
         .pg-yellow { background: rgba(234, 179, 8, 0.2); color: #fde047 !important; border: 1px solid rgba(234, 179, 8, 0.3); }
 
-        /* Buton Stili */
         div.stButton > button {
             background: linear-gradient(90deg, #3b82f6, #2563eb);
             color: white !important;
@@ -301,6 +280,11 @@ def apply_theme():
             box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
             transform: translateY(-2px);
         }
+        
+        /* Metodoloji kartları için ek */
+        .method-card { background: rgba(30, 33, 40, 0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 25px; margin-bottom: 20px; }
+        .method-card h3 { color: #3b82f6 !important; font-size: 18px; margin-bottom: 10px; }
+        .method-card p, .method-card li { color: #e2e8f0 !important; font-size: 14px; line-height: 1.6; }
     </style>
     """
     st.markdown(final_css, unsafe_allow_html=True)
@@ -854,8 +838,16 @@ def sayfa_kategori_detay(ctx):
         cols = st.columns(4)
         for idx, row in enumerate(batch.to_dict('records')):
             fiyat = row[ctx['son']]; fark = row.get('Gunluk_Degisim', 0) * 100
-            cls = "pg-red" if fark > 0 else ("pg-green" if fark < 0 else "pg-yellow")
-            icon = "▲" if fark > 0 else ("▼" if fark < 0 else "-")
+            
+            # --- %0.00 DÜZELTMESİ BURADA ---
+            if abs(fark) < 0.01: # Eğer fark %0.01'den küçükse (yani 0'sa)
+                cls = "pg-yellow"; icon = "-"
+            elif fark > 0:
+                cls = "pg-red"; icon = "▲"
+            else:
+                cls = "pg-green"; icon = "▼"
+            # ---------------------------------
+
             with cols[idx % 4]:
                 # Glassmorphism stilinde kartlar
                 st.markdown(f"""
@@ -900,7 +892,14 @@ def sayfa_maddeler(ctx):
     with col1: secilen_kat = st.selectbox("Kategori Seçiniz:", options=kategoriler, index=0)
     df_sub = df[df['Grup'] == secilen_kat].copy().sort_values('Fark_Yuzde', ascending=True)
     if not df_sub.empty:
-        colors = ['#10b981' if x < 0 else '#ef4444' for x in df_sub['Fark_Yuzde']]
+        # --- %0.00 DÜZELTMESİ (GRAFİK İÇİN) ---
+        colors = []
+        for x in df_sub['Fark_Yuzde']:
+            if abs(x) < 0.01: colors.append('#fde047') # Sarı
+            elif x > 0: colors.append('#ef4444') # Kırmızı
+            else: colors.append('#10b981') # Yeşil
+        # --------------------------------------
+        
         fig = go.Figure(go.Bar(x=df_sub['Fark_Yuzde'], y=df_sub[ctx['ad_col']], orientation='h', marker_color=colors, text=df_sub['Fark_Yuzde'].apply(lambda x: f"%{x:.2f}"), textposition='outside', hovertemplate='<b>%{y}</b><br>Değişim: %%{x:.2f}<extra></extra>'))
         fig.update_layout(height=max(500, len(df_sub) * 30), title=f"{secilen_kat} Grubu Fiyat Değişimleri", xaxis_title="Değişim Oranı (%)", yaxis=dict(title="", showgrid=False), margin=dict(l=0, r=0, t=40, b=0))
         st.plotly_chart(style_chart(fig), use_container_width=True)
@@ -933,15 +932,49 @@ def sayfa_trend_analizi(ctx):
         df_melted['Yuzde_Degisim'] = df_melted.apply(lambda row: ((row['Fiyat']/base_prices.get(row[ctx['ad_col']], 1)) - 1)*100 if base_prices.get(row[ctx['ad_col']], 0) > 0 else 0, axis=1)
         st.plotly_chart(style_chart(px.line(df_melted, x='Tarih', y='Yuzde_Degisim', color=ctx['ad_col'], title="Ürün Bazlı Kümülatif Değişim (%)", markers=True)), use_container_width=True)
 
+# --- YENİLENEN METODOLOJİ SAYFASI ---
 def sayfa_metodoloji(ctx=None):
     html_content = """
-    <style>.method-card { background: rgba(30, 33, 40, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 20px; margin-bottom: 20px; animation: fadeInUp 0.5s; }</style>
-    <section id="metodoloji">
-    <h1 style="background: -webkit-linear-gradient(45deg, #eee, #999); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Metodoloji ve Akademik Çerçeve</h1>
-    <p>Piyasa Monitörü, Türkiye’de faaliyet gösteren zincir marketler ve e-ticaret platformları üzerinden yüksek frekanslı fiyat verisi toplayarak tüketici fiyatlarındaki değişimi gerçek zamanlıya yakın bir yaklaşımla izlemeyi amaçlayan alternatif bir fiyat endeksidir.</p>
-    <div class="method-card"><h2 style="color:#3b82f6">1. Veri Toplama (Web Scraping)</h2><ul style="color:#a1a1aa"><li>User-Agent rotasyonu ve Rate Limiting ile güvenli veri çekimi.</li><li>IP bazlı anomali tespiti ve veri boşluklarının yönetimi.</li></ul></div>
-    <div class="method-card"><h2 style="color:#10b981">2. Endeks Hesaplama</h2><p style="color:#a1a1aa">Fiyat endeksi hesaplamasında zincirleme Laspeyres yaklaşımı benimsenmiştir.</p></div>
-    <div class="method-card"><h2 style="color:#f59e0b">3. Ağırlıklandırma</h2><p style="color:#a1a1aa">Ürün ağırlıkları, TÜİK Hanehalkı Bütçe Anketi (HBA) harcama payları temel alınarak belirlenmektedir.</p></div></section>
+    <div style="max-width: 800px; margin: 0 auto;">
+        <h1 style="text-align: center; margin-bottom: 40px; background: -webkit-linear-gradient(45deg, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Metodoloji ve Teknik Çerçeve</h1>
+        
+        <div class="method-card">
+            <h3>1. Veri Toplama (Web Scraping & Automation)</h3>
+            <p>Piyasa Monitörü, Türkiye'nin önde gelen zincir marketleri ve e-ticaret platformlarından günlük olarak fiyat verisi toplar. Bu süreç, Python tabanlı özel botlar tarafından yürütülür:</p>
+            <ul>
+                <li><strong>Hedef Kitle:</strong> Ulusal çapta faaliyet gösteren süpermarketlerin çevrimiçi mağazaları.</li>
+                <li><strong>Güvenlik Protokolleri:</strong> Hedef sunuculara yük bindirmemek için "Rate Limiting" (hız sınırlama) ve dinamik User-Agent rotasyonu uygulanır.</li>
+                <li><strong>Zamanlama:</strong> Veriler her gün 09:00 - 12:00 saatleri arasında toplanarak günlük kapanış fiyatı olarak kaydedilir.</li>
+            </ul>
+        </div>
+
+        <div class="method-card">
+            <h3>2. Veri Temizleme ve Kalite Kontrol (QA)</h3>
+            <p>Toplanan ham veriler, analize girmeden önce titiz bir temizlik sürecinden geçer:</p>
+            <ul>
+                <li><strong>Anomali Tespiti:</strong> Bir ürünün fiyatında gün içi %50'den fazla değişim olması durumunda veri "şüpheli" olarak işaretlenir ve manuel kontrole düşer.</li>
+                <li><strong>Eksik Veri Yönetimi (Imputation):</strong> Eğer bir ürünün fiyatı o gün çekilemediyse, bir önceki günün fiyatı "fill-forward" yöntemiyle taşınır. Ürün 3 gün boyunca bulunamazsa sepetten çıkarılır.</li>
+            </ul>
+        </div>
+
+        <div class="method-card">
+            <h3>3. Endeks Hesaplama Modeli</h3>
+            <p>Enflasyon oranı, uluslararası standartlara (ILO/IMF yönergeleri) uygun olarak <strong>Zincirleme Laspeyres Fiyat Endeksi</strong> formülü ile hesaplanır:</p>
+            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; font-family: monospace; text-align: center; margin: 15px 0;">
+                I<sub>t</sub> = Σ ( P<sub>i,t</sub> / P<sub>i,0</sub> ) × W<sub>i</sub>
+            </div>
+            <p>Burada <em>P<sub>i,t</sub></em> ürünün t anındaki fiyatını, <em>W<sub>i</sub></em> ise ürünün sepetteki ağırlığını temsil eder.</p>
+        </div>
+
+        <div class="method-card">
+            <h3>4. Ağırlıklandırma Sistemi</h3>
+            <p>Sistemde kullanılan ürün ağırlıkları, <strong>TÜİK Hanehalkı Bütçe Anketi (HBA)</strong> sonuçlarına dayanmaktadır. Harcama gruplarının (Gıda, Konut, Ulaştırma vb.) genel endeks içindeki payı, resmi verilerle senkronize edilir.</p>
+        </div>
+        
+        <div style="margin-top: 40px; padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); text-align: center; color: #94a3b8; font-size: 12px;">
+            <p><strong>Yasal Uyarı:</strong> Bu platformda sunulan veriler, deneysel ve akademik amaçlıdır. Resmi enflasyon verisi yerine geçmez ve yatırım tavsiyesi niteliği taşımaz.</p>
+        </div>
+    </div>
     """
     st.markdown(html_content, unsafe_allow_html=True)
 
