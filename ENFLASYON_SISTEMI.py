@@ -934,12 +934,14 @@ def sayfa_trend_analizi(ctx):
 
 # --- YENİLENEN METODOLOJİ SAYFASI ---
 def sayfa_metodoloji(ctx=None):
-    # CSS: Grid yapısı, özel numaralar ve vurgular (GÜÇLENDİRİLMİŞ KOYU ZEMİN)
-    st.markdown("""
+    # CSS ve HTML'i tek parça halinde işliyoruz ki bozulma olmasın
+    content = """
     <style>
+        /* Metodoloji Kapsayıcısı */
         .method-container {
             max-width: 1000px;
             margin: 0 auto;
+            font-family: 'Inter', sans-serif;
         }
         
         .method-grid {
@@ -949,12 +951,13 @@ def sayfa_metodoloji(ctx=None):
             margin-top: 30px;
         }
         
+        /* Mobil uyumluluk */
         @media (max-width: 768px) {
             .method-grid { grid-template-columns: 1fr; }
         }
 
+        /* Kart Tasarımı */
         .method-card {
-            /* BURASI DEĞİŞTİ: Şeffaf yerine KATI KOYU renk veriyoruz */
             background: linear-gradient(145deg, #1e293b, #0f172a); 
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 16px;
@@ -963,7 +966,7 @@ def sayfa_metodoloji(ctx=None):
             overflow: hidden;
             transition: all 0.3s ease;
             height: 100%;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); /* Gölge ekledik */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
 
         .method-card:hover {
@@ -975,18 +978,18 @@ def sayfa_metodoloji(ctx=None):
         /* Arkaplandaki Dev Numara */
         .bg-number {
             position: absolute;
-            top: -20px;
-            right: 10px; /* Biraz daha içeri aldık */
+            top: -25px;
+            right: 10px;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 100px;
+            font-size: 110px;
             font-weight: 800;
-            color: rgba(255, 255, 255, 0.03) !important; /* Rengi sabitledik */
+            color: rgba(255, 255, 255, 0.03);
             line-height: 1;
             z-index: 0;
             pointer-events: none;
         }
 
-        /* İçerik Başlıkları */
+        /* Başlık Alanı */
         .method-head {
             display: flex;
             align-items: center;
@@ -997,8 +1000,9 @@ def sayfa_metodoloji(ctx=None):
         }
         
         .method-icon {
-            font-size: 28px;
-            padding: 12px;
+            font-size: 26px;
+            width: 50px;
+            height: 50px;
             border-radius: 12px;
             background: rgba(255,255,255,0.05);
             display: flex;
@@ -1007,24 +1011,22 @@ def sayfa_metodoloji(ctx=None):
         }
 
         .method-title {
-            font-family: 'Inter', sans-serif;
             font-weight: 700;
             font-size: 16px;
-            color: #ffffff !important; /* Başlık kesinlikle beyaz */
+            color: #ffffff !important;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
 
+        /* İçerik Metni */
         .method-body {
-            font-family: 'Inter', sans-serif;
             font-size: 14px;
-            color: #cbd5e1 !important; /* Gövde metni açık gri */
+            color: #cbd5e1 !important;
             line-height: 1.6;
             position: relative;
             z-index: 1;
         }
         
-        /* Liste elemanlarını düzelt */
         .method-body ul {
             list-style-type: none;
             padding-left: 0;
@@ -1034,7 +1036,7 @@ def sayfa_metodoloji(ctx=None):
         .method-body li {
             position: relative;
             padding-left: 20px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             color: #94a3b8 !important;
         }
         
@@ -1059,21 +1061,18 @@ def sayfa_metodoloji(ctx=None):
             padding: 15px;
             text-align: center;
             font-family: 'JetBrains Mono', monospace;
-            color: #60a5fa !important; /* Açık mavi */
+            color: #60a5fa !important;
             margin: 15px 0;
             font-size: 15px;
         }
 
-        /* Renk Temaları - İkonlar için */
-        .theme-blue .method-icon { color: #60a5fa; background: rgba(37, 99, 235, 0.2); }
-        .theme-green .method-icon { color: #34d399; background: rgba(5, 150, 105, 0.2); }
-        .theme-purple .method-icon { color: #c084fc; background: rgba(147, 51, 234, 0.2); }
-        .theme-orange .method-icon { color: #fbbf24; background: rgba(217, 119, 6, 0.2); }
-
+        /* Renk Temaları */
+        .theme-blue .method-icon { color: #60a5fa; background: rgba(37, 99, 235, 0.15); }
+        .theme-green .method-icon { color: #34d399; background: rgba(5, 150, 105, 0.15); }
+        .theme-purple .method-icon { color: #c084fc; background: rgba(147, 51, 234, 0.15); }
+        .theme-orange .method-icon { color: #fbbf24; background: rgba(217, 119, 6, 0.15); }
     </style>
-    """, unsafe_allow_html=True)
 
-    html_content = """
     <div class="method-container">
         <div style="text-align: center; margin-bottom: 50px;">
             <h1 style="font-size: 42px; font-weight: 800; background: linear-gradient(to right, #ffffff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px;">
@@ -1089,7 +1088,7 @@ def sayfa_metodoloji(ctx=None):
                 <div class="bg-number">01</div>
                 <div class="method-head">
                     <div class="method-icon">🕷️</div>
-                    <div class="method-title">VERİ TOPLAMA (SCRAPING)</div>
+                    <div class="method-title">VERİ TOPLAMA</div>
                 </div>
                 <div class="method-body">
                     <p>Türkiye'nin önde gelen zincir marketleri ve pazar yerlerinden, <strong>Python tabanlı özel botlar</strong> ile günlük veri akışı sağlanır.</p>
@@ -1111,7 +1110,7 @@ def sayfa_metodoloji(ctx=None):
                     <p>Toplanan milyonlarca veri noktası, analize girmeden önce yapay zeka destekli bir temizlik filtresinden geçer.</p>
                     <ul>
                         <li><strong>Anomali Tespiti:</strong> Gün içi >%50 fiyat değişimleri otomatik karantinaya alınır.</li>
-                        <li><strong>Eksik Veri (Imputation):</strong> Eksik günler için "Forward-Fill" yöntemi ile veri sürekliliği sağlanır.</li>
+                        <li><strong>Eksik Veri:</strong> Eksik günler için "Forward-Fill" yöntemi ile veri sürekliliği sağlanır.</li>
                         <li><strong>Outlier Analizi:</strong> İstatistiksel sapmalar (Z-Score) elenir.</li>
                     </ul>
                 </div>
@@ -1128,7 +1127,7 @@ def sayfa_metodoloji(ctx=None):
                     <div class="formula-box">
                         I<sub>t</sub> = Σ ( P<sub>i,t</sub> / P<sub>i,0</sub> ) × W<sub>i</sub>
                     </div>
-                    <p style="font-size:12px; text-align:center; opacity:0.7; color:#94a3b8 !important;">P: Fiyat, W: Ağırlık, t: Zaman</p>
+                    <p style="font-size:12px; text-align:center; opacity:0.7; margin-top:5px; color:#94a3b8 !important;">P: Fiyat, W: Ağırlık, t: Zaman</p>
                 </div>
             </div>
 
@@ -1149,14 +1148,14 @@ def sayfa_metodoloji(ctx=None):
         </div>
 
         <div style="margin-top: 60px; padding: 25px; border-top: 1px solid rgba(255,255,255,0.1); text-align: center;">
-            <p style="color: #64748b; font-size: 13px; max-width: 700px; margin: 0 auto;">
+            <p style="color: #64748b !important; font-size: 13px; max-width: 700px; margin: 0 auto;">
                 <strong>YASAL UYARI:</strong> Bu platformda sunulan veriler ve analizler, deneysel ve akademik çalışma amaçlıdır. 
                 Türkiye İstatistik Kurumu (TÜİK) tarafından açıklanan resmi enflasyon verilerinin yerine geçmez ve yatırım tavsiyesi niteliği taşımaz.
             </p>
         </div>
     </div>
     """
-    st.markdown(html_content, unsafe_allow_html=True)
+    st.markdown(content, unsafe_allow_html=True)
 
 # --- ANA MAIN ---
 def main():
@@ -1240,5 +1239,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
