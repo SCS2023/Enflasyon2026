@@ -366,6 +366,7 @@ def github_excel_guncelle(df_yeni, dosya_adi):
         return str(e)
 
 # --- 5. RESMİ ENFLASYON & PROPHET ---
+@st.cache_data(ttl=3600, show_spinner=False) # 1 Saat Cache'de tutar
 def get_official_inflation():
     api_key = st.secrets.get("evds", {}).get("api_key")
     if not api_key: return None, "API Key Yok"
@@ -728,94 +729,26 @@ def verileri_getir_cache():
 
 
 # 2. ADIM: ARAYÜZ VE HESAPLAMA (HIZLI)
-def context_hazirla(df_analiz_base, raw_dates, ad_col):
+# --- HIZLANDIRILMIŞ HESAPLAMA MOTORU ---
+@st.cache_data(show_spinner=False)
+def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, ad_col, agirlik_col, baz_col, aktif_agirlik_col, son):
     """
-    Cache'ten gelen veriyi alır, Sidebar seçimlerine göre filtreler ve hesaplar.
+    Bu fonksiyon SADECE matematiksel hesaplama yapar ve sonucu cache'ler.
+    UI (Sidebar, Widget) içermez.
     """
-    if df_analiz_base is None: return None
-
-    # Sidebar Ayarları
-    st.sidebar.markdown("### ⚙️ Veri Ayarları")
-    
-    # Lottie (Opsiyonel)
-    lottie_url = "https://lottie.host/98606416-297c-4a37-9b2a-714013063529/5D6o8k8fW0.json"
-    try:
-        lottie_json = load_lottieurl(lottie_url)
-        with st.sidebar:
-             if lottie_json: st_lottie(lottie_json, height=120, key="nav_anim")
-    except: pass
-
-    # Başlangıç Tarihi Limiti
-    BASLANGIC_LIMITI = "2026-02-04"
-    tum_tarihler = sorted([d for d in raw_dates if d >= BASLANGIC_LIMITI], reverse=True)
-    
-    if not tum_tarihler:
-        st.sidebar.warning("Veri henüz oluşmadı.")
-        return None
-
-    secilen_tarih = st.sidebar.selectbox("Rapor Tarihi:", options=tum_tarihler, index=0)
-    
-    # --- TRADINGVIEW SIDEBAR ---
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("### 🌍 Piyasalar")
-    symbols = [
-        {"s": "FX_IDC:USDTRY", "d": "Dolar / TL"},
-        {"s": "FX_IDC:EURTRY", "d": "Euro / TL"},
-        {"s": "FX_IDC:XAUTRYG", "d": "Gram Altın"},
-        {"s": "TVC:UKOIL", "d": "Brent Petrol"},
-        {"s": "BINANCE:BTCUSDT", "d": "Bitcoin ($)"}
-    ]
-    for sym in symbols:
-        widget_code = f"""
-        <div class="tradingview-widget-container" style="border-radius:12px; overflow:hidden; margin-bottom:10px;">
-          <div class="tradingview-widget-container__widget"></div>
-          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-          {{ "symbol": "{sym['s']}", "width": "100%", "height": 80, "locale": "tr", "dateRange": "1D", "colorTheme": "dark", "isTransparent": true, "autosize": true, "largeChartUrl": "" }}
-          </script>
-        </div>
-        """
-        with st.sidebar:
-            components.html(widget_code, height=90)
-    # ---------------------------------------------
-
-    # Veriyi kopyala ki orijinali bozulmasın
     df_analiz = df_analiz_base.copy()
     
-    # Sütunları belirle
-    tum_gunler_sirali = sorted([c for c in df_analiz.columns if re.match(r'\d{4}-\d{2}-\d{2}', str(c)) and c >= BASLANGIC_LIMITI])
-    
-    # Tarih Filtresi
-    if secilen_tarih in tum_gunler_sirali:
-        idx = tum_gunler_sirali.index(secilen_tarih)
-        gunler = tum_gunler_sirali[:idx+1]
-    else:
-        gunler = tum_gunler_sirali
-
-    if not gunler: return None
-
-    # Sayısallaştırma (Sadece ilgili günleri)
+    # Sayısallaştırma
     for col in gunler: df_analiz[col] = pd.to_numeric(df_analiz[col], errors='coerce')
-    son = gunler[-1]
+    
     dt_son = datetime.strptime(son, '%Y-%m-%d')
     
-    # Baz ve Endeks Mantığı
-    col_w25, col_w26 = 'Agirlik_2025', 'Agirlik_2026'
-    ZINCIR_TARIHI = datetime(2026, 2, 4)
-    
-    if dt_son >= ZINCIR_TARIHI:
-        aktif_agirlik_col = col_w26
-        gunler_2026 = [c for c in tum_gunler_sirali if c >= "2026-01-01"]
-        baz_col = gunler_2026[0] if gunler_2026 else gunler[0]
-    else:
-        aktif_agirlik_col = col_w25
-        baz_col = gunler[0]
-        
     if baz_col in df_analiz.columns: df_analiz[baz_col] = df_analiz[baz_col].fillna(df_analiz[son])
     
     df_analiz[aktif_agirlik_col] = pd.to_numeric(df_analiz.get(aktif_agirlik_col, 0), errors='coerce').fillna(0)
     gecerli_veri = df_analiz[df_analiz[aktif_agirlik_col] > 0].copy()
     
-    # Geo Mean ve Enflasyon Hesapları
+    # Geo Mean Hesapları
     def geo_mean(row):
         vals = [x for x in row if isinstance(x, (int, float)) and x > 0]
         return np.exp(np.mean(np.log(vals))) if vals else np.nan
@@ -860,7 +793,7 @@ def context_hazirla(df_analiz_base, raw_dates, ad_col):
         if not gecerli_t.empty and gecerli_t[aktif_agirlik_col].sum() > 0:
              month_end_forecast = ((gecerli_t[aktif_agirlik_col] * (gecerli_t['Fixed_Ort']/gecerli_t[baz_col])).sum() / gecerli_t[aktif_agirlik_col].sum() * 100) - 100
 
-    # Resmi Veri (TÜİK)
+    # Resmi Veri Çekme (Cacheli fonksiyonu çağırıyoruz)
     resmi_aylik_degisim = 0.0
     try:
         df_resmi, _ = get_official_inflation()
@@ -891,7 +824,91 @@ def context_hazirla(df_analiz_base, raw_dates, ad_col):
         "stats_veri_noktasi": len(df_analiz) * len(tum_gunler_sirali)
     }
 
-# --- 2. ADIM: SAYFA GÖRÜNÜMLERİ ---
+def ui_sidebar_ve_veri_hazirlama(df_analiz_base, raw_dates, ad_col):
+    """
+    Bu fonksiyon sadece Sidebar UI çizer ve cached hesaplama fonksiyonunu çağırır.
+    """
+    if df_analiz_base is None: return None
+
+    # --- SIDEBAR BAŞLANGIÇ ---
+    st.sidebar.markdown("### ⚙️ Veri Ayarları")
+    
+    # Lottie
+    lottie_url = "https://lottie.host/98606416-297c-4a37-9b2a-714013063529/5D6o8k8fW0.json"
+    try:
+        lottie_json = load_lottieurl(lottie_url)
+        with st.sidebar:
+             if lottie_json: st_lottie(lottie_json, height=120, key="nav_anim")
+    except: pass
+
+    # Tarih Mantığı
+    BASLANGIC_LIMITI = "2026-02-04"
+    tum_tarihler = sorted([d for d in raw_dates if d >= BASLANGIC_LIMITI], reverse=True)
+    
+    if not tum_tarihler:
+        st.sidebar.warning("Veri henüz oluşmadı.")
+        return None
+
+    # Sidebar Seçimi (Buradaki değişim hesaplamayı tetikler)
+    secilen_tarih = st.sidebar.selectbox("Rapor Tarihi:", options=tum_tarihler, index=0)
+    
+    # TradingView (UI Elemanı - Hesaplamayı etkilemez)
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 🌍 Piyasalar")
+    symbols = [
+        {"s": "FX_IDC:USDTRY", "d": "Dolar / TL"},
+        {"s": "FX_IDC:EURTRY", "d": "Euro / TL"},
+        {"s": "FX_IDC:XAUTRYG", "d": "Gram Altın"},
+        {"s": "TVC:UKOIL", "d": "Brent Petrol"},
+        {"s": "BINANCE:BTCUSDT", "d": "Bitcoin ($)"}
+    ]
+    for sym in symbols:
+        widget_code = f"""
+        <div class="tradingview-widget-container" style="border-radius:12px; overflow:hidden; margin-bottom:10px;">
+          <div class="tradingview-widget-container__widget"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+          {{ "symbol": "{sym['s']}", "width": "100%", "height": 80, "locale": "tr", "dateRange": "1D", "colorTheme": "dark", "isTransparent": true, "autosize": true, "largeChartUrl": "" }}
+          </script>
+        </div>
+        """
+        with st.sidebar:
+            components.html(widget_code, height=90)
+    
+    # --- VERİ HAZIRLIĞI (HIZLI KISIM) ---
+    tum_gunler_sirali = sorted([c for c in df_analiz_base.columns if re.match(r'\d{4}-\d{2}-\d{2}', str(c)) and c >= BASLANGIC_LIMITI])
+    
+    if secilen_tarih in tum_gunler_sirali:
+        idx = tum_gunler_sirali.index(secilen_tarih)
+        gunler = tum_gunler_sirali[:idx+1]
+    else:
+        gunler = tum_gunler_sirali
+
+    if not gunler: return None
+    
+    son = gunler[-1]
+    dt_son = datetime.strptime(son, '%Y-%m-%d')
+    
+    # Baz ve Ağırlık Seçimi
+    col_w25, col_w26 = 'Agirlik_2025', 'Agirlik_2026'
+    ZINCIR_TARIHI = datetime(2026, 2, 4)
+    
+    if dt_son >= ZINCIR_TARIHI:
+        aktif_agirlik_col = col_w26
+        gunler_2026 = [c for c in tum_gunler_sirali if c >= "2026-01-01"]
+        baz_col = gunler_2026[0] if gunler_2026 else gunler[0]
+    else:
+        aktif_agirlik_col = col_w25
+        baz_col = gunler[0]
+
+    # --- HESAPLAMA FONKSİYONUNU ÇAĞIR (CACHED) ---
+    # Bu fonksiyon sadece tarih değişirse çalışır. Sekme değişince çalışmaz, hafızadan gelir.
+    ctx = hesapla_metrikler(
+        df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
+        ad_col, agirlik_col=None, baz_col=baz_col, 
+        aktif_agirlik_col=aktif_agirlik_col, son=son
+    )
+    
+    return ctx
 
 def sayfa_ana_sayfa(ctx):
     # Dinamik verileri context'ten alıyoruz
@@ -1339,9 +1356,10 @@ def main():
     with st.spinner("Veri tabanına bağlanılıyor..."):
         df_base, r_dates, col_name = verileri_getir_cache()
     
-    # 2. Context Hazırla
+    # 2. Context Hazırla (YENİ HIZLI YAPI)
     if df_base is not None:
-        ctx = context_hazirla(df_base, r_dates, col_name)
+        # Eski fonksiyon yerine bunu kullanıyoruz
+        ctx = ui_sidebar_ve_veri_hazirlama(df_base, r_dates, col_name)
     else:
         ctx = None
 
@@ -1400,3 +1418,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
