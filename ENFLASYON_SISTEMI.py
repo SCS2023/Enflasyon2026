@@ -32,17 +32,18 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- CSS MOTORU (YENİLENMİŞ ESTETİK) ---
+# --- CSS MOTORU (DÜZELTİLDİ: f-string kaldırıldı) ---
 def apply_theme():
     if 'plotly_template' not in st.session_state:
         st.session_state.plotly_template = "plotly_dark"
 
-    final_css = f"""
+    # BURADAKİ 'f' HARFİ KALDIRILDI, ARTIK DÜZ STRING
+    final_css = """
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
 
-        :root {{
+        :root {
             --bg-dark: #09090b;
             --bg-card: rgba(24, 24, 27, 0.6);
             --border-color: rgba(255, 255, 255, 0.08);
@@ -52,29 +53,29 @@ def apply_theme():
             --text-secondary: #a1a1aa;
             --success: #10b981;
             --danger: #ef4444;
-        }}
+        }
 
         /* Genel Sayfa Yapısı */
-        .stApp {{
+        .stApp {
             background-color: var(--bg-dark);
             background-image: 
                 radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.08), transparent 40%),
                 radial-gradient(circle at 0% 50%, rgba(16, 185, 129, 0.05), transparent 40%);
             font-family: 'Inter', sans-serif;
-        }}
+        }
 
         /* Header Gizleme */
-        header {{visibility: hidden;}}
-        [data-testid="stHeader"] {{ visibility: hidden; height: 0px; }}
+        header {visibility: hidden;}
+        [data-testid="stHeader"] { visibility: hidden; height: 0px; }
         
         /* Sidebar Özelleştirme */
-        section[data-testid="stSidebar"] {{
+        section[data-testid="stSidebar"] {
             background-color: #0c0c0e !important;
             border-right: 1px solid var(--border-color);
-        }}
+        }
         
         /* --- MODERN TAB MENU (Radio Butonu Dönüştürme) --- */
-        [data-testid="stRadio"] > div {{
+        [data-testid="stRadio"] > div {
             display: flex;
             flex-wrap: wrap;
             background: #18181b;
@@ -83,9 +84,9 @@ def apply_theme():
             border: 1px solid var(--border-color);
             gap: 4px;
             justify-content: center;
-        }}
+        }
 
-        [data-testid="stRadio"] label {{
+        [data-testid="stRadio"] label {
             flex: 1;
             min-width: 100px;
             background: transparent;
@@ -101,27 +102,27 @@ def apply_theme():
             display: flex;
             align-items: center;
             justify-content: center;
-        }}
+        }
 
-        [data-testid="stRadio"] label:hover {{
+        [data-testid="stRadio"] label:hover {
             color: #fff !important;
             background: rgba(255,255,255,0.05);
-        }}
+        }
 
-        [data-testid="stRadio"] label[data-checked="true"] {{
+        [data-testid="stRadio"] label[data-checked="true"] {
             background: #27272a;
             color: #fff !important;
             border: 1px solid #3f3f46;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             font-weight: 600;
-        }}
+        }
 
-        [data-testid="stRadio"] div[role="radiogroup"] > :first-child {{
+        [data-testid="stRadio"] div[role="radiogroup"] > :first-child {
             display: none;
-        }}
+        }
 
         /* --- KART TASARIMLARI (Glassmorphism) --- */
-        .kpi-card {{
+        .kpi-card {
             background: var(--bg-card);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
@@ -131,33 +132,33 @@ def apply_theme():
             display: flex;
             flex-direction: column;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }}
+        }
         
-        .kpi-card:hover {{
+        .kpi-card:hover {
             border-color: rgba(255,255,255,0.15);
             box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
             transform: translateY(-2px);
-        }}
+        }
 
-        .kpi-title {{
+        .kpi-title {
             font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 1.2px;
             color: var(--text-secondary);
             font-weight: 600;
             margin-bottom: 8px;
-        }}
+        }
 
-        .kpi-value {{
+        .kpi-value {
             font-family: 'JetBrains Mono', monospace;
             font-size: 32px;
             font-weight: 700;
             color: #fff;
             letter-spacing: -1px;
             margin-bottom: 4px;
-        }}
+        }
         
-        .kpi-sub {{
+        .kpi-sub {
             font-size: 12px;
             font-weight: 500;
             padding: 4px 8px;
@@ -167,7 +168,7 @@ def apply_theme():
             display: flex;
             align-items: center;
             gap: 6px;
-        }}
+        }
 
         /* --- TICKER BANDI --- */
         .ticker-wrap {
