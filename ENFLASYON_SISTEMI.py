@@ -763,8 +763,10 @@ def sayfa_ana_sayfa(ctx):
     kategori_sayisi = ctx["stats_kategori"] if ctx else "..."
     veri_noktasi = ctx["stats_veri_noktasi"] if ctx else "..."
     
-    # HTML KODU
-    # Python f-string kullandığımız için JavaScript süslü parantezlerini {{ }} şeklinde çift yaptık.
+    # ŞİMDİKİ SAAT (Python tarafında)
+    guncel_saat = datetime.now().strftime('%H:%M')
+
+    # HTML KODU (Tek parça halinde, hatasız)
     ana_sayfa_html = f"""
     <div style="text-align:center; padding: 40px 20px; animation: fadeInUp 0.8s ease;">
         
@@ -802,7 +804,7 @@ def sayfa_ana_sayfa(ctx):
              padding: 20px; border-radius: 24px; display: inline-block; max-width: 850px; animation: pulseGlow 3s infinite;">
             <div style="margin-bottom: 8px;">
                 <span style="color: #60a5fa; font-weight: bold; font-size: 14px;">🚀 SİSTEM DURUMU:</span> 
-                <span style="color: #d1d5db; font-size: 14px;">Veri botları aktif. Fiyatlar <strong id="live_clock" style="color:#fff;">--:--</strong> itibarıyla güncel.</span>
+                <span style="color: #d1d5db; font-size: 14px;">Veri botları aktif. Fiyatlar <strong>{guncel_saat}</strong> itibarıyla güncel.</span>
             </div>
             <div style="border-top: 1px solid rgba(59, 130, 246, 0.2); padding-top: 8px; margin-top: 8px; font-size: 11px; color: #94a3b8; line-height: 1.4;">
                 ⚠️ Bu platformda sunulan veriler deneysel ve akademik çalışma amaçlıdır. 
@@ -811,21 +813,6 @@ def sayfa_ana_sayfa(ctx):
         </div>
         
     </div>
-
-    <script>
-        function updateClock() {{
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('tr-TR', {{hour: '2-digit', minute: '2-digit'}});
-            const clockElement = document.getElementById('live_clock');
-            if (clockElement) {{
-                clockElement.innerText = timeString;
-            }}
-        }}
-        // İlk açılışta çalıştır
-        updateClock();
-        // Her 1 saniyede bir güncelle (1000ms)
-        setInterval(updateClock, 1000);
-    </script>
     """
 
     st.markdown(ana_sayfa_html, unsafe_allow_html=True)
@@ -1106,6 +1093,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
