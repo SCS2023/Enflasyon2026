@@ -32,7 +32,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- CSS MOTORU ---
+# --- CSS MOTORU (YAZI RENKLERİ DÜZELTİLDİ) ---
 def apply_theme():
     if 'plotly_template' not in st.session_state:
         st.session_state.plotly_template = "plotly_dark"
@@ -42,11 +42,39 @@ def apply_theme():
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
 
-        /* --- HEADER VE TOOLBAR GİZLEME (İSTEK 2) --- */
+        /* --- HEADER VE TOOLBAR GİZLEME --- */
         header {visibility: hidden;}
         [data-testid="stHeader"] { visibility: hidden; height: 0px; }
         [data-testid="stToolbar"] { display: none; }
         .main .block-container { padding-top: 1rem; }
+
+        /* --- GLOBAL YAZI RENGİ AYARI (HER ŞEY BEYAZ) --- */
+        /* Başlıklar, metinler, etiketler, divler, spanlar */
+        .stApp, h1, h2, h3, h4, h5, h6, p, div, span, label, li, a, .stMarkdown {
+            color: #ffffff !important;
+        }
+
+        /* --- SELECT-BOX İSTİSNASI --- */
+        /* 1. Kapalı kutunun içindeki seçili metin BEYAZ olsun (Çünkü zemin koyu) */
+        div[data-baseweb="select"] > div {
+            color: #ffffff !important;
+        }
+        /* İkonlar beyaz olsun */
+        div[data-baseweb="select"] svg {
+            fill: #ffffff !important;
+        }
+        
+        /* 2. AÇILAN LİSTE (DROPDOWN) İÇİNDEKİ YAZILAR SİYAH OLSUN */
+        /* Açılan kutunun arka planı genelde beyazdır, bu yüzden yazılar siyah olmalı */
+        div[data-baseweb="popover"] div, 
+        div[data-baseweb="popover"] span,
+        div[data-baseweb="popover"] li {
+            color: #000000 !important; 
+        }
+        /* Liste elemanlarının üzerine gelince (hover) arka plan değişirse yazı rengi */
+        div[data-baseweb="menu"] li:hover {
+            color: #000000 !important;
+        }
 
         /* --- ANİMASYON TANIMLARI --- */
         @keyframes fadeInUp {
@@ -70,7 +98,7 @@ def apply_theme():
             --card-bg: rgba(30, 33, 40, 0.7);
             --border: rgba(255, 255, 255, 0.08);
             --accent: #3b82f6;
-            --text-main: #e2e8f0;
+            --text-main: #ffffff; /* Ana metin rengi güncellendi */
         }
 
         .stApp {
@@ -83,8 +111,12 @@ def apply_theme():
             background-color: #090a0c;
             border-right: 1px solid var(--border);
         }
+        /* Sidebar içindeki yazıları da garantiye alalım */
+        section[data-testid="stSidebar"] p, section[data-testid="stSidebar"] span {
+            color: #ffffff !important;
+        }
 
-        /* --- YATAY MENÜ (İSTEK 1) --- */
+        /* --- YATAY MENÜ (MENÜ TUŞLARI BEYAZ) --- */
         [data-testid="stRadio"] > div {
             display: flex;
             flex-direction: row;
@@ -107,18 +139,22 @@ def apply_theme():
             font-family: 'Inter', sans-serif;
             font-weight: 500;
             font-size: 14px;
-            color: #a1a1aa !important;
+            color: #ffffff !important; /* Menü yazı rengi zorla beyaz */
             min-width: 100px;
             text-align: center;
             display: flex;
             justify-content: center;
             align-items: center;
         }
+        
+        /* Menü içindeki p etiketlerini de beyaz yap */
+        [data-testid="stRadio"] label p {
+            color: #ffffff !important;
+        }
 
         [data-testid="stRadio"] label:hover {
             background-color: rgba(59, 130, 246, 0.2);
             border-color: var(--accent);
-            color: #fff !important;
             transform: translateY(-2px);
             box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
         }
@@ -126,13 +162,11 @@ def apply_theme():
         /* Seçili Olan Tab */
         [data-testid="stRadio"] label[data-checked="true"] {
             background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white !important;
             border-color: #60a5fa;
             font-weight: 700;
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
         }
 
-        /* Radyo butonunun yuvarlağını gizle */
         [data-testid="stRadio"] div[role="radiogroup"] > :first-child {
             display: none;
         }
@@ -174,7 +208,7 @@ def apply_theme():
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 1.2px;
-            color: #94a3b8;
+            color: #94a3b8 !important; /* Alt başlıklar hafif gri kalsın ki hiyerarşi olsun, ama okunur */
             font-weight: 600;
             margin-bottom: 8px;
         }
@@ -183,7 +217,7 @@ def apply_theme():
             font-family: 'JetBrains Mono', monospace;
             font-size: 32px;
             font-weight: 700;
-            color: #fff;
+            color: #ffffff !important;
             text-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
         }
         
@@ -211,6 +245,7 @@ def apply_theme():
             padding: 0 2rem;
             font-family: 'JetBrains Mono', monospace;
             font-size: 13px;
+            color: #ffffff !important;
         }
 
         /* --- ÜRÜN KARTLARI --- */
@@ -230,20 +265,20 @@ def apply_theme():
             box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
         }
         
-        .pg-name { font-size: 13px; font-weight: 500; color: #cbd5e1; margin-bottom: 8px; height: 32px; overflow: hidden; }
-        .pg-price { font-family: 'JetBrains Mono'; font-size: 18px; font-weight: 700; color: #fff; }
+        .pg-name { font-size: 13px; font-weight: 500; color: #ffffff !important; margin-bottom: 8px; height: 32px; overflow: hidden; }
+        .pg-price { font-family: 'JetBrains Mono'; font-size: 18px; font-weight: 700; color: #ffffff !important; }
         .pg-badge { 
             font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; 
             margin-top: 8px; display: inline-block;
         }
-        .pg-red { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); }
-        .pg-green { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.3); }
-        .pg-yellow { background: rgba(234, 179, 8, 0.2); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.3); }
+        .pg-red { background: rgba(239, 68, 68, 0.2); color: #fca5a5 !important; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .pg-green { background: rgba(16, 185, 129, 0.2); color: #6ee7b7 !important; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .pg-yellow { background: rgba(234, 179, 8, 0.2); color: #fde047 !important; border: 1px solid rgba(234, 179, 8, 0.3); }
 
         /* Buton Stili */
         div.stButton > button {
             background: linear-gradient(90deg, #3b82f6, #2563eb);
-            color: white;
+            color: white !important;
             border: none;
             border-radius: 8px;
             padding: 0.5rem 1rem;
