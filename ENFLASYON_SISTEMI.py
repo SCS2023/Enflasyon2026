@@ -786,14 +786,34 @@ def sayfa_piyasa_ozeti(ctx):
     """
     st.markdown(ticker_html, unsafe_allow_html=True)
     
-    # --- 4. GRAFİK VE LİSTE ---
+    # --- 4. GRAFİK VE LİSTE (GÜNCELLENDİ: HISTOGRAM -> TREND GRAFİĞİ) ---
     col_g1, col_g2 = st.columns([2, 1])
     with col_g1:
-        fig_hist = px.histogram(df, x="Fark_Yuzde", nbins=20, title="Fiyat Değişim Dağılımı", color_discrete_sequence=["#3b82f6"])
-        fig_hist.update_layout(bargap=0.1)
-        fig_hist.update_xaxes(title_text=None, showticklabels=False, ticks="", showgrid=False, visible=False)
-        st.plotly_chart(style_chart(fig_hist), use_container_width=True)
-        
+        # --- TREND GRAFİĞİ HESAPLAMA ---
+        gunler = ctx["gunler"]; agirlik_col = ctx["agirlik_col"]
+        endeks_verisi = []
+        for gun in gunler:
+            temp_df = df.dropna(subset=[gun, agirlik_col])
+            if not temp_df.empty and temp_df[agirlik_col].sum() > 0:
+                index_val = (temp_df[gun] * temp_df[agirlik_col]).sum() / temp_df[agirlik_col].sum()
+                endeks_verisi.append({"Tarih": gun, "Deger": index_val})
+        df_endeks = pd.DataFrame(endeks_verisi)
+
+        if not df_endeks.empty:
+            df_endeks['Kümülatif_Degisim'] = ((df_endeks['Deger'] / df_endeks.iloc[0]['Deger']) - 1) * 100
+            
+            # --- Y-EKSENİ AYARLAMA ---
+            y_max = max(5, df_endeks['Kümülatif_Degisim'].max() + 0.5)
+            y_min = min(-5, df_endeks['Kümülatif_Degisim'].min() - 0.5)
+
+            fig_trend = px.line(df_endeks, x='Tarih', y='Kümülatif_Degisim', title="GENEL ENFLASYON TRENDİ (Kümülatif %)", markers=True)
+            fig_trend.update_traces(line_color='#3b82f6', line_width=4, marker_size=8)
+            # Eksen aralığını sabitleme (Ancak değer aşarsa dinamik genişler)
+            fig_trend.update_layout(yaxis_range=[y_min, y_max])
+            st.plotly_chart(style_chart(fig_trend), use_container_width=True)
+        else:
+            st.warning("Trend grafiği oluşturulacak veri yok.")
+
     with col_g2:
         # Sağ taraftaki özet kutusu
         ozet_html = f"""
@@ -814,9 +834,8 @@ def sayfa_piyasa_ozeti(ctx):
 
 def sayfa_kategori_detay(ctx):
     df = ctx["df_analiz"]
-    # --- YENİ EKLENEN KISIM: NaN ve Geçersiz Verileri Filtrele ---
+    # NaN ve Geçersiz Verileri Filtrele
     df = df.dropna(subset=[ctx['son'], ctx['ad_col']])
-    # -------------------------------------------------------------
     
     st.markdown("### 🔍 Kategori Bazlı Fiyat Takibi")
     col_sel, col_src = st.columns([1, 2])
@@ -855,9 +874,8 @@ def sayfa_kategori_detay(ctx):
 def sayfa_tam_liste(ctx):
     st.markdown("### 📋 Detaylı Veri Seti")
     df = ctx["df_analiz"]
-    # --- YENİ EKLENEN KISIM: NaN ve Geçersiz Verileri Filtrele ---
+    # NaN ve Geçersiz Verileri Filtrele
     df = df.dropna(subset=[ctx['son'], ctx['ad_col']])
-    # -------------------------------------------------------------
     
     def fix_sparkline(row):
         vals = row.tolist(); 
@@ -922,23 +940,12 @@ def sayfa_maddeler(ctx):
     else: st.warning("Bu kategoride veri bulunamadı.")
 
 def sayfa_trend_analizi(ctx):
-    st.markdown("### 📈 Zaman Serisi ve Enflasyon Trendleri")
+    st.markdown("### 📈 Trend Analizleri")
     df = ctx["df_analiz"]; gunler = ctx["gunler"]; agirlik_col = ctx["agirlik_col"]
-    endeks_verisi = []
-    for gun in gunler:
-        temp_df = df.dropna(subset=[gun, agirlik_col])
-        if not temp_df.empty and temp_df[agirlik_col].sum() > 0:
-            index_val = (temp_df[gun] * temp_df[agirlik_col]).sum() / temp_df[agirlik_col].sum()
-            endeks_verisi.append({"Tarih": gun, "Deger": index_val})
-    df_endeks = pd.DataFrame(endeks_verisi)
-    if not df_endeks.empty:
-        df_endeks['Kümülatif_Degisim'] = ((df_endeks['Deger'] / df_endeks.iloc[0]['Deger']) - 1) * 100
-        fig_genel = px.line(df_endeks, x='Tarih', y='Kümülatif_Degisim', title="GENEL ENFLASYON TRENDİ", markers=True)
-        fig_genel.update_traces(line_color='#3b82f6', line_width=4, marker_size=8)
-        st.plotly_chart(style_chart(fig_genel), use_container_width=True)
-        st.info(f"ℹ️ Grafik, {gunler[0]} tarihini baz alarak hesaplanan kümülatif sepet değişimini gösterir.")
     
-    st.markdown("---")
+    # Not: Genel trend grafiği artık Özet sayfasında. Buraya sadece ürün bazlı trendleri bıraktım.
+    st.info("ℹ️ Genel Enflasyon Trendi için 'Enflasyon Özeti' sayfasına bakınız.")
+
     st.subheader("Ürün Bazlı Fiyat Trendleri")
     seçilen_urunler = st.multiselect("Grafiğe eklenecek ürünleri seçin:", options=df[ctx['ad_col']].unique(), default=df.sort_values('Fark_Yuzde', ascending=False).head(3)[ctx['ad_col']].tolist())
     if seçilen_urunler:
