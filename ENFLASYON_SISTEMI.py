@@ -796,63 +796,90 @@ def sayfa_piyasa_ozeti(ctx):
     # ... (kodun üst kısımları aynı) ...
 
     # --- 4. GRAFİK (DÜZELTİLMİŞ - KPI İLE BİREBİR EŞİTLENMİŞ) ---
+    # ... (önceki kodlar aynı) ...
+
+    # --- 4. GRAFİK (KPI FORMÜLÜNÜN BİREBİR AYNISI - GARANTİLİ YÖNTEM) ---
     col_g1, col_g2 = st.columns([2, 1])
     with col_g1:
-        # Veri setini al
+        # Verileri al
         df_ana = ctx["df_analiz"].copy()
-        baz_col = ctx["baz_col"]
-        agirlik_col = ctx["agirlik_col"]
-        gunler = ctx["gunler"]
+        baz_col = ctx["baz_col"]        # Baz alınan ay (Örn: Ocak sonu)
+        agirlik_col = ctx["agirlik_col"] # Ağırlıklar (2025 veya 2026)
+        gunler = ctx["gunler"]          # Tüm tarih sütunları
+        son_gun = ctx["son"]            # Seçilen rapor tarihi
         
-        # 1. TEMİZLİK: Ağırlığı olmayanları at
+        # --- ADIM 1: KPI KARTINDAKİ FİLTRELERİN AYNISINI UYGULA ---
+        # Ağırlığı olmayanları temizle
         df_ana[agirlik_col] = pd.to_numeric(df_ana[agirlik_col], errors='coerce').fillna(0)
         df_ana = df_ana[df_ana[agirlik_col] > 0]
-
-        # 2. TEMİZLİK: Fiyatı olmayanları at
-        df_ana = df_ana.dropna(subset=[baz_col])
-        df_ana = df_ana[df_ana[baz_col] > 0]
         
-        # 3. KRİTİK TEMİZLİK (UÇ DEĞER FİLTRESİ): 
-        # Eğer bir ürün %200'den fazla artmışsa bu scraper hatasıdır, grafiği bozmasın diye çıkarıyoruz.
-        # Bu filtre KPI kartındaki "yumuşatma" etkisini taklit eder.
-        df_ana['Gecici_Fark'] = df_ana[ctx['son']] / df_ana[baz_col]
-        df_ana = df_ana[df_ana['Gecici_Fark'] < 3.0] # 3 katına çıkan ürün varsa at (Hata önleyici)
+        # Baz fiyatı olmayanları veya 0 olanları temizle
+        df_ana[baz_col] = pd.to_numeric(df_ana[baz_col], errors='coerce').fillna(0)
+        df_ana = df_ana[df_ana[baz_col] > 0]
 
         trend_verisi = []
         
-        for gun in gunler:
-            # O günün verisi olanları al
-            temp = df_ana.dropna(subset=[gun])
-            temp = temp[temp[gun] > 0]
+        # Raporun ait olduğu ayı bul (Örn: "2026-02")
+        # KPI kartı sadece "BU AYIN" enflasyonunu gösterdiği için,
+        # grafik de bu ayın başından itibaren nasıl 2.67'ye geldiğimizi göstermeli.
+        hedef_ay_prefix = son_gun[:7] 
+        bu_ayin_gunleri = [g for g in gunler if g.startswith(hedef_ay_prefix) and g <= son_gun]
+
+        # --- ADIM 2: HER GÜN İÇİN KPI FORMÜLÜNÜ TEKRAR HESAPLA ---
+        for gun in bu_ayin_gunleri:
+            # O güne kadar olan kolonları al (Kümülatif Ortalama için)
+            # KPI Formülündeki 'bu_ay_cols' mantığı: Ayın 1'inden şu ana kadarki verilerin ortalaması
+            gecerli_kolonlar = [g for g in bu_ayin_gunleri if g <= gun]
             
-            if not temp.empty:
-                # FORMÜL: Ağırlıklı Ortalama Değişim
-                weights = temp[agirlik_col]
-                price_relatives = temp[gun] / temp[baz_col]
+            # Sadece ilgili kolonları ve baz kolonunu içeren temiz bir dataframe al
+            # Hesaplama hızlansın diye sadece gerekli kısmı kesiyoruz
+            cols_to_use = gecerli_kolonlar + [baz_col, agirlik_col]
+            temp_df = df_ana[cols_to_use].copy()
+            
+            # Kolonları sayıya çevir (Garanti olsun)
+            for c in gecerli_kolonlar:
+                temp_df[c] = pd.to_numeric(temp_df[c], errors='coerce')
+            
+            # --- FORMÜL: GEOMETRİK ORTALAMA (KPI İLE AYNI) ---
+            # Ayın 1'inden o güne kadar olan fiyatların ortalaması
+            # 0 veya negatif değerler logaritmayı bozar, onları NaN yapıyoruz
+            data_values = temp_df[gecerli_kolonlar].where(temp_df[gecerli_kolonlar] > 0, np.nan)
+            
+            # Satır bazlı Geometrik Ortalama: exp(mean(log(x)))
+            # skipna=True sayesinde eksik günler ortalamayı bozmaz, mevcutlarla hesaplar
+            temp_df['Kümülatif_Ort'] = np.exp(np.log(data_values).mean(axis=1))
+            
+            # Ortalaması oluşmayanları at (KPI mantığı)
+            temp_df = temp_df.dropna(subset=['Kümülatif_Ort'])
+            
+            if not temp_df.empty:
+                # --- NİHAİ ENFLASYON HESABI (LASPEYRES) ---
+                # Endeks = Toplam(Ağırlık * (OrtalamaFiyat / BazFiyat)) / ToplamAğırlık
+                w = temp_df[agirlik_col]
+                p_rel = temp_df['Kümülatif_Ort'] / temp_df[baz_col]
                 
-                weighted_sum = (weights * price_relatives).sum()
-                total_weight = weights.sum()
+                toplam_w = w.sum()
                 
-                if total_weight > 0:
-                    enflasyon_degeri = (weighted_sum / total_weight * 100) - 100
+                if toplam_w > 0:
+                    enf_degeri = ((w * p_rel).sum() / toplam_w * 100) - 100
                     
                     trend_verisi.append({
-                        "Tarih": gun, 
-                        "Deger": enflasyon_degeri
+                        "Tarih": gun,
+                        "Deger": enf_degeri
                     })
         
         df_trend = pd.DataFrame(trend_verisi)
 
         if not df_trend.empty:
-            # Son günün değeri, karttaki değerle aynı mı kontrolü için başlığa yazdırabiliriz
             son_deger = df_trend.iloc[-1]['Deger']
             
             # Y Eksenini sabitle (-5 ile +5 arası)
             y_max = max(5, df_trend['Deger'].max() + 0.5)
             y_min = min(-5, df_trend['Deger'].min() - 0.5)
 
+            # Başlıkta son değeri göstererek teyit ediyoruz
             fig_trend = px.line(df_trend, x='Tarih', y='Deger', 
-                                title=f"GENEL ENFLASYON SEYRİ (Güncel: %{son_deger:.2f})", 
+                                title=f"GENEL ENFLASYON TRENDİ (Güncel: %{son_deger:.2f})", 
                                 markers=True)
             
             fig_trend.update_traces(line_color='#3b82f6', line_width=4, marker_size=8,
@@ -861,7 +888,9 @@ def sayfa_piyasa_ozeti(ctx):
             fig_trend.update_layout(yaxis_range=[y_min, y_max])
             st.plotly_chart(style_chart(fig_trend), use_container_width=True)
         else:
-            st.warning("Veri hesaplanamadı.")
+            st.warning("Grafik verisi hesaplanamadı.")
+
+    # ... (kodun alt kısımları aynı) ...
             
     # ... (kodun alt kısımları aynı) ...
 
@@ -1098,6 +1127,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
