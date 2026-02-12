@@ -26,7 +26,7 @@ from streamlit_lottie import st_lottie
 
 # --- 1. AYARLAR VE TEMA YÖNETİMİ ---
 st.set_page_config(
-    page_title="Piyasa Monitörü | Pro Analytics",
+    page_title="Enflasyon Monitörü | Pro Analytics",
     layout="wide",
     page_icon="💎",
     initial_sidebar_state="expanded"
@@ -320,7 +320,7 @@ def create_word_report(text_content, tarih, df_analiz=None):
         font.size = Pt(11)
 
         # Başlıklar
-        head = doc.add_heading(f'PİYASA GÖRÜNÜM RAPORU', 0)
+        head = doc.add_heading(f'ENFLASYON GÖRÜNÜM RAPORU', 0)
         head.alignment = WD_ALIGN_PARAGRAPH.CENTER
         
         subhead = doc.add_paragraph(f'Rapor Tarihi: {tarih}')
@@ -549,7 +549,7 @@ def generate_detailed_static_report(df_analiz, tarih, enf_genel, enf_gida, gun_f
     dec_str = "\n".join([f"   🟢 %{abs(row['Fark']*100):5.2f} | {row[ad_col]}" for _, row in dec.iterrows()])
 
     text = f"""
-**PİYASA GÖRÜNÜM RAPORU**
+**ENFLASYON GÖRÜNÜM RAPORU**
 **Tarih:** {tarih}
 
 **1. 📊 ANA GÖSTERGELER**
@@ -559,7 +559,7 @@ def generate_detailed_static_report(df_analiz, tarih, enf_genel, enf_gida, gun_f
 **AY SONU TAHMİNİ** : **%{tahmin:.2f}**
 -----------------------------------------
 
-**2. 🔎 PİYASA RÖNTGENİ**
+**2. 🔎 ENFLASYON RÖNTGENİ**
 **Fiyat Hareketleri:**
    🔺 **Zamlanan Ürün:** {artan_sayisi} adet
    🔻 **İndirimli Ürün:** {len(dusenler)} adet
@@ -757,64 +757,8 @@ def ui_sidebar_ve_veri_hazirlama(df_analiz_base, raw_dates, ad_col):
     return ctx
 
 # --- SAYFA FONKSİYONLARI (ESTETİK GÜNCELLEMELER) ---
-def sayfa_ana_sayfa(ctx):
-    urun_sayisi = ctx["stats_urun"] if ctx else "..."
-    kategori_sayisi = ctx["stats_kategori"] if ctx else "..."
-    veri_noktasi = ctx["stats_veri_noktasi"] if ctx else "..."
-    
-    # HTML içeriği sola dayalı (girintisiz) yazılarak kod bloğu hatası engellendi
-    html_content = f"""
-<div style="text-align:center; padding: 40px 20px; animation: fadeInUp 0.8s ease;">
-    <h1 style="font-size: 56px; font-weight: 800; margin-bottom: 20px; 
-        background: -webkit-linear-gradient(45deg, #3b82f6, #8b5cf6); 
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-        Piyasa Monitörü
-    </h1>
-    <p style="font-size: 20px; color: #a1a1aa; max-width: 800px; margin: 0 auto; line-height: 1.6;">
-        Türkiye'nin en kapsamlı yapay zeka destekli fiyat takip sistemi. <br>
-        <strong>{kategori_sayisi}</strong> farklı kategorideki <strong>{urun_sayisi}</strong> ürünü anlık izliyor, resmi verilerle kıyaslıyoruz.
-    </p>
-    <br><br>
-    <div style="display:flex; justify-content:center; gap:30px; flex-wrap:wrap;">
-        <div class="kpi-card" style="width:250px; text-align:center; padding:30px;">
-            <div style="font-size:42px; margin-bottom:10px;">📦</div>
-            <div class="kpi-value">{urun_sayisi}</div>
-            <div style="color:#a1a1aa; font-size:14px; font-weight:600;">TAKİP EDİLEN ÜRÜN</div>
-        </div>
-        <div class="kpi-card" style="width:250px; text-align:center; padding:30px;">
-            <div style="font-size:42px; margin-bottom:10px;">📊</div>
-            <div class="kpi-value">{kategori_sayisi}</div>
-            <div style="color:#a1a1aa; font-size:14px; font-weight:600;">ANA KATEGORİ</div>
-        </div>
-        <div class="kpi-card" style="width:250px; text-align:center; padding:30px;">
-            <div style="font-size:42px; margin-bottom:10px;">⚡</div>
-            <div class="kpi-value">{veri_noktasi}+</div>
-            <div style="color:#a1a1aa; font-size:14px; font-weight:600;">İŞLENEN VERİ NOKTASI</div>
-        </div>
-    </div>
-    <br><br>
-    <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); 
-            padding: 15px; border-radius: 99px; display: inline-block; animation: pulseGlow 3s infinite;">
-        <span style="color: #d1d5db;">Bu platformda sunulan veriler deneysel ve akademik çalışma amaçlıdır. 
-            Resmi enflasyon verilerinin yerine geçmez ve yatırım tavsiyesi niteliği taşımaz.</span>
-    </div>
+# ANA SAYFA FONKSİYONU KALDIRILDI
 
-<script>
-    function updateClock() {{
-        var now = new Date();
-        var timeString = now.toLocaleTimeString('tr-TR', {{hour: '2-digit', minute: '2-digit', second: '2-digit'}});
-        var clockElement = document.getElementById('live_clock');
-        if (clockElement) {{
-            clockElement.innerHTML = timeString;
-        }}
-    }}
-    setInterval(updateClock, 1000);
-    updateClock();
-</script>
-</div>
-"""
-    st.markdown(html_content, unsafe_allow_html=True)
-    
 def sayfa_piyasa_ozeti(ctx):
     # --- 1. KPI KARTLARI ---
     c1, c2, c3, c4 = st.columns(4)
@@ -888,7 +832,7 @@ def sayfa_piyasa_ozeti(ctx):
     
     # --- 5. TREE MAP ---
     st.subheader("Sektörel Isı Haritası")
-    fig_tree = px.treemap(df, path=[px.Constant("Piyasa"), 'Grup', ctx['ad_col']], values=ctx['agirlik_col'], color='Fark', color_continuous_scale='RdYlGn_r')
+    fig_tree = px.treemap(df, path=[px.Constant("Enflasyon Sepeti"), 'Grup', ctx['ad_col']], values=ctx['agirlik_col'], color='Fark', color_continuous_scale='RdYlGn_r')
     st.plotly_chart(style_chart(fig_tree, is_sunburst=True), use_container_width=True)
 
 def sayfa_kategori_detay(ctx):
@@ -944,7 +888,7 @@ def sayfa_tam_liste(ctx):
     st.download_button("📥 Excel Olarak İndir", data=output.getvalue(), file_name="Veri_Seti.xlsx")
 
 def sayfa_raporlama(ctx):
-    st.markdown("### 📝 Stratejik Pazar Raporu")
+    st.markdown("### 📝 Stratejik Enflasyon Raporu")
     
     # Rapor metnini oluştur
     rap_text = generate_detailed_static_report(
@@ -966,7 +910,7 @@ def sayfa_raporlama(ctx):
     st.download_button(
         label="📥 Word Raporu İndir",
         data=word_buffer,
-        file_name=f"Piyasa_Raporu_{ctx['son']}.docx",
+        file_name=f"Enflasyon_Raporu_{ctx['son']}.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         type="primary",
         key="download_word_btn"
@@ -1020,13 +964,17 @@ def sayfa_trend_analizi(ctx):
 
 # --- ANA MAIN ---
 def main():
+    
+    # --- AYAR: SENKRONİZASYON BUTONU ---
+    SENKRONIZASYON_AKTIF = True # True ise buton görünür, False ise gizlenir
+
     # --- Üst Bilgi Barı (Sticky Header) ---
     st.markdown(f"""
         <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 25px; 
             background:linear-gradient(90deg, #0f172a 0%, #1e1b4b 100%); border-radius:12px; margin-bottom:20px; margin-top:-30px; animation: fadeInUp 0.5s;">
             <div>
                 <div style="font-weight:800; font-size:24px; color:#fff;">
-                    Piyasa Monitörü 
+                    Enflasyon Monitörü 
                     <span style="background:rgba(16,185,129,0.15); color:#34d399; font-size:10px; padding:3px 8px; border-radius:4px; border:1px solid rgba(16,185,129,0.2); vertical-align: middle;">SİMÜLASYON</span>
                 </div>
                 <div style="font-size:12px; color:#94a3b8;">Yapay Zeka Destekli Enflasyon Analiz Platformu</div>
@@ -1038,10 +986,9 @@ def main():
         </div>
     """, unsafe_allow_html=True)
 
-    # --- Menü Tanımları ---
+    # --- Menü Tanımları (Ana Sayfa Kaldırıldı) ---
     menu_items = {
-        "🏠 Ana Sayfa": "Ana Sayfa", 
-        "📊 Piyasa Özeti": "Piyasa Özeti",
+        "📊 Enflasyon Özeti": "Enflasyon Özeti", # Piyasa Özeti -> Enflasyon Özeti oldu
         "📈 Trendler": "Trendler",
         "📦 Maddeler": "Maddeler",
         "🏷️ Kategori Detay": "Kategori Detay",
@@ -1059,23 +1006,24 @@ def main():
     )
     secim = menu_items[secilen_etiket]
 
-    # --- Senkronizasyon Butonu ---
-    col_empty, col_btn = st.columns([4, 1])
-    with col_btn:
-        if st.button("SİSTEMİ SENKRONİZE ET ⚡", type="primary", use_container_width=True):
-            progress_bar = st.progress(0, text="Veri akışı sağlanıyor...")
-            res = html_isleyici(lambda p: progress_bar.progress(min(1.0, max(0.0, p)), text="Senkronizasyon sürüyor..."))
-            progress_bar.progress(1.0, text="Tamamlandı!"); time.sleep(0.5); progress_bar.empty()
-            
-            if "OK" in res:
-                st.cache_data.clear()
-                st.toast('Sistem Senkronize Edildi!', icon='🚀')
-                time.sleep(1)
-                st.rerun()
-            elif "Veri bulunamadı" in res: 
-                st.warning("⚠️ Yeni veri akışı yok.")
-            else: 
-                st.error(res)
+    # --- Senkronizasyon Butonu (İsteğe Bağlı) ---
+    if SENKRONIZASYON_AKTIF:
+        col_empty, col_btn = st.columns([4, 1])
+        with col_btn:
+            if st.button("SİSTEMİ SENKRONİZE ET ⚡", type="primary", use_container_width=True):
+                progress_bar = st.progress(0, text="Veri akışı sağlanıyor...")
+                res = html_isleyici(lambda p: progress_bar.progress(min(1.0, max(0.0, p)), text="Senkronizasyon sürüyor..."))
+                progress_bar.progress(1.0, text="Tamamlandı!"); time.sleep(0.5); progress_bar.empty()
+                
+                if "OK" in res:
+                    st.cache_data.clear()
+                    st.toast('Sistem Senkronize Edildi!', icon='🚀')
+                    time.sleep(1)
+                    st.rerun()
+                elif "Veri bulunamadı" in res: 
+                    st.warning("⚠️ Yeni veri akışı yok.")
+                else: 
+                    st.error(res)
 
     # --- Veri Yükleme ---
     with st.spinner("Veri tabanına bağlanılıyor..."):
@@ -1086,43 +1034,19 @@ def main():
         ctx = ui_sidebar_ve_veri_hazirlama(df_base, r_dates, col_name)
 
     # --- Sayfa Yönlendirme (ROUTER) ---
-    # Not: Ana Sayfa, ctx yüklü olmasa bile açılabilmeli (boş dashboard göstermek için)
-    if secim == "Ana Sayfa":
-        sayfa_ana_sayfa(ctx)
-    elif ctx: # Diğer sayfalar veri (ctx) gerektirir
-        if secim == "Piyasa Özeti": sayfa_piyasa_ozeti(ctx)
+    if ctx: 
+        if secim == "Enflasyon Özeti": sayfa_piyasa_ozeti(ctx)
         elif secim == "Trendler": sayfa_trend_analizi(ctx)
         elif secim == "Maddeler": sayfa_maddeler(ctx)
         elif secim == "Kategori Detay": sayfa_kategori_detay(ctx)
         elif secim == "Tam Liste": sayfa_tam_liste(ctx)
         elif secim == "Raporlama": sayfa_raporlama(ctx)
     else:
-        # Veri yüklenemediyse ve ana sayfa değilse uyarı ver
-        err_msg = "<br><div style='text-align:center; padding:20px; background:rgba(255,0,0,0.1); border-radius:10px; color:#fff;'>⚠️ Veri seti yüklenemedi veya internet bağlantısı yok. Lütfen 'Ana Sayfa'ya dönün veya sayfayı yenileyin.</div>"
+        # Veri yüklenemediyse uyarı ver
+        err_msg = "<br><div style='text-align:center; padding:20px; background:rgba(255,0,0,0.1); border-radius:10px; color:#fff;'>⚠️ Veri seti yüklenemedi veya internet bağlantısı yok. Lütfen sayfayı yenileyin.</div>"
         st.markdown(err_msg, unsafe_allow_html=True)
 
     st.markdown('<div style="text-align:center; color:#52525b; font-size:11px; margin-top:50px; opacity:0.6;">VALIDASYON MUDURLUGU © 2026 - GİZLİ ANALİZ BELGESİ</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
