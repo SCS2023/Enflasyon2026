@@ -454,17 +454,11 @@ def fiyat_bul_siteye_gore(soup, url):
     kaynak = ""
     domain = url.lower() if url else ""
 
-    # --- 1. MIGROS ÖZEL AYRIŞTIRMA ---
+    # --- 1. MIGROS (Sadece Normal Fiyat) ---
     if "migros" in domain:
         try:
-            # ÖNCELİK 1: Money/İndirimli Fiyat (id="sale-price")
-            sale_tag = soup.find("div", id="sale-price")
-            if sale_tag:
-                if v := temizle_fiyat(sale_tag.get_text()):
-                    return v, "Migros-Money"
-            
-            # ÖNCELİK 2: Normal Fiyat (class="single-price-amount")
-            # İndirim yoksa buraya düşer
+            # İsteğiniz üzerine indirimli fiyat kontrolü kaldırıldı.
+            # Sadece <span class="single-price-amount"> etiketi okunuyor.
             normal_tag = soup.find("span", class_="single-price-amount")
             if normal_tag:
                 if v := temizle_fiyat(normal_tag.get_text()):
@@ -472,7 +466,7 @@ def fiyat_bul_siteye_gore(soup, url):
         except:
             pass
 
-    # --- 2. CIMRI ÖZEL AYRIŞTIRMA ---
+    # --- 2. CIMRI (Önceki İsteğiniz) ---
     elif "cimri" in domain:
         try:
             cimri_tag = soup.find("span", class_="yEvpr")
@@ -481,6 +475,14 @@ def fiyat_bul_siteye_gore(soup, url):
                     return v, "Cimri-Bot"
         except:
             pass
+
+    # --- 3. GENEL REGEX (Yedek) ---
+    if m := re.search(r'(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)\s*(?:TL|₺)', soup.get_text()[:5000]):
+        if v := temizle_fiyat(m.group(1)): 
+            fiyat = v
+            kaynak = "Regex"
+            
+    return fiyat, kaynak
 
     # --- 3. GENEL REGEX (YEDEK YÖNTEM) ---
     # Özel tanımlı sitelerden çekemezse veya site tanımsızsa burası çalışır
@@ -1148,6 +1150,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
