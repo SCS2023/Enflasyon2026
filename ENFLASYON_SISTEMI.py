@@ -712,6 +712,40 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
 
 # 3. SIDEBAR UI (CONTEXT_HAZIRLA YERİNE)
 def ui_sidebar_ve_veri_hazirlama(df_analiz_base, raw_dates, ad_col):
+    # ... (önceki kodlar)
+    
+    # SIDEBAR YORUM BLOĞU
+    with st.sidebar:
+        st.markdown("---")
+        st.markdown("### 🧠 AI Görüşü")
+        
+        yorum = ""
+        genel = ctx["enf_genel"]
+        gida = ctx["enf_gida"]
+        
+        if genel > 5:
+            durum = "Kritik Seviye"
+            renk = "#ef4444" # Kırmızı
+            yorum = "Enflasyon ivmesi yüksek seyrediyor. Özellikle gıda dışı harcamalarda kısıtlamaya gidilmesi önerilir."
+        elif genel > 2:
+            durum = "Yüksek İzleme"
+            renk = "#f59e0b" # Turuncu
+            yorum = "Fiyatlar artış trendinde. Lüks tüketim harcamaları ertelenebilir."
+        else:
+            durum = "Stabil"
+            renk = "#10b981" # Yeşil
+            yorum = "Piyasa şu an için dengeli görünüyor. Ani fiyat hareketleri gözlemlenmiyor."
+            
+        if gida > genel:
+            yorum += " 🍎 **Not:** Gıda enflasyonu ortalamanın üzerinde, mutfak masraflarına dikkat."
+            
+        st.markdown(f"""
+        <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:10px; border-left: 4px solid {renk};">
+            <div style="color:{renk}; font-weight:bold; font-size:12px; margin-bottom:5px;">DURUM: {durum}</div>
+            <div style="font-size:11px; line-height:1.4;">{yorum}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
     if df_analiz_base is None: return None
     st.sidebar.markdown("### ⚙️ Veri Ayarları")
     
@@ -1134,6 +1168,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
