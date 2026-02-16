@@ -482,19 +482,54 @@ def html_isleyici(progress_callback):
     if not repo: return "GitHub Bağlantı Hatası"
     progress_callback(0.05) 
     try:
+        # 1. Konfigürasyon Dosyasını Oku
         df_conf = github_excel_oku(EXCEL_DOSYASI, SAYFA_ADI)
         df_conf.columns = df_conf.columns.str.strip()
+        
+        # Sütun isimlerini dinamik bul
         kod_col = next((c for c in df_conf.columns if c.lower() == 'kod'), None)
         url_col = next((c for c in df_conf.columns if c.lower() == 'url'), None)
         ad_col = next((c for c in df_conf.columns if 'ad' in c.lower()), 'Madde adı')
-        if not kod_col or not url_col: return "Hata: Excel sütunları eksik."
+        
+        # Manuel Fiyat sütununu bul (Büyük/küçük harf duyarlı olmaması için)
+        manuel_col = next((c for c in df_conf.columns if 'manuel' in c.lower() and 'fiyat' in c.lower()), None)
+
+        if not kod_col or not url_col: return "Hata: Excel sütunları eksik (Kod veya URL)."
+        
+        # Kodları standartlaştır
         df_conf['Kod'] = df_conf[kod_col].astype(str).apply(kod_standartlastir)
+        
+        # URL haritası oluştur (HTML taraması için)
         url_map = {str(row[url_col]).strip(): row for _, row in df_conf.iterrows() if pd.notna(row[url_col])}
+        
         veriler = []
         islenen_kodlar = set()
         bugun = datetime.now().strftime("%Y-%m-%d")
         simdi = datetime.now().strftime("%H:%M")
+
+        # --- A. MANUEL FİYATLARIN ALINMASI ---
+        # Eğer Excel'de 'Manuel_Fiyat' sütunu varsa burası çalışır
+        if manuel_col:
+            for _, row in df_conf.iterrows():
+                try:
+                    raw_manuel = row[manuel_col]
+                    # Mevcut 'temizle_fiyat' fonksiyonunu kullanarak sayıyı temizle
+                    fiyat_manuel = temizle_fiyat(raw_manuel)
+                    
+                    if fiyat_manuel and fiyat_manuel > 0:
+                        veriler.append({
+                            "Tarih": bugun,
+                            "Zaman": simdi,
+                            "Kod": kod_standartlastir(row[kod_col]),
+                            "Madde_Adi": row[ad_col],
+                            "Fiyat": float(fiyat_manuel),
+                            "Kaynak": "Manuel_Fiyat",  # Kaynak olarak bunu belirtiyoruz
+                            "URL": "MANUEL"
+                        })
+                except:
+                    continue # Hatalı satırı atla
         
+        # --- B. HTML TARAMASI (MEVCUT KOD) ---
         progress_callback(0.10)
         contents = repo.get_contents("", ref=st.secrets["github"]["branch"])
         zip_files = [c for c in contents if c.name.endswith(".zip") and c.name.startswith("Bolum")]
@@ -514,15 +549,23 @@ def html_isleyici(progress_callback):
                             soup = BeautifulSoup(raw, 'html.parser')
                             found_url = None
                             if c := soup.find("link", rel="canonical"): found_url = c.get("href")
+                            
                             if found_url and str(found_url).strip() in url_map:
                                 target = url_map[str(found_url).strip()]
-                                if target['Kod'] in islenen_kodlar: continue
+                                # Manuel girilen bir kod olsa bile HTML'i de alıyoruz (Analiz tercihi)
+                                # Eğer mükerrer istemiyorsanız: if target['Kod'] in [v['Kod'] for v in veriler if v['Kaynak'] == 'Manuel_Giris']: continue
+                                
                                 fiyat, kaynak = fiyat_bul_siteye_gore(soup, target[url_col])
                                 if fiyat > 0:
-                                    veriler.append({"Tarih": bugun, "Zaman": simdi, "Kod": target['Kod'],
-                                                    "Madde_Adi": target[ad_col], "Fiyat": float(fiyat),
-                                                    "Kaynak": kaynak, "URL": target[url_col]})
-                                    islenen_kodlar.add(target['Kod'])
+                                    veriler.append({
+                                        "Tarih": bugun, 
+                                        "Zaman": simdi, 
+                                        "Kod": target['Kod'],
+                                        "Madde_Adi": target[ad_col], 
+                                        "Fiyat": float(fiyat),
+                                        "Kaynak": kaynak, 
+                                        "URL": target[url_col]
+                                    })
             except: pass
         
         progress_callback(0.95)
@@ -1112,7 +1155,7 @@ def main():
     
     # --- AYAR: SENKRONİZASYON BUTONU ---
     # Bu ayarı False yaparak butonu tamamen gizleyebilirsiniz.
-    SENKRONIZASYON_AKTIF = False
+    SENKRONIZASYON_AKTIF = True
     
     
 
@@ -1198,6 +1241,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
