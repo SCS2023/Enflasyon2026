@@ -452,7 +452,8 @@ def kod_standartlastir(k): return str(k).replace('.0', '').strip().zfill(7)
 def fiyat_bul_siteye_gore(soup, kaynak_tipi):
     """
     HTML içeriğini ve kaynak tipini alır.
-    Özellikle Migros için ana ürün alanına odaklanır, önerilen ürünleri yoksayar.
+    Migros ve Carrefour için 'Benzer Ürünler' kısmını hariç tutarak
+    sadece ana ürünün fiyatını çeker.
     """
     fiyat = 0
     kaynak_tipi = str(kaynak_tipi).lower()
@@ -460,47 +461,54 @@ def fiyat_bul_siteye_gore(soup, kaynak_tipi):
     try:
         # --- A. MIGROS (ÖZEL KAPSAM) ---
         if "migros" in kaynak_tipi:
-            # 1. ADIM: KAPSAM BELİRLEME (Scope)
-            # Sayfanın tamamında değil, sadece ana ürün detayının olduğu kutuda ara.
-            # Senin attığın 1. blok bu class ile başlıyor: "product-detail-wrapper"
-            # 2. blok (istemediğin yer) bu kutunun dışındadır.
+            # Sadece ana ürün detayının olduğu kutuda ara.
             ana_urun_kutusu = soup.select_one(".product-detail-wrapper")
             
-            # Eğer wrapper bulunamazsa bir alt katman olan .product-details'e bak
+            # Bulamazsa bir alt katmana bak
             if not ana_urun_kutusu:
                 ana_urun_kutusu = soup.select_one(".product-details")
             
-            # Eğer hala bulamadıysak (ki çok düşük ihtimal), mecburen soup'a bak ama risklidir.
-            # Biz güvenli tarafta kalıp varsa kutuyu, yoksa None kullanalım.
+            # Kapsamı belirle
             hedef_alan = ana_urun_kutusu if ana_urun_kutusu else soup
 
-            # 2. ADIM: FİYAT ÇEKME (Sadece Hedef Alan İçinde)
-            
-            # a) Money Club İndirimli Fiyat (.money-discount-label-wrapper içindeki .sale-price)
+            # Fiyat Çekme
             discount_tag = hedef_alan.select_one(".money-discount-label-wrapper .sale-price")
-            if discount_tag: 
-                return temizle_fiyat(discount_tag.get_text())
+            if discount_tag: return temizle_fiyat(discount_tag.get_text())
             
-            # b) Normal Fiyat (İndirim yoksa)
-            # fe-product-price etiketi altındaki .single-price-amount
             normal_tag = hedef_alan.select_one("fe-product-price .single-price-amount")
-            if normal_tag: 
-                return temizle_fiyat(normal_tag.get_text())
+            if normal_tag: return temizle_fiyat(normal_tag.get_text())
 
-            # c) Yedek Normal Fiyat (HTML değişirse diye)
-            # .price sınıfı altındaki ilk span
             yedek_tag = hedef_alan.select_one(".price span")
-            if yedek_tag:
-                 return temizle_fiyat(yedek_tag.get_text())
+            if yedek_tag: return temizle_fiyat(yedek_tag.get_text())
 
 
-        # --- B. CARREFOURSA ---
+        # --- B. CARREFOURSA (ÖZEL KAPSAM) ---
         elif "carrefour" in kaynak_tipi:
-            price_tag = soup.select_one(".item-price")
-            if price_tag: return temizle_fiyat(price_tag.get_text())
+            # 1. ADIM: KAPSAM BELİRLEME
+            # Aşağıdaki "Daha Fazla Ürün" (tabs category-tabs) kısmını almamak için
+            # sadece üstteki ürün detay alanına (.product-details-cont) odaklanıyoruz.
             
-            alt_tag = soup.select_one(".priceLineThrough")
-            if alt_tag: return temizle_fiyat(alt_tag.get_text())
+            main_scope = soup.select_one(".product-details-cont")
+            
+            # Eğer ana wrapper bulunamazsa, sağ kolon olan "pd-right" içine bakalım
+            # (Mobil/Desktop yapı farkı olabilir diye)
+            if not main_scope:
+                main_scope = soup.select_one(".pd-right")
+
+            # Kapsamı belirle
+            hedef_alan = main_scope if main_scope else soup
+
+            # 2. ADIM: FİYAT ÇEKME (Sadece Hedef Alan İçinde)
+            # İndirimli veya Normal Fiyat (.item-price)
+            price_tag = hedef_alan.select_one(".item-price")
+            if price_tag: 
+                return temizle_fiyat(price_tag.get_text())
+            
+            # Yedek: Eğer sadece üstü çizili fiyat kaldıysa (stok sorunu vs.)
+            alt_tag = hedef_alan.select_one(".priceLineThrough")
+            if alt_tag: 
+                return temizle_fiyat(alt_tag.get_text())
+
 
         # --- C. CIMRI ---
         elif "cimri" in kaynak_tipi:
@@ -1293,6 +1301,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
