@@ -451,47 +451,67 @@ def kod_standartlastir(k): return str(k).replace('.0', '').strip().zfill(7)
 
 def fiyat_bul_siteye_gore(soup, kaynak_tipi):
     """
-    HTML içeriğini ve kaynak tipini (Migros, Carrefour vb.) alır.
-    Senin belirlediğin kurallara göre fiyatı çeker.
+    HTML içeriğini ve kaynak tipini alır.
+    Özellikle Migros için ana ürün alanına odaklanır, önerilen ürünleri yoksayar.
     """
     fiyat = 0
-    kaynak_tipi = str(kaynak_tipi).lower() # migros, carrefour, cimri...
-
+    kaynak_tipi = str(kaynak_tipi).lower()
+    
     try:
-        # --- A. MIGROS ---
+        # --- A. MIGROS (ÖZEL KAPSAM) ---
         if "migros" in kaynak_tipi:
-            # 1. Money İndirimli Fiyat Var mı?
-            discount_tag = soup.select_one(".money-discount-label-wrapper .sale-price")
-            if discount_tag: return temizle_fiyat(discount_tag.get_text())
+            # 1. ADIM: KAPSAM BELİRLEME (Scope)
+            # Sayfanın tamamında değil, sadece ana ürün detayının olduğu kutuda ara.
+            # Senin attığın 1. blok bu class ile başlıyor: "product-detail-wrapper"
+            # 2. blok (istemediğin yer) bu kutunun dışındadır.
+            ana_urun_kutusu = soup.select_one(".product-detail-wrapper")
             
-            # 2. Yoksa Normal Fiyat
-            normal_tag = soup.select_one(".single-price-amount")
-            if normal_tag: return temizle_fiyat(normal_tag.get_text())
+            # Eğer wrapper bulunamazsa bir alt katman olan .product-details'e bak
+            if not ana_urun_kutusu:
+                ana_urun_kutusu = soup.select_one(".product-details")
+            
+            # Eğer hala bulamadıysak (ki çok düşük ihtimal), mecburen soup'a bak ama risklidir.
+            # Biz güvenli tarafta kalıp varsa kutuyu, yoksa None kullanalım.
+            hedef_alan = ana_urun_kutusu if ana_urun_kutusu else soup
+
+            # 2. ADIM: FİYAT ÇEKME (Sadece Hedef Alan İçinde)
+            
+            # a) Money Club İndirimli Fiyat (.money-discount-label-wrapper içindeki .sale-price)
+            discount_tag = hedef_alan.select_one(".money-discount-label-wrapper .sale-price")
+            if discount_tag: 
+                return temizle_fiyat(discount_tag.get_text())
+            
+            # b) Normal Fiyat (İndirim yoksa)
+            # fe-product-price etiketi altındaki .single-price-amount
+            normal_tag = hedef_alan.select_one("fe-product-price .single-price-amount")
+            if normal_tag: 
+                return temizle_fiyat(normal_tag.get_text())
+
+            # c) Yedek Normal Fiyat (HTML değişirse diye)
+            # .price sınıfı altındaki ilk span
+            yedek_tag = hedef_alan.select_one(".price span")
+            if yedek_tag:
+                 return temizle_fiyat(yedek_tag.get_text())
+
 
         # --- B. CARREFOURSA ---
         elif "carrefour" in kaynak_tipi:
-            # Genelde .item-price indirimli/geçerli fiyatı tutar
             price_tag = soup.select_one(".item-price")
             if price_tag: return temizle_fiyat(price_tag.get_text())
             
-            # Yedek: Eski fiyatın üstü çiziliyse, asıl fiyat başka yerdedir ama 
-            # bazen sadece priceLineThrough kalıyor, kontrol etmekte fayda var.
             alt_tag = soup.select_one(".priceLineThrough")
             if alt_tag: return temizle_fiyat(alt_tag.get_text())
 
         # --- C. CIMRI ---
         elif "cimri" in kaynak_tipi:
-            # Cimri standart yapısı
             cimri_tag = soup.select_one("span.yEvpr")
             if cimri_tag: return temizle_fiyat(cimri_tag.get_text())
 
         # --- D. HEPSIBURADA ---
         elif "hepsiburada" in kaynak_tipi:
-            # 1. Sepette Ek İndirim (Checkout Price)
             checkout_tag = soup.select_one('[data-test-id="checkout-price"]')
             if checkout_tag: return temizle_fiyat(checkout_tag.get_text())
             
-            # 2. Normal Satış Fiyatı
             active_tag = soup.select_one('[data-test-id="price"]')
             if active_tag: return temizle_fiyat(active_tag.get_text())
 
@@ -1273,6 +1293,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
