@@ -449,132 +449,168 @@ def temizle_fiyat(t):
 
 def kod_standartlastir(k): return str(k).replace('.0', '').strip().zfill(7)
 
-def fiyat_bul_siteye_gore(soup, url):
+def fiyat_bul_siteye_gore(soup, kaynak_tipi):
+    """
+    HTML içeriğini ve kaynak tipini (Migros, Carrefour vb.) alır.
+    Senin belirlediğin kurallara göre fiyatı çeker.
+    """
     fiyat = 0
-    kaynak = ""
-    domain = url.lower() if url else ""
+    kaynak_tipi = str(kaynak_tipi).lower() # migros, carrefour, cimri...
 
-    # --- 1. CIMRI.COM ÖZEL AYRIŞTIRMA ---
-    if "cimri" in domain:
-        try:
-            # İlettiğiniz HTML yapısı: <span class="yEvpr">350,14 TL</span>
-            # Bu class ismine sahip span etiketini arıyoruz.
-            cimri_tag = soup.find("span", class_="yEvpr")
+    try:
+        # --- A. MIGROS ---
+        if "migros" in kaynak_tipi:
+            # 1. Money İndirimli Fiyat Var mı?
+            discount_tag = soup.select_one(".money-discount-label-wrapper .sale-price")
+            if discount_tag: return temizle_fiyat(discount_tag.get_text())
             
-            if cimri_tag:
-                raw_txt = cimri_tag.get_text()
-                if v := temizle_fiyat(raw_txt):
-                    return v, "Cimri-Bot"
-        except Exception:
-            pass # Cimri özel çekimi başarısız olursa genel yönteme düşer
+            # 2. Yoksa Normal Fiyat
+            normal_tag = soup.select_one(".single-price-amount")
+            if normal_tag: return temizle_fiyat(normal_tag.get_text())
 
-    # --- 2. GENEL REGEX (YEDEK/MEVCUT YÖNTEM) ---
-    # Diğer siteler veya Cimri yapısı değişirse burası çalışır
-    if m := re.search(r'(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)\s*(?:TL|₺)', soup.get_text()[:5000]):
-        if v := temizle_fiyat(m.group(1)): 
-            fiyat = v
-            kaynak = "Regex"
+        # --- B. CARREFOURSA ---
+        elif "carrefour" in kaynak_tipi:
+            # Genelde .item-price indirimli/geçerli fiyatı tutar
+            price_tag = soup.select_one(".item-price")
+            if price_tag: return temizle_fiyat(price_tag.get_text())
             
-    return fiyat, kaynak
+            # Yedek: Eski fiyatın üstü çiziliyse, asıl fiyat başka yerdedir ama 
+            # bazen sadece priceLineThrough kalıyor, kontrol etmekte fayda var.
+            alt_tag = soup.select_one(".priceLineThrough")
+            if alt_tag: return temizle_fiyat(alt_tag.get_text())
+
+        # --- C. CIMRI ---
+        elif "cimri" in kaynak_tipi:
+            # Cimri standart yapısı
+            cimri_tag = soup.select_one("span.yEvpr")
+            if cimri_tag: return temizle_fiyat(cimri_tag.get_text())
+
+        # --- D. HEPSIBURADA ---
+        elif "hepsiburada" in kaynak_tipi:
+            # 1. Sepette Ek İndirim (Checkout Price)
+            checkout_tag = soup.select_one('[data-test-id="checkout-price"]')
+            if checkout_tag: return temizle_fiyat(checkout_tag.get_text())
+            
+            # 2. Normal Satış Fiyatı
+            active_tag = soup.select_one('[data-test-id="price"]')
+            if active_tag: return temizle_fiyat(active_tag.get_text())
+
+    except Exception as e:
+        print(f"Parser Hatası ({kaynak_tipi}): {e}")
+        
+    return 0
 
 def html_isleyici(progress_callback):
     repo = get_github_repo()
     if not repo: return "GitHub Bağlantı Hatası"
+    
     progress_callback(0.05) 
     try:
-        # 1. Konfigürasyon Dosyasını Oku
+        # Excel'den ürün listesini çek (Sadece Kod ve İsim eşleşmesi için)
         df_conf = github_excel_oku(EXCEL_DOSYASI, SAYFA_ADI)
         df_conf.columns = df_conf.columns.str.strip()
         
-        # Sütun isimlerini dinamik bul
-        kod_col = next((c for c in df_conf.columns if c.lower() == 'kod'), None)
-        url_col = next((c for c in df_conf.columns if c.lower() == 'url'), None)
-        ad_col = next((c for c in df_conf.columns if 'ad' in c.lower()), 'Madde adı')
+        kod_col = next((c for c in df_conf.columns if c.lower() == 'kod'), 'Kod')
+        ad_col = next((c for c in df_conf.columns if 'ad' in c.lower()), 'Madde_Adi')
         
-        # Manuel Fiyat sütununu bul (Büyük/küçük harf duyarlı olmaması için)
-        manuel_col = next((c for c in df_conf.columns if 'manuel' in c.lower() and 'fiyat' in c.lower()), None)
+        # Kod -> Ürün Adı haritası (0101 -> Süt)
+        urun_isimleri = pd.Series(df_conf[ad_col].values, index=df_conf[kod_col].astype(str).apply(kod_standartlastir)).to_dict()
 
-        if not kod_col or not url_col: return "Hata: Excel sütunları eksik (Kod veya URL)."
-        
-        # Kodları standartlaştır
-        df_conf['Kod'] = df_conf[kod_col].astype(str).apply(kod_standartlastir)
-        
-        # URL haritası oluştur (HTML taraması için)
-        url_map = {str(row[url_col]).strip(): row for _, row in df_conf.iterrows() if pd.notna(row[url_col])}
-        
-        veriler = []
-        islenen_kodlar = set()
-        bugun = datetime.now().strftime("%Y-%m-%d")
-        simdi = datetime.now().strftime("%H:%M")
-
-        # --- A. MANUEL FİYATLARIN ALINMASI ---
-        # Eğer Excel'de 'Manuel_Fiyat' sütunu varsa burası çalışır
-        if manuel_col:
-            for _, row in df_conf.iterrows():
-                try:
-                    raw_manuel = row[manuel_col]
-                    # Mevcut 'temizle_fiyat' fonksiyonunu kullanarak sayıyı temizle
-                    fiyat_manuel = temizle_fiyat(raw_manuel)
-                    
-                    if fiyat_manuel and fiyat_manuel > 0:
-                        veriler.append({
-                            "Tarih": bugun,
-                            "Zaman": simdi,
-                            "Kod": kod_standartlastir(row[kod_col]),
-                            "Madde_Adi": row[ad_col],
-                            "Fiyat": float(fiyat_manuel),
-                            "Kaynak": "Manuel_Fiyat",  # Kaynak olarak bunu belirtiyoruz
-                            "URL": "MANUEL"
-                        })
-                except:
-                    continue # Hatalı satırı atla
-        
-        # --- B. HTML TARAMASI (MEVCUT KOD) ---
-        progress_callback(0.10)
+        # ZIP Dosyalarını Bul
         contents = repo.get_contents("", ref=st.secrets["github"]["branch"])
         zip_files = [c for c in contents if c.name.endswith(".zip") and c.name.startswith("Bolum")]
         total_zips = len(zip_files)
         
+        # Verileri toplayacağımız havuz:
+        # veri_havuzu["0101"] = [30.50, 29.90, 31.00]
+        veri_havuzu = {}
+        
+        processed_count = 0
+        
         for i, zip_file in enumerate(zip_files):
             current_progress = 0.10 + (0.80 * ((i + 1) / max(1, total_zips)))
             progress_callback(current_progress)
+            
             try:
                 blob = repo.get_git_blob(zip_file.sha)
                 zip_data = base64.b64decode(blob.content)
+                
                 with zipfile.ZipFile(BytesIO(zip_data)) as z:
                     for file_name in z.namelist():
                         if not file_name.endswith(('.html', '.htm')): continue
+                        
+                        # Dosya adından Kodu yakala (0101_Migros.html -> 0101)
+                        # Bu en hızlı yöntemdir.
+                        dosya_kodu = file_name.split('_')[0]
+                        dosya_kodu = kod_standartlastir(dosya_kodu)
+                        
+                        # Eğer bu kod Excel listemizde yoksa boşuna işlem yapma
+                        if dosya_kodu not in urun_isimleri: continue
+
                         with z.open(file_name) as f:
                             raw = f.read().decode("utf-8", errors="ignore")
-                            soup = BeautifulSoup(raw, 'html.parser')
-                            found_url = None
-                            if c := soup.find("link", rel="canonical"): found_url = c.get("href")
                             
-                            if found_url and str(found_url).strip() in url_map:
-                                target = url_map[str(found_url).strip()]
-                                # Manuel girilen bir kod olsa bile HTML'i de alıyoruz (Analiz tercihi)
-                                # Eğer mükerrer istemiyorsanız: if target['Kod'] in [v['Kod'] for v in veriler if v['Kaynak'] == 'Manuel_Giris']: continue
-                                
-                                fiyat, kaynak = fiyat_bul_siteye_gore(soup, target[url_col])
-                                if fiyat > 0:
-                                    veriler.append({
-                                        "Tarih": bugun, 
-                                        "Zaman": simdi, 
-                                        "Kod": target['Kod'],
-                                        "Madde_Adi": target[ad_col], 
-                                        "Fiyat": float(fiyat),
-                                        "Kaynak": kaynak, 
-                                        "URL": target[url_col]
-                                    })
-            except: pass
-        
+                            # --- 1. METADATA OKUMA (Senin Eklediğin İmza) ---
+                            # Dosyanın en altına eklediğin kısmını arıyoruz
+                            kaynak_tipi = "Bilinmiyor"
+                            if "SOURCE_TYPE:" in raw:
+                                # Regex kullanmadan basit string işlemi ile bulalım (daha hızlı)
+                                parts = raw.split("SOURCE_TYPE:")
+                                if len(parts) > 1:
+                                    kaynak_tipi = parts[1].split("-->")[0].strip()
+                            else:
+                                # İmza yoksa dosya adından tahmin et (0101_Migros.html)
+                                if "_" in file_name:
+                                    kaynak_tipi = file_name.split('_')[1].replace('.html','')
+
+                            # --- 2. HTML PARSE VE FİYAT ÇEKME ---
+                            soup = BeautifulSoup(raw, 'html.parser')
+                            fiyat = fiyat_bul_siteye_gore(soup, kaynak_tipi)
+                            
+                            if fiyat > 0:
+                                if dosya_kodu not in veri_havuzu:
+                                    veri_havuzu[dosya_kodu] = []
+                                veri_havuzu[dosya_kodu].append(fiyat)
+
+            except Exception as e:
+                print(f"Zip Okuma Hatası ({zip_file.name}): {e}")
+                continue
+
+        # --- SONUÇLARI HESAPLA (Geometrik Ortalama) ---
+        final_list = []
+        bugun = datetime.now().strftime("%Y-%m-%d")
+        simdi = datetime.now().strftime("%H:%M")
+
+        for kod, fiyatlar in veri_havuzu.items():
+            if fiyatlar:
+                # İSTATİSTİKSEL SEÇİM: GEOMETRİK ORTALAMA
+                # Birden fazla kaynak varsa (Migros+Carrefour) ortalamasını al.
+                if len(fiyatlar) > 1:
+                    geo_mean = np.exp(np.mean(np.log(fiyatlar)))
+                    final_fiyat = float(f"{geo_mean:.2f}")
+                    kaynak_str = f"Multi ({len(fiyatlar)} Kaynak)"
+                else:
+                    final_fiyat = fiyatlar[0]
+                    kaynak_str = "Single"
+
+                final_list.append({
+                    "Tarih": bugun,
+                    "Zaman": simdi,
+                    "Kod": kod,
+                    "Madde_Adi": urun_isimleri.get(kod, "Bilinmeyen Ürün"),
+                    "Fiyat": final_fiyat,
+                    "Kaynak": kaynak_str,
+                    "URL": "ZIP_ARCHIVE"
+                })
+
         progress_callback(0.95)
-        if veriler:
-            return github_excel_guncelle(pd.DataFrame(veriler), FIYAT_DOSYASI)
+        if final_list:
+            return github_excel_guncelle(pd.DataFrame(final_list), FIYAT_DOSYASI)
         else:
-            return "Veri bulunamadı."
+            return "ZIP dosyalarında okunabilir veri bulunamadı."
+            
     except Exception as e:
-        return f"Hata: {str(e)}"
+        return f"Genel Hata: {str(e)}"
 
 # --- 7. STATİK ANALİZ MOTORU ---
 def generate_detailed_static_report(df_analiz, tarih, enf_genel, enf_gida, gun_farki, tahmin, ad_col, agirlik_col):
@@ -1242,6 +1278,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
