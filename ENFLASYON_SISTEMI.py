@@ -1,4 +1,4 @@
-f# GEREKLİ KÜTÜPHANELER:
+# GEREKLİ KÜTÜPHANELER:
 # pip install streamlit-lottie python-docx plotly pandas xlsxwriter matplotlib requests
 
 import streamlit as st
@@ -1312,6 +1312,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
