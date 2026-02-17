@@ -1,4 +1,4 @@
-# GEREKLİ KÜTÜPHANELER:
+f# GEREKLİ KÜTÜPHANELER:
 # pip install streamlit-lottie python-docx plotly pandas xlsxwriter matplotlib requests
 
 import streamlit as st
@@ -536,14 +536,14 @@ def html_isleyici(progress_callback):
     
     progress_callback(0.05) 
     try:
-        # Excel'den ürün listesini çek
+        # Excel'den ürün listesini çek (Sadece Kod ve İsim eşleşmesi için)
         df_conf = github_excel_oku(EXCEL_DOSYASI, SAYFA_ADI)
         df_conf.columns = df_conf.columns.str.strip()
         
         kod_col = next((c for c in df_conf.columns if c.lower() == 'kod'), 'Kod')
         ad_col = next((c for c in df_conf.columns if 'ad' in c.lower()), 'Madde_Adi')
         
-        # Kod -> Ürün Adı haritası
+        # Kod -> Ürün Adı haritası (0101 -> Süt)
         urun_isimleri = pd.Series(df_conf[ad_col].values, index=df_conf[kod_col].astype(str).apply(kod_standartlastir)).to_dict()
 
         # ZIP Dosyalarını Bul
@@ -551,7 +551,8 @@ def html_isleyici(progress_callback):
         zip_files = [c for c in contents if c.name.endswith(".zip") and c.name.startswith("Bolum")]
         total_zips = len(zip_files)
         
-        # Veri Havuzu: Kod -> [Fiyat1, Fiyat2, Fiyat3]
+        # Verileri toplayacağımız havuz:
+        # veri_havuzu["0101"] = [15.00, 14.50]  <- Migros ve Carrefour Fiyatları
         veri_havuzu = {}
         
         for i, zip_file in enumerate(zip_files):
@@ -570,12 +571,13 @@ def html_isleyici(progress_callback):
                         dosya_kodu = file_name.split('_')[0]
                         dosya_kodu = kod_standartlastir(dosya_kodu)
                         
+                        # Eğer bu kod Excel listemizde yoksa boşuna işlem yapma
                         if dosya_kodu not in urun_isimleri: continue
 
                         with z.open(file_name) as f:
                             raw = f.read().decode("utf-8", errors="ignore")
                             
-                            # --- METADATA OKUMA ---
+                            # --- 1. METADATA OKUMA (Kaynak Tipi) ---
                             kaynak_tipi = "Bilinmiyor"
                             if "SOURCE_TYPE:" in raw:
                                 parts = raw.split("SOURCE_TYPE:")
@@ -585,7 +587,7 @@ def html_isleyici(progress_callback):
                                 if "_" in file_name:
                                     kaynak_tipi = file_name.split('_')[1].replace('.html','')
 
-                            # --- HTML PARSE VE FİYAT ÇEKME ---
+                            # --- 2. HTML PARSE VE FİYAT ÇEKME ---
                             soup = BeautifulSoup(raw, 'html.parser')
                             fiyat = fiyat_bul_siteye_gore(soup, kaynak_tipi)
                             
@@ -598,20 +600,28 @@ def html_isleyici(progress_callback):
                 print(f"Zip Okuma Hatası ({zip_file.name}): {e}")
                 continue
 
-        # --- SONUÇLARI HESAPLA (MAKSİMUM FİYAT) ---
+        # --- 3. SONUÇLARI HESAPLA (GEOMETRİK ORTALAMA) ---
         final_list = []
         bugun = datetime.now().strftime("%Y-%m-%d")
         simdi = datetime.now().strftime("%H:%M")
 
         for kod, fiyatlar in veri_havuzu.items():
             if fiyatlar:
-                # --- DEĞİŞİKLİK BURADA: MAX ALINIYOR ---
-                # Birden fazla kaynak varsa (Migros: 30, Carrefour: 35), en yükseğini (35) al.
-                final_fiyat = max(fiyatlar) 
+                # --- GEOMETRİK ORTALAMA HESABI ---
+                # Formül: (p1 * p2 * ... * pn)^(1/n)
+                # Logaritmik yöntemle hesaplanır: exp(mean(log(p)))
                 
                 if len(fiyatlar) > 1:
-                    kaynak_str = f"Max ({len(fiyatlar)} Kaynak)"
+                    # 0 veya negatif değerleri temizle (Log hatası vermemesi için)
+                    clean_vals = [p for p in fiyatlar if p > 0]
+                    if clean_vals:
+                        geo_mean = np.exp(np.mean(np.log(clean_vals)))
+                        final_fiyat = float(f"{geo_mean:.2f}")
+                        kaynak_str = f"GeoMean ({len(clean_vals)} Kaynak)"
+                    else:
+                        continue
                 else:
+                    final_fiyat = fiyatlar[0]
                     kaynak_str = "Single"
 
                 final_list.append({
@@ -619,7 +629,7 @@ def html_isleyici(progress_callback):
                     "Zaman": simdi,
                     "Kod": kod,
                     "Madde_Adi": urun_isimleri.get(kod, "Bilinmeyen Ürün"),
-                    "Fiyat": float(f"{final_fiyat:.2f}"),
+                    "Fiyat": final_fiyat,
                     "Kaynak": kaynak_str,
                     "URL": "ZIP_ARCHIVE"
                 })
@@ -1302,6 +1312,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
