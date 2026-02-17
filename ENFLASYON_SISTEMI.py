@@ -879,9 +879,9 @@ def sayfa_piyasa_ozeti(ctx):
     df = ctx["df_analiz"]
     
     # En çok artan (Enflasyonist - Kötü - Kırmızı)
-    inc = df.sort_values('Gunluk_Degisim', ascending=False).head(5)
+    inc = df.sort_values('Gunluk_Degisim', ascending=False).head(10)
     # En çok düşen (Deflasyonist - İyi - Yeşil)
-    dec = df.sort_values('Gunluk_Degisim', ascending=True).head(5)
+    dec = df.sort_values('Gunluk_Degisim', ascending=True).head(10)
     
     items = []
     
@@ -1242,6 +1242,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
