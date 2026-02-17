@@ -451,80 +451,81 @@ def kod_standartlastir(k): return str(k).replace('.0', '').strip().zfill(7)
 
 def fiyat_bul_siteye_gore(soup, kaynak_tipi):
     """
-    HTML içeriğini ve kaynak tipini alır.
-    Migros ve Carrefour için 'Benzer Ürünler' kısmını hariç tutarak
-    sadece ana ürünün fiyatını çeker.
+    HTML içeriğini alır.
+    Sadece Ürün Başlığının (H1) bulunduğu 'Header' alanındaki fiyatı çeker.
+    Aşağıdaki slider/önerilen ürünleri KESİNLİKLE görmezden gelir.
     """
     fiyat = 0
     kaynak_tipi = str(kaynak_tipi).lower()
     
     try:
-        # --- A. MIGROS (ÖZEL KAPSAM) ---
+        # --- A. MIGROS (BAŞLIK KOMŞULUĞU YÖNTEMİ) ---
         if "migros" in kaynak_tipi:
-            # Sadece ana ürün detayının olduğu kutuda ara.
-            ana_urun_kutusu = soup.select_one(".product-detail-wrapper")
+            # 1. Önce H1 (Ürün Adı) etiketini bul
+            baslik = soup.find("h1")
             
-            # Bulamazsa bir alt katmana bak
-            if not ana_urun_kutusu:
-                ana_urun_kutusu = soup.select_one(".product-details")
+            if baslik:
+                # Başlığın olduğu en yakın üst kapsayıcıyı (Parent) bul.
+                # Migros'ta yapı: <div class="name-price-wrapper"> içinde H1 ve Fiyat var.
+                header_wrapper = baslik.find_parent("div", class_="name-price-wrapper")
+                
+                if header_wrapper:
+                    # SADECE bu başlık kutusunun içine bak.
+                    
+                    # a) İndirimli Fiyat
+                    discount_tag = header_wrapper.select_one(".money-discount-label-wrapper .sale-price")
+                    if discount_tag: return temizle_fiyat(discount_tag.get_text())
+                    
+                    # b) Normal Fiyat
+                    normal_tag = header_wrapper.select_one(".single-price-amount")
+                    if normal_tag: return temizle_fiyat(normal_tag.get_text())
             
-            # Kapsamı belirle
-            hedef_alan = ana_urun_kutusu if ana_urun_kutusu else soup
-
-            # Fiyat Çekme
-            discount_tag = hedef_alan.select_one(".money-discount-label-wrapper .sale-price")
-            if discount_tag: return temizle_fiyat(discount_tag.get_text())
-            
-            normal_tag = hedef_alan.select_one("fe-product-price .single-price-amount")
-            if normal_tag: return temizle_fiyat(normal_tag.get_text())
-
-            yedek_tag = hedef_alan.select_one(".price span")
-            if yedek_tag: return temizle_fiyat(yedek_tag.get_text())
+            # Eğer yukarıdaki çalışmazsa (H1 bulunamazsa),
+            # Manuel olarak sadece en üstteki 'product-details' class'ına bak
+            # (Asla 'list-page-item' veya 'swiper' içine bakma)
+            fallback_scope = soup.select_one("div.product-details")
+            if fallback_scope:
+                 tag = fallback_scope.select_one(".single-price-amount")
+                 if tag: return temizle_fiyat(tag.get_text())
 
 
-        # --- B. CARREFOURSA (ÖZEL KAPSAM) ---
+        # --- B. CARREFOURSA (BAŞLIK KOMŞULUĞU YÖNTEMİ) ---
         elif "carrefour" in kaynak_tipi:
-            # 1. ADIM: KAPSAM BELİRLEME
-            # Aşağıdaki "Daha Fazla Ürün" (tabs category-tabs) kısmını almamak için
-            # sadece üstteki ürün detay alanına (.product-details-cont) odaklanıyoruz.
+            # 1. Önce H1 etiketini bul
+            baslik = soup.find("h1")
             
-            main_scope = soup.select_one(".product-details-cont")
-            
-            # Eğer ana wrapper bulunamazsa, sağ kolon olan "pd-right" içine bakalım
-            # (Mobil/Desktop yapı farkı olabilir diye)
-            if not main_scope:
-                main_scope = soup.select_one(".pd-right")
+            if baslik:
+                # Carrefour'da H1'in olduğu yer: .product-details
+                # Fiyat ise hemen altındaki .price-row içinde.
+                # İkisini kapsayan en yakın ortak ata: .product-details-cont
+                
+                ana_kapsayici = baslik.find_parent(class_="product-details-cont")
+                
+                if ana_kapsayici:
+                    # Sadece bu ana kapsayıcı içindeki 'item-price'a bak.
+                    # Bu kapsayıcı, alttaki sekmeleri (tabs) içermez.
+                    price_tag = ana_kapsayici.select_one(".item-price")
+                    if price_tag: return temizle_fiyat(price_tag.get_text())
+                    
+                    # Yedek: Üstü çizili fiyat
+                    alt_tag = ana_kapsayici.select_one(".priceLineThrough")
+                    if alt_tag: return temizle_fiyat(alt_tag.get_text())
 
-            # Kapsamı belirle
-            hedef_alan = main_scope if main_scope else soup
-
-            # 2. ADIM: FİYAT ÇEKME (Sadece Hedef Alan İçinde)
-            # İndirimli veya Normal Fiyat (.item-price)
-            price_tag = hedef_alan.select_one(".item-price")
-            if price_tag: 
-                return temizle_fiyat(price_tag.get_text())
-            
-            # Yedek: Eğer sadece üstü çizili fiyat kaldıysa (stok sorunu vs.)
-            alt_tag = hedef_alan.select_one(".priceLineThrough")
-            if alt_tag: 
-                return temizle_fiyat(alt_tag.get_text())
-
-
-        # --- C. CIMRI ---
+        # --- C. CIMRI (DEĞİŞMEDİ) ---
         elif "cimri" in kaynak_tipi:
+            # Cimri'de yapı daha standart, en ucuz fiyat etiketini alıyoruz.
             cimri_tag = soup.select_one("span.yEvpr")
             if cimri_tag: return temizle_fiyat(cimri_tag.get_text())
 
-        # --- D. HEPSIBURADA ---
+        # --- D. HEPSIBURADA (DEĞİŞMEDİ) ---
         elif "hepsiburada" in kaynak_tipi:
             checkout_tag = soup.select_one('[data-test-id="checkout-price"]')
             if checkout_tag: return temizle_fiyat(checkout_tag.get_text())
-            
             active_tag = soup.select_one('[data-test-id="price"]')
             if active_tag: return temizle_fiyat(active_tag.get_text())
 
     except Exception as e:
-        print(f"Parser Hatası ({kaynak_tipi}): {e}")
+        print(f"Parser Kritik Hata ({kaynak_tipi}): {e}")
         
     return 0
 
@@ -1301,6 +1302,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
