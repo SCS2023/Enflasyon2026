@@ -1245,23 +1245,109 @@ def sayfa_raporlama(ctx):
 
 def sayfa_maddeler(ctx):
     df = ctx["df_analiz"]
-    st.markdown("### 📦 Madde Bazlı Değişim Analizi")
-    st.markdown("<p style='color:#a1a1aa; font-size:14px;'>Seçilen kategorideki ürünlerin, baz alınan tarihe göre oransal değişimlerini gösterir.</p>", unsafe_allow_html=True)
-    kategoriler = sorted(df['Grup'].unique().tolist())
+    agirlik_col = ctx["agirlik_col"]
+    ad_col = ctx["ad_col"]
+
+    st.markdown("### 📦 Kategori ve Madde Analizi")
+    
+    # --- 1. SEKTÖREL ENFLASYON KARNESİ (ÖZET) ---
+    st.markdown("#### 📊 Sektörel Enflasyon (Ay Başına Göre)")
+    st.info("💡 Bu grafik, simüle edilmiş fiyatlar üzerinden kategorilerin ağırlıklı ortalama artışını gösterir.")
+
+    # Ağırlıklı Ortalama Hesaplama Fonksiyonu
+    def agirlikli_ort(x):
+        w = x[agirlik_col]
+        val = x['Fark_Yuzde'] # hesapla_metrikler fonksiyonundan gelen Ay Başına Göre Değişim
+        if w.sum() == 0: return 0
+        return (w * val).sum() / w.sum()
+
+    # Kategori bazlı grupla ve hesapla
+    df_cat_summary = df.groupby('Grup').apply(agirlikli_ort).reset_index(name='Ortalama_Degisim')
+    df_cat_summary = df_cat_summary.sort_values('Ortalama_Degisim', ascending=True) # Grafikte düzgün durması için
+    
+    # Sektör Grafiği
+    fig_cat = px.bar(
+        df_cat_summary, 
+        x='Ortalama_Degisim', 
+        y='Grup', 
+        orientation='h',
+        text_auto='.2f',
+        color='Ortalama_Degisim',
+        color_continuous_scale=['#10b981', '#f59e0b', '#ef4444'] # Yeşil -> Sarı -> Kırmızı Skalası
+    )
+    fig_cat.update_layout(
+        title="Kategori Bazlı Enflasyon (%)",
+        xaxis_title="Değişim (%)", 
+        yaxis_title="",
+        height=400,
+        plot_bgcolor="rgba(0,0,0,0)"
+    )
+    st.plotly_chart(style_chart(fig_cat), use_container_width=True)
+
+    st.markdown("---")
+
+    # --- 2. MADDE DETAYLARI (SEÇİMLİ) ---
+    st.markdown("#### 🔎 Ürün Bazlı Detaylar")
+    st.markdown("<p style='color:#a1a1aa; font-size:14px;'>Bir kategori seçerek, o grubun içindeki ürünlerin bireysel performansını inceleyebilirsiniz.</p>", unsafe_allow_html=True)
+    
+    # Kategori Seçimi
+    kategoriler = ["TÜMÜ"] + sorted(df['Grup'].unique().tolist())
     col1, col2 = st.columns([1, 3])
-    with col1: secilen_kat = st.selectbox("Kategori Seçiniz:", options=kategoriler, index=0)
-    df_sub = df[df['Grup'] == secilen_kat].copy().sort_values('Fark_Yuzde', ascending=True)
+    with col1: 
+        secilen_kat = st.selectbox("Kategori Seçiniz:", options=kategoriler, index=0)
+    
+    # Veri Filtreleme
+    if secilen_kat == "TÜMÜ":
+        df_sub = df.copy()
+    else:
+        df_sub = df[df['Grup'] == secilen_kat].copy()
+        
+    # Sıralama (En çok artan en üstte veya grafikte en sağda olsun)
+    df_sub = df_sub.sort_values('Fark_Yuzde', ascending=True)
+
     if not df_sub.empty:
+        # Renklendirme Mantığı
         colors = []
         for x in df_sub['Fark_Yuzde']:
-            if abs(x) < 0.01: colors.append('#fde047')
-            elif x > 0: colors.append('#ef4444')
-            else: colors.append('#10b981')
+            if x < 0: colors.append('#10b981')     # Düşenler Yeşil
+            elif x < 2.5: colors.append('#fde047') # Hedef içi Sarı
+            else: colors.append('#ef4444')         # Yüksek Kırmızı
         
-        fig = go.Figure(go.Bar(x=df_sub['Fark_Yuzde'], y=df_sub[ctx['ad_col']], orientation='h', marker_color=colors, text=df_sub['Fark_Yuzde'].apply(lambda x: f"%{x:.2f}"), textposition='outside', hovertemplate='<b>%{y}</b><br>Değişim: %%{x:.2f}<extra></extra>'))
-        fig.update_layout(height=max(500, len(df_sub) * 30), title=f"{secilen_kat} Grubu Fiyat Değişimleri", xaxis_title="Değişim Oranı (%)", yaxis=dict(title="", showgrid=False), margin=dict(l=0, r=0, t=40, b=0))
+        # Dinamik Yükseklik (Ürün sayısı arttıkça grafik uzasın)
+        dynamic_height = max(500, len(df_sub) * 30)
+
+        # Çubuk Grafik
+        fig = go.Figure(go.Bar(
+            x=df_sub['Fark_Yuzde'], 
+            y=df_sub[ad_col], 
+            orientation='h', 
+            marker_color=colors, 
+            text=df_sub['Fark_Yuzde'].apply(lambda x: f"%{x:.2f}"), 
+            textposition='outside', 
+            hovertemplate='<b>%{y}</b><br>Değişim: %%{x:.2f}<extra></extra>'
+        ))
+        
+        fig.update_layout(
+            height=dynamic_height, 
+            title=f"{secilen_kat} - Ürün Fiyat Değişimleri (Ay Başına Göre)", 
+            xaxis_title="Değişim Oranı (%)", 
+            yaxis=dict(title="", showgrid=False), 
+            margin=dict(l=0, r=0, t=40, b=0)
+        )
         st.plotly_chart(style_chart(fig), use_container_width=True)
-    else: st.warning("Bu kategoride veri bulunamadı.")
+        
+        # İsteğe Bağlı: Tablo Görünümü
+        with st.expander("📄 Verileri Tablo Olarak Gör"):
+            st.dataframe(
+                df_sub[[ad_col, 'Grup', 'Fark_Yuzde']].sort_values('Fark_Yuzde', ascending=False),
+                column_config={
+                    "Fark_Yuzde": st.column_config.NumberColumn("Değişim (%)", format="%.2f %%")
+                },
+                use_container_width=True,
+                hide_index=True
+            )
+    else: 
+        st.warning("Bu kategoride görüntülenecek veri bulunamadı.")
 
 def sayfa_trend_analizi(ctx):
     st.markdown("### 📈 Trend Analizleri")
@@ -1370,6 +1456,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
