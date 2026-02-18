@@ -454,61 +454,85 @@ def kod_standartlastir(k):
     return str(k).replace('.0', '').strip().zfill(7)
 
 def fiyat_bul_siteye_gore(soup, kaynak_tipi):
-    """
-    HTML içeriğini alır.
-    Migros ve Carrefour için katı kurallar uygular.
-    Migros için sınıf bulunamazsa Regex ile 'TL' arar.
-    """
     fiyat = 0
     kaynak_tipi = str(kaynak_tipi).lower()
     
     try:
         # ==========================================
-        # ✅ 1. MIGROS (GÜÇLENDİRİLMİŞ)
+        # 🟢 1. MIGROS (Decompose Yöntemi - KESİN ÇÖZÜM)
         # ==========================================
         if "migros" in kaynak_tipi:
-            # 1. Başlık (H1) üzerinden git (Doğru kutuyu bul)
-            baslik = soup.find("h1")
+            # ADIM 1: Sayfadaki "Tehlikeli" Alanları Komple Sil (Decompose)
+            # Bu işlem slider'ları, benzer ürünleri, footer'ı HTML'den tamamen uçurur.
+            cop_elementler = [
+                "sm-list-page-item", 
+                ".horizontal-list-page-items-container", 
+                "app-product-carousel",
+                ".similar-products", 
+                "div.badges-wrapper",
+                "mat-tab-body",  # Sekmeler (Benzer ürünler burada saklanır)
+                ".mat-mdc-tab-body-wrapper" # Senin özellikle istemediğin yer
+            ]
             
-            if baslik:
-                header_wrapper = baslik.find_parent("div", class_="name-price-wrapper")
+            for cop in cop_elementler:
+                for element in soup.select(cop):
+                    element.decompose() # Elementi ağaçtan söküp atar
+
+            # ADIM 2: Şimdi temizlenmiş HTML'de fiyat ara
+            # H1 başlığının yanındaki fiyat bloğunu bulmaya çalış
+            main_wrapper = soup.select_one(".name-price-wrapper")
+            
+            if main_wrapper:
+                # Öncelik sırasına göre seçiciler
+                seciciler = [
+                    (".money-discount-label-wrapper .sale-price", "Migros(Indirim)"), # Money İndirimi
+                    (".single-price-amount", "Migros(Normal)"),
+                    (".price.subtitle-1", "Migros(Subtitle)"),
+                    ("#sale-price", "Migros(SaleID)")
+                ]
                 
-                if header_wrapper:
-                    # YÖNTEM A: İndirimli Fiyat (Money)
-                    discount_tag = header_wrapper.select_one(".money-discount-label-wrapper .sale-price")
-                    if discount_tag: return temizle_fiyat(discount_tag.get_text())
-                    
-                    # YÖNTEM B: Normal Fiyat (Sınıf ile)
-                    normal_tag = header_wrapper.select_one(".single-price-amount")
-                    if normal_tag: return temizle_fiyat(normal_tag.get_text())
-
-                    # YÖNTEM C (YENİ KURTARICI): Regex ile Tarama
-                    # Eğer yukarıdaki sınıflar yoksa, kutunun içindeki tüm metni al
-                    # ve içinde "1.250,50 TL" formatına uyan şeyi bul.
-                    raw_text = header_wrapper.get_text(strip=True)
-                    
-                    # Regex Açıklaması: 
-                    # \d{1,3}   -> 1 ila 3 basamaklı sayı (1 veya 250)
-                    # (?:\.\d{3})* -> Opsiyonel binlik ayracı (.250 gibi)
-                    # ,\d{2}    -> Mutlaka virgül ve 2 kuruş hanesi (,95)
-                    # \s*TL     -> Boşluk ve TL
-                    match = re.search(r'(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)\s*(?:TL|₺)', raw_text)
-                    if match:
-                        fiyat_txt = match.group(1)
-                        # Hatalı eşleşme koruması (Bazen gramajı fiyat sanabilir, TL kontrolü şart)
-                        if "TL" in raw_text or "₺" in raw_text:
-                            return temizle_fiyat(fiyat_txt)
-
-            # Fallback (H1 bulunamazsa eski yöntem)
-            fallback_scope = soup.select_one("div.product-details")
-            if fallback_scope:
-                 # Burada da regex deneyelim
-                 txt = fallback_scope.get_text()
-                 m = re.search(r'(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)\s*(?:TL|₺)', txt)
-                 if m: return temizle_fiyat(m.group(1))
+                for css_kural, etiket in seciciler:
+                    el = main_wrapper.select_one(css_kural)
+                    if el:
+                        val = temizle_fiyat(el.get_text())
+                        if val and val > 0: return val
+            
+            # ADIM 3: Eğer wrapper bulunamadıysa (ki decompose sonrası çok güvenli)
+            # Sayfada kalan 'TL' ibareli ilk geçerli fiyatı al.
+            # Artık sliderlar silindiği için burası ana fiyatı bulacaktır.
+            if fiyat == 0:
+                text_content = soup.get_text()
+                # Regex ile "1.250,50 TL" formatını ara
+                import re
+                match = re.search(r'(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)\s*(?:TL|₺)', text_content)
+                if match:
+                    return temizle_fiyat(match.group(1))
 
         # ==========================================
-        # ✅ 2. CIMRI (STANDART)
+        # 🟢 2. CARREFOURSA (Decompose Yöntemi)
+        # ==========================================
+        elif "carrefour" in kaynak_tipi:
+            # Carrefour'daki slider ve sekmeleri sil
+            cop_elementler = [
+                ".product-carousel",
+                ".category-tabs",
+                ".tabs",
+                ".pl-component",
+                ".similar-products"
+            ]
+            for cop in cop_elementler:
+                for element in soup.select(cop):
+                    element.decompose()
+
+            # Temiz HTML'de arama yap
+            price_tag = soup.select_one(".item-price")
+            if price_tag: return temizle_fiyat(price_tag.get_text())
+            
+            alt_tag = soup.select_one(".priceLineThrough")
+            if alt_tag: return temizle_fiyat(alt_tag.get_text())
+
+        # ==========================================
+        # 🟢 3. CIMRI (Standart)
         # ==========================================
         elif "cimri" in kaynak_tipi:
             cimri_tag = soup.select_one("span.yEvpr")
@@ -527,6 +551,7 @@ def html_isleyici(progress_callback):
     
     progress_callback(0.05) 
     try:
+        # Excel Okuma
         df_conf = github_excel_oku(EXCEL_DOSYASI, SAYFA_ADI)
         df_conf.columns = df_conf.columns.str.strip()
         
@@ -553,6 +578,16 @@ def html_isleyici(progress_callback):
                     for file_name in z.namelist():
                         if not file_name.endswith(('.html', '.htm')): continue
                         
+                        # --- 🛑 YENİ FİLTRELEME BURADA ---
+                        # Dosya ismini küçük harfe çevirip kontrol ediyoruz.
+                        # Sadece "migros" veya "cimri" içerenleri işleme al.
+                        # Diğerleri (carrefour, hepsiburada) döngüden atılır.
+                        fname_lower = file_name.lower()
+                        if "migros" not in fname_lower and "cimri" not in fname_lower:
+                            continue 
+                        # ---------------------------------
+
+                        # Kodu dosya adından al (0101_Migros.html -> 0101)
                         dosya_kodu = file_name.split('_')[0]
                         dosya_kodu = kod_standartlastir(dosya_kodu)
                         
@@ -561,22 +596,18 @@ def html_isleyici(progress_callback):
                         with z.open(file_name) as f:
                             raw = f.read().decode("utf-8", errors="ignore")
                             
-                            # Metadata Okuma
-                            kaynak_tipi = "Bilinmiyor"
-                            if "SOURCE_TYPE:" in raw:
-                                parts = raw.split("SOURCE_TYPE:")
-                                if len(parts) > 1:
-                                    kaynak_tipi = parts[1].split("-->")[0].strip()
+                            # Kaynak Tipi Belirleme (Dosya adından daha güvenli)
+                            if "migros" in fname_lower:
+                                kaynak_tipi = "migros"
+                            elif "cimri" in fname_lower:
+                                kaynak_tipi = "cimri"
                             else:
-                                if "_" in file_name:
-                                    kaynak_tipi = file_name.split('_')[1].replace('.html','')
+                                kaynak_tipi = "bilinmiyor"
 
-                            # Fiyat Çekme
+                            # Parse İşlemi
                             soup = BeautifulSoup(raw, 'html.parser')
                             fiyat = fiyat_bul_siteye_gore(soup, kaynak_tipi)
                             
-                            # Sadece Migros ve Cimri fiyat döndüreceği için,
-                            # Carrefour dosyaları olsa bile fiyat 0 gelecek ve buraya girmeyecek.
                             if fiyat > 0:
                                 if dosya_kodu not in veri_havuzu:
                                     veri_havuzu[dosya_kodu] = []
@@ -586,41 +617,42 @@ def html_isleyici(progress_callback):
                 print(f"Zip Okuma Hatası ({zip_file.name}): {e}")
                 continue
 
-        # --- SONUÇLAR VE GEOMETRİK ORTALAMA ---
+        # --- 3. SONUÇLARI HESAPLA (GEOMETRİK ORTALAMA) ---
         final_list = []
         bugun = datetime.now().strftime("%Y-%m-%d")
         simdi = datetime.now().strftime("%H:%M")
 
         for kod, fiyatlar in veri_havuzu.items():
             if fiyatlar:
-                # GEOMETRİK ORTALAMA HESABI
-                if len(fiyatlar) > 1:
-                    clean_vals = [p for p in fiyatlar if p > 0]
-                    if clean_vals:
+                # 0'dan büyük fiyatlar
+                clean_vals = [p for p in fiyatlar if p > 0]
+                
+                if clean_vals:
+                    # GEOMETRİK ORTALAMA
+                    # Tek kaynak varsa kendisi, çok kaynak varsa geo-mean
+                    if len(clean_vals) > 1:
                         geo_mean = np.exp(np.mean(np.log(clean_vals)))
                         final_fiyat = float(f"{geo_mean:.2f}")
-                        # Kaynak bilgisini de güncelledik
                         kaynak_str = f"Migros & Cimri (GeoMean)"
-                    else: continue
-                else:
-                    final_fiyat = fiyatlar[0]
-                    kaynak_str = "Single Source"
+                    else:
+                        final_fiyat = clean_vals[0]
+                        kaynak_str = "Single Source"
 
-                final_list.append({
-                    "Tarih": bugun,
-                    "Zaman": simdi,
-                    "Kod": kod,
-                    "Madde_Adi": urun_isimleri.get(kod, "Bilinmeyen Ürün"),
-                    "Fiyat": final_fiyat,
-                    "Kaynak": kaynak_str,
-                    "URL": "ZIP_ARCHIVE"
-                })
+                    final_list.append({
+                        "Tarih": bugun,
+                        "Zaman": simdi,
+                        "Kod": kod,
+                        "Madde_Adi": urun_isimleri.get(kod, "Bilinmeyen Ürün"),
+                        "Fiyat": final_fiyat,
+                        "Kaynak": kaynak_str,
+                        "URL": "ZIP_ARCHIVE"
+                    })
 
         progress_callback(0.95)
         if final_list:
             return github_excel_guncelle(pd.DataFrame(final_list), FIYAT_DOSYASI)
         else:
-            return "ZIP dosyalarında (Migros/Cimri için) uygun veri bulunamadı."
+            return "ZIP dosyalarında Migros veya Cimri verisi bulunamadı."
             
     except Exception as e:
         return f"Genel Hata: {str(e)}"
@@ -1294,6 +1326,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
