@@ -545,6 +545,7 @@ def fiyat_bul_siteye_gore(soup, kaynak_tipi):
          
     
 # --- 2. ANA İŞLEYİCİ (ZIP Okuyucu ve Hesaplayıcı) ---
+# --- 2. ANA İŞLEYİCİ (MANUEL + ZIP + GEOMETRİK ORTALAMA) ---
 def html_isleyici(progress_callback):
     repo = get_github_repo()
     if not repo: return "GitHub Bağlantı Hatası"
@@ -558,13 +559,38 @@ def html_isleyici(progress_callback):
         kod_col = next((c for c in df_conf.columns if c.lower() == 'kod'), 'Kod')
         ad_col = next((c for c in df_conf.columns if 'ad' in c.lower()), 'Madde_Adi')
         
+        # Manuel Fiyat Sütununu Bul (Büyük/küçük harf duyarlı olmaması için)
+        manuel_col = next((c for c in df_conf.columns if 'manuel' in c.lower() and 'fiyat' in c.lower()), None)
+
+        # Ürün Adı Haritası
         urun_isimleri = pd.Series(df_conf[ad_col].values, index=df_conf[kod_col].astype(str).apply(kod_standartlastir)).to_dict()
 
+        # Veri Havuzu: Kod -> [Fiyat1, Fiyat2...]
+        veri_havuzu = {}
+
+        # -------------------------------------------------------
+        # ADIM 1: MANUEL FİYATLARI EKLE (YENİ EKLENEN KISIM)
+        # -------------------------------------------------------
+        if manuel_col:
+            for _, row in df_conf.iterrows():
+                try:
+                    kod = kod_standartlastir(row[kod_col])
+                    # Manuel fiyatı temizle ve al
+                    fiyat_manuel = temizle_fiyat(row[manuel_col])
+                    
+                    if fiyat_manuel and fiyat_manuel > 0:
+                        if kod not in veri_havuzu:
+                            veri_havuzu[kod] = []
+                        # Manuel fiyatı havuza ekle
+                        veri_havuzu[kod].append(fiyat_manuel)
+                except:
+                    continue 
+        # -------------------------------------------------------
+
+        # ADIM 2: ZIP DOSYALARINI TARA (MIGROS + CIMRI)
         contents = repo.get_contents("", ref=st.secrets["github"]["branch"])
         zip_files = [c for c in contents if c.name.endswith(".zip") and c.name.startswith("Bolum")]
         total_zips = len(zip_files)
-        
-        veri_havuzu = {}
         
         for i, zip_file in enumerate(zip_files):
             current_progress = 0.10 + (0.80 * ((i + 1) / max(1, total_zips)))
@@ -578,16 +604,11 @@ def html_isleyici(progress_callback):
                     for file_name in z.namelist():
                         if not file_name.endswith(('.html', '.htm')): continue
                         
-                        # --- 🛑 YENİ FİLTRELEME BURADA ---
-                        # Dosya ismini küçük harfe çevirip kontrol ediyoruz.
-                        # Sadece "migros" veya "cimri" içerenleri işleme al.
-                        # Diğerleri (carrefour, hepsiburada) döngüden atılır.
+                        # Dosya Filtreleme (Sadece Migros ve Cimri)
                         fname_lower = file_name.lower()
                         if "migros" not in fname_lower and "cimri" not in fname_lower:
                             continue 
-                        # ---------------------------------
 
-                        # Kodu dosya adından al (0101_Migros.html -> 0101)
                         dosya_kodu = file_name.split('_')[0]
                         dosya_kodu = kod_standartlastir(dosya_kodu)
                         
@@ -596,13 +617,10 @@ def html_isleyici(progress_callback):
                         with z.open(file_name) as f:
                             raw = f.read().decode("utf-8", errors="ignore")
                             
-                            # Kaynak Tipi Belirleme (Dosya adından daha güvenli)
-                            if "migros" in fname_lower:
-                                kaynak_tipi = "migros"
-                            elif "cimri" in fname_lower:
-                                kaynak_tipi = "cimri"
-                            else:
-                                kaynak_tipi = "bilinmiyor"
+                            # Kaynak Tipi
+                            if "migros" in fname_lower: kaynak_tipi = "migros"
+                            elif "cimri" in fname_lower: kaynak_tipi = "cimri"
+                            else: kaynak_tipi = "bilinmiyor"
 
                             # Parse İşlemi
                             soup = BeautifulSoup(raw, 'html.parser')
@@ -617,42 +635,42 @@ def html_isleyici(progress_callback):
                 print(f"Zip Okuma Hatası ({zip_file.name}): {e}")
                 continue
 
-        # --- 3. SONUÇLARI HESAPLA (GEOMETRİK ORTALAMA) ---
+        # --- 3. SONUÇLARI HESAPLA ---
         final_list = []
         bugun = datetime.now().strftime("%Y-%m-%d")
         simdi = datetime.now().strftime("%H:%M")
 
         for kod, fiyatlar in veri_havuzu.items():
             if fiyatlar:
-                # 0'dan büyük fiyatlar
-                clean_vals = [p for p in fiyatlar if p > 0]
-                
-                if clean_vals:
-                    # GEOMETRİK ORTALAMA
-                    # Tek kaynak varsa kendisi, çok kaynak varsa geo-mean
-                    if len(clean_vals) > 1:
+                # GEOMETRİK ORTALAMA
+                # Eğer hem Manuel hem Web fiyatı varsa hepsinin ortalamasını alır.
+                # Sadece Manuel varsa, direkt onu alır.
+                if len(fiyatlar) > 1:
+                    clean_vals = [p for p in fiyatlar if p > 0]
+                    if clean_vals:
                         geo_mean = np.exp(np.mean(np.log(clean_vals)))
                         final_fiyat = float(f"{geo_mean:.2f}")
-                        kaynak_str = f"Migros & Cimri (GeoMean)"
-                    else:
-                        final_fiyat = clean_vals[0]
-                        kaynak_str = "Single Source"
+                        kaynak_str = f"Karma ({len(clean_vals)} Veri)"
+                    else: continue
+                else:
+                    final_fiyat = fiyatlar[0]
+                    kaynak_str = "Tek Kaynak (Manuel/Web)"
 
-                    final_list.append({
-                        "Tarih": bugun,
-                        "Zaman": simdi,
-                        "Kod": kod,
-                        "Madde_Adi": urun_isimleri.get(kod, "Bilinmeyen Ürün"),
-                        "Fiyat": final_fiyat,
-                        "Kaynak": kaynak_str,
-                        "URL": "ZIP_ARCHIVE"
-                    })
+                final_list.append({
+                    "Tarih": bugun,
+                    "Zaman": simdi,
+                    "Kod": kod,
+                    "Madde_Adi": urun_isimleri.get(kod, "Bilinmeyen Ürün"),
+                    "Fiyat": final_fiyat,
+                    "Kaynak": kaynak_str,
+                    "URL": "MIXED"
+                })
 
         progress_callback(0.95)
         if final_list:
             return github_excel_guncelle(pd.DataFrame(final_list), FIYAT_DOSYASI)
         else:
-            return "ZIP dosyalarında Migros veya Cimri verisi bulunamadı."
+            return "Veri bulunamadı (Manuel veya Web)."
             
     except Exception as e:
         return f"Genel Hata: {str(e)}"
@@ -1326,6 +1344,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
