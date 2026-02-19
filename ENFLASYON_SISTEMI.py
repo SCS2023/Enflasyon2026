@@ -719,9 +719,30 @@ def verileri_getir_cache():
         if df_f.empty or df_s.empty: return None, None, None
 
         # GÖRÜNMEZ BOŞLUK VEYA VİRGÜL HATALARINI ZORLA DÜZELT
-        df_f['Tarih'] = df_f['Tarih'].astype(str).str.strip() 
-        df_f['Tarih_DT'] = pd.to_datetime(df_f['Tarih'], errors='coerce')
+        # --- AGRESİF TARİH KURTARMA OPERASYONU ---
+        def zorla_tarih_yap(t):
+            try:
+                # Başındaki sonundaki boşlukları ve saat kısımlarını (07:08 vb) söküp at
+                temiz = str(t).strip().split(' ')[0] 
+                # Excel'den gelen gizli karakterleri temizle
+                temiz = ''.join(c for c in temiz if c.isdigit() or c in ['-', '.', '/'])
+                
+                # Format ne olursa olsun zorla çevir
+                if '.' in temiz:
+                    return pd.to_datetime(temiz, dayfirst=True)
+                return pd.to_datetime(temiz)
+            except:
+                return pd.NaT
+
+        df_f['Tarih_DT'] = df_f['Tarih'].apply(zorla_tarih_yap)
+        
+        # SİLİNEN VAR MI DİYE KONTROL ET (Eğer hala siliniyorsa radarda gösterecek)
+        silinenler = df_f[df_f['Tarih_DT'].isna()]
+        if not silinenler.empty:
+            st.sidebar.error(f"DİKKAT! Tarihe çevrilemeyen {len(silinenler)} satır silindi!")
+            
         df_f = df_f.dropna(subset=['Tarih_DT']).sort_values('Tarih_DT')
+        # ----------------------------------------
         df_f['Tarih_Str'] = df_f['Tarih_DT'].dt.strftime('%Y-%m-%d')
         raw_dates = df_f['Tarih_Str'].unique().tolist()
         
@@ -1326,4 +1347,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
