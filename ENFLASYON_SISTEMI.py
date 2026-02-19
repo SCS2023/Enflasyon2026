@@ -960,7 +960,8 @@ def ui_sidebar_ve_veri_hazirlama(df_analiz_base, raw_dates, ad_col):
         st.sidebar.warning("Veri henüz oluşmadı.")
         return None
         
-    secilen_tarih = st.sidebar.selectbox("Rapor Tarihi:", options=tum_tarihler, index=0)
+    # 'key' değerine en yeni tarihi ekliyoruz. Böylece yeni gün geldiğinde menü kendini zorla sıfırlayıp en yeni günü seçecek!
+    secilen_tarih = st.sidebar.selectbox("Rapor Tarihi:", options=tum_tarihler, index=0, key=f"tarih_secici_{tum_tarihler[0]}")
     
     # Tarih bazlı hesaplamalar (Logic)
     tum_gunler_sirali = sorted([c for c in df_analiz_base.columns if re.match(r'\d{4}-\d{2}-\d{2}', str(c)) and c >= BASLANGIC_LIMITI])
@@ -1462,16 +1463,15 @@ def main():
             progress_bar.empty()
             
             # Sonuç Kontrolü
+            # Sonuç Kontrolü
             if "OK" in res:
-                st.success('Sistem Senkronize Edildi! GitHub sunucuları güncelleniyor...', icon='🚀')
+                # Hem verileri hem de menüdeki eski seçim hafızasını siliyoruz!
+                st.cache_data.clear()
+                st.session_state.clear() 
                 
-                # KRİTİK DÜZELTME: GitHub API'nin yeni veriyi algılaması için 8 saniye zaman tanıyoruz
-                time.sleep(8) 
-                
-                # Hafızayı (cache) bekledikten SONRA temizliyoruz ki eski dosyayı tekrar hafızaya almasın
-                st.cache_data.clear() 
-                
-                st.rerun() # Şimdi yenile
+                st.success('Sistem Senkronize Edildi! Sayfa yenileniyor...', icon='🚀')
+                time.sleep(1)
+                st.rerun()
                 
             elif "Veri bulunamadı" in res:
                 st.warning("⚠️ Yeni veri akışı yok. Güncellenecek yeni fiyat bulunamadı.")
@@ -1503,6 +1503,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
