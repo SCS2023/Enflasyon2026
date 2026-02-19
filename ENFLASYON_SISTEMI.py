@@ -718,6 +718,7 @@ def verileri_getir_cache():
         return None, None, None
 
 # 2. HESAPLAMA YAP (SİMÜLASYON AKTİF EDİLDİ)
+# 2. HESAPLAMA YAP (SİMÜLASYON AKTİF VE SABİTLENDİ)
 def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, ad_col, agirlik_col, baz_col, aktif_agirlik_col, son):
     df_analiz = df_analiz_base.copy()
     
@@ -756,8 +757,15 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
         # 1. ADIM: GERÇEK ORANI HESAPLA
         base_rel = gecerli_veri['Aylik_Ortalama'] / gecerli_veri[baz_col]
         
-        # 2. ADIM: SİMÜLASYON ŞOKU EKLE
-        simulasyon_soku = np.random.uniform(SIM_ALT_LIMIT, SIM_UST_LIMIT, size=len(base_rel))
+        # -------------------------------------------------------------------
+        # 🔴 BÜYÜK DÜZELTME: RASTGELELİĞİ GÜNE GÖRE KİLİTLE (SEED YÖNTEMİ)
+        # Tarihi (örn: 2026-02-19) düz bir sayıya (20260219) çevirip kilit yapıyoruz.
+        # -------------------------------------------------------------------
+        tarih_kilit_kodu = int(son.replace('-', ''))
+        rng = np.random.default_rng(tarih_kilit_kodu)
+        
+        # 2. ADIM: SİMÜLASYON ŞOKU EKLE (Artık her yenilemede o gün için SABİT çıkacak)
+        simulasyon_soku = rng.uniform(SIM_ALT_LIMIT, SIM_UST_LIMIT, size=len(base_rel))
         p_rel = base_rel * simulasyon_soku
         
         # Simüle edilmiş yeni fiyatlar
@@ -779,7 +787,8 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
         # 5. ADIM: YILLIK ENFLASYON (HEDEF %30-35 BANDI)
         if enf_genel > 0:
             yillik_enf = ((1 + enf_genel/100) * (1 + BEKLENEN_AYLIK_ORT/100)**11 - 1) * 100
-            yillik_enf = yillik_enf * np.random.uniform(0.98, 1.02)
+            # Yıllık enflasyonun rastgeleliğini de aynı kilitle sabitliyoruz
+            yillik_enf = yillik_enf * rng.uniform(0.98, 1.02)
         else:
             yillik_enf = 0.0
 
@@ -1342,6 +1351,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
