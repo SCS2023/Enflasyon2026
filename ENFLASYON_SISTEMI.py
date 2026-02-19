@@ -376,28 +376,40 @@ def get_github_repo():
 
 # @st.cache_data(ttl=600, show_spinner=False)  <--- BU SATIRI SİLİYORUZ
 def github_excel_oku(dosya_adi, sayfa_adi=None):
-    # (İçerik aynı kalacak...)
-    repo = get_github_repo()
-    if not repo: return pd.DataFrame()
     try:
-        # --- GITHUB CACHE BUSTER (SİNSİ ÖNBELLEĞİ AŞMA) ---
-        branch_name = st.secrets["github"]["branch"]
+        repo_name = st.secrets["github"]["repo_name"]
+        branch = st.secrets["github"]["branch"]
+        token = st.secrets["github"]["token"]
         
-        # Branch isminden ziyade, repodaki "en güncel hareketin" (commit) benzersiz kodunu alıyoruz
-        latest_sha = repo.get_branch(branch_name).commit.sha
+        # --- GITHUB CDN ÖNBELLEK KIRICI (CACHE-BUSTER) ---
+        # URL'nin sonuna "?t=1234567" gibi o anki saniyeyi ekliyoruz.
+        # Bu sayede GitHub her seferinde "yepyeni bir dosya" istendiğini sanıp
+        # eski veriyi vermekten vazgeçiyor ve anlık en güncel dosyayı çekiyor!
+        timestamp = int(time.time())
+        url = f"https://raw.githubusercontent.com/{repo_name}/{branch}/{dosya_adi}?t={timestamp}"
         
-        # GitHub'a "bana branchi değil, bu spesifik güncellemeyi ver" diyoruz. 
-        # Böylece GitHub CDN'i eski dosyayı veremez!
-        c = repo.get_contents(dosya_adi, ref=latest_sha)
-        # ----------------------------------------------------
-
+        headers = {
+            "Authorization": f"token {token}",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+        
+        # Doğrudan Raw sunucusundan çekiyoruz (PyGithub aradan çıkıyor)
+        res = requests.get(url, headers=headers)
+        
+        if res.status_code != 200:
+            print(f"Hata Kodu: {res.status_code}")
+            return pd.DataFrame()
+            
         if sayfa_adi:
-            df = pd.read_excel(BytesIO(c.decoded_content), sheet_name=sayfa_adi, dtype=str)
+            df = pd.read_excel(BytesIO(res.content), sheet_name=sayfa_adi, dtype=str)
         else:
-            df = pd.read_excel(BytesIO(c.decoded_content), dtype=str)
+            df = pd.read_excel(BytesIO(res.content), dtype=str)
+            
         return df
     except Exception as e:
-        print(f"GitHub Okuma Hatası: {e}")
+        print(f"Raw Fetch Hatası: {e}")
         return pd.DataFrame()
 
 def github_excel_guncelle(df_yeni, dosya_adi):
@@ -1491,6 +1503,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
