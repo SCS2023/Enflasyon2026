@@ -927,8 +927,8 @@ def sayfa_piyasa_ozeti(ctx):
     st.markdown("<br>", unsafe_allow_html=True)
     
     df = ctx["df_analiz"]
-    inc = df.sort_values('Gunluk_Degisim', ascending=False).head(5)
-    dec = df.sort_values('Gunluk_Degisim', ascending=True).head(5)
+    inc = df.sort_values('Gunluk_Degisim', ascending=False).head(15)
+    dec = df.sort_values('Gunluk_Degisim', ascending=True).head(15)
     
     items = []
     for _, r in inc.iterrows():
@@ -1351,6 +1351,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
