@@ -662,8 +662,10 @@ def html_isleyici(progress_callback):
         # --- 3. SONUÇLARI HESAPLA ---
         # --- 3. SONUÇLARI HESAPLA (MAKSİMUM FİYAT - YÜKSEK ENFLASYON MODU) ---
         final_list = []
-        bugun = datetime.now().strftime("%Y-%m-%d")
-        simdi = datetime.now().strftime("%H:%M")
+        # Sunucu neresi olursa olsun zorla Türkiye saatini (UTC+3) kullan
+        tr_saati = datetime.utcnow() + timedelta(hours=3)
+        bugun = tr_saati.strftime("%Y-%m-%d")
+        simdi = tr_saati.strftime("%H:%M")
 
         for kod, fiyatlar in veri_havuzu.items():
             if fiyatlar:
@@ -1555,6 +1557,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
