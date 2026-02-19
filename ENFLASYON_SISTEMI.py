@@ -674,36 +674,58 @@ def style_chart(fig, is_pdf=False, is_sunburst=False):
 # 1. VERİ GETİR (Önbellek (Cache) tamamen iptal edildi, ham URL üzerinden saniye bazlı taze veri çeker)
 def verileri_getir_cache():
     try:
-        repo_name = st.secrets["github"]["repo_name"]
-        branch = st.secrets["github"]["branch"]
-        token = st.secrets["github"]["token"]
-        
-        headers = {
-            "Authorization": f"token {token}",
-            "Cache-Control": "no-cache, max-age=0, must-revalidate",
-            "Pragma": "no-cache"
-        }
-        
-        # Saniyelik cache kırıcı
-        timestamp = int(time.time())
-        url_fiyat = f"https://raw.githubusercontent.com/{repo_name}/{branch}/{FIYAT_DOSYASI}?t={timestamp}"
-        url_conf = f"https://raw.githubusercontent.com/{repo_name}/{branch}/{EXCEL_DOSYASI}?t={timestamp}"
-        
-        res_fiyat = requests.get(url_fiyat, headers=headers)
-        res_conf = requests.get(url_conf, headers=headers)
-        
-        if res_fiyat.status_code != 200 or res_conf.status_code != 200:
+        repo = get_github_repo()
+        if not repo: 
+            st.sidebar.error("Repo bağlantısı kurulamadı.")
             return None, None, None
             
-        df_f = pd.read_excel(BytesIO(res_fiyat.content), dtype=str)
-        df_s = pd.read_excel(BytesIO(res_conf.content), sheet_name=SAYFA_ADI, dtype=str)
+        branch_name = st.secrets["github"]["branch"]
+        
+        # 1. GITHUB ÇEKİRDEĞİNE İNİYORUZ (Önbelleksiz kesin çözüm)
+        latest_commit = repo.get_branch(branch_name).commit
+        tree = repo.get_git_tree(latest_commit.sha, recursive=True)
+        
+        fiyat_blob_sha = None
+        conf_blob_sha = None
+        
+        for item in tree.tree:
+            if item.path == FIYAT_DOSYASI:
+                fiyat_blob_sha = item.sha
+            elif item.path == EXCEL_DOSYASI:
+                conf_blob_sha = item.sha
+                
+        if not fiyat_blob_sha:
+            st.sidebar.error(f"{FIYAT_DOSYASI} repoda bulunamadı!")
+            return None, None, None
+            
+        # 2. DOSYAYI DOĞRUDAN BLOB OLARAK İNDİR (Sıfır Cache)
+        fiyat_blob = repo.get_git_blob(fiyat_blob_sha)
+        fiyat_content = base64.b64decode(fiyat_blob.content)
+        df_f = pd.read_excel(BytesIO(fiyat_content), dtype=str)
+        
+        # === 🐞 HATA TESPİT RADARI (BÜTÜN SIRRI BURASI ÇÖZECEK) ===
+        st.sidebar.markdown("### 🐞 Canlı Veritabanı Radarı")
+        st.sidebar.caption("Eğer burada 19'unu GÖRMÜYORSAN Python yanlış repoya/branch'a bakıyor demektir.")
+        st.sidebar.dataframe(df_f[['Tarih', 'Kod', 'Fiyat']].tail(4))
+        # ========================================================
+
+        if conf_blob_sha:
+            conf_blob = repo.get_git_blob(conf_blob_sha)
+            conf_content = base64.b64decode(conf_blob.content)
+            df_s = pd.read_excel(BytesIO(conf_content), sheet_name=SAYFA_ADI, dtype=str)
+        else:
+            df_s = pd.DataFrame()
 
         if df_f.empty or df_s.empty: return None, None, None
 
+        # GÖRÜNMEZ BOŞLUK VEYA VİRGÜL HATALARINI ZORLA DÜZELT
+        df_f['Tarih'] = df_f['Tarih'].astype(str).str.strip() 
         df_f['Tarih_DT'] = pd.to_datetime(df_f['Tarih'], errors='coerce')
         df_f = df_f.dropna(subset=['Tarih_DT']).sort_values('Tarih_DT')
         df_f['Tarih_Str'] = df_f['Tarih_DT'].dt.strftime('%Y-%m-%d')
         raw_dates = df_f['Tarih_Str'].unique().tolist()
+        
+        st.sidebar.info(f"İşlenebilen Günler: {raw_dates[-2:] if len(raw_dates)>1 else raw_dates}")
 
         df_s.columns = df_s.columns.str.strip()
         kod_col = next((c for c in df_s.columns if c.lower() == 'kod'), 'Kod')
@@ -713,6 +735,7 @@ def verileri_getir_cache():
         df_s['Kod'] = df_s[kod_col].astype(str).apply(kod_standartlastir)
         df_s = df_s.drop_duplicates(subset=['Kod'], keep='first')
         
+        df_f['Fiyat'] = df_f['Fiyat'].astype(str).str.replace(',', '.').str.strip()
         df_f['Fiyat'] = pd.to_numeric(df_f['Fiyat'], errors='coerce')
         df_f = df_f[df_f['Fiyat'] > 0]
         
@@ -728,9 +751,8 @@ def verileri_getir_cache():
         return df_analiz_base, raw_dates, ad_col
 
     except Exception as e:
-        st.sidebar.error(f"Kritik Hata: {str(e)}")
+        st.sidebar.error(f"Veri Çekme Hatası: {str(e)}")
         return None, None, None
-
 # 2. HESAPLAMA YAP (SEK HALİ - SİMÜLASYON İPTAL)
 def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, ad_col, agirlik_col, baz_col, aktif_agirlik_col, son):
     df_analiz = df_analiz_base.copy()
@@ -1304,3 +1326,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
