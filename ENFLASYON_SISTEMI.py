@@ -776,7 +776,7 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
             "10": (1.025, 1.055),   # Eğitim ~ %4.07 hedefi
             "11": (1.025, 1.025),   # Lokanta ~ %1.66 hedefi
             "12": (1.015, 1.020),   # Sigorta/Finans ~ %1.24 hedefi
-            "13": (0.970, 0.995)    # Kişisel bakım ~ -%1.93 (Eksi enflasyon)
+            "13": (1.045, 1.050)    # Kişisel bakım ~ -%1.93 (Eksi enflasyon)
         }
 
         # 2. ADIM: AKILLI ŞOK UYGULAMASI (Hem artış hem azalış yönlü manipülasyon)
@@ -1388,6 +1388,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
