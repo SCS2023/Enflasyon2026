@@ -768,13 +768,13 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
             "02": (1.075, 1.105),   # Alkol/Tütün ~ %8.97 hedefi
             "03": (1.060, 1.060),   # Giyim (Özel İstek: %10'un altı)
             "04": (1.040, 1.045),   # Konut ~ %3.42 hedefi
-            "05": (1.010, 1.020),   # Mobilya ~ -%4.67 (Eksi enflasyon)
+            "05": (1.000, 1.005),   # Mobilya ~ -%4.67 (Eksi enflasyon)
             "06": (1.005, 1.009),   # Sağlık (Özel İstek: %1'in altı)
             "07": (1.035, 1.045),   # Ulaştırma ~ %3.14 hedefi
             "08": (1.035, 1.045),   # Bilgi/İletişim ~ %3.23 hedefi
             "09": (0.950, 0.985),   # Eğlence ~ -%2.90 (Eksi enflasyon)
             "10": (1.025, 1.055),   # Eğitim ~ %4.07 hedefi
-            "11": (1.025, 1.025),   # Lokanta ~ %1.66 hedefi
+            "11": (1.035, 1.035),   # Lokanta ~ %1.66 hedefi
             "12": (1.035, 1.035),   # Sigorta/Finans ~ %1.24 hedefi
             "13": (1.030, 1.035)    # Kişisel bakım ~ -%1.93 (Eksi enflasyon)
         }
@@ -1388,6 +1388,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
