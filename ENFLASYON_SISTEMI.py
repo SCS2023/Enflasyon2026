@@ -762,11 +762,11 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
         rng = np.random.default_rng(tarih_kilit_kodu)
         
         KAT_HEDEFLERI = {
-            "01": (1.063, 1.063),   # Gıda
-            "02": (1.075, 1.105),   # Alkol/Tütün
-            "03": (1.060, 1.060),   # Giyim
-            "04": (1.040, 1.045),   # Konut
-            "05": (1.000, 1.005),   # Mobilya
+            "01": (1.063, 1.064),   # Gıda
+            "02": (1.075, 1.104),   # Alkol/Tütün
+            "03": (1.060, 1.061),   # Giyim
+            "04": (1.040, 1.044),   # Konut
+            "05": (1.000, 1.004),   # Mobilya
             "06": (1.005, 1.009),   # Sağlık
             "07": (1.035, 1.045),   # Ulaştırma
             "08": (1.035, 1.045),   # Bilgi/İletişim
@@ -1409,6 +1409,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
