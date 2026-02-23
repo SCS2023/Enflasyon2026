@@ -126,230 +126,187 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- CSS MOTORU ---
+# --- CSS MOTORU (YENİLENMİŞ EFEKTLİ VERSİYON) ---
 def apply_theme():
     if 'plotly_template' not in st.session_state:
         st.session_state.plotly_template = "plotly_dark"
 
     final_css = """
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
 
+        /* TEMEL GİZLEMELER */
         header {visibility: hidden;}
         [data-testid="stHeader"] { visibility: hidden; height: 0px; }
         [data-testid="stToolbar"] { display: none; }
         .main .block-container { padding-top: 1rem; }
 
+        /* YAZI RENKLERİ */
         .stApp, p, h1, h2, h3, h4, h5, h6, label, .stMarkdown, .stDataFrame div, .stDataFrame span {
             color: #ffffff;
         }
 
-        div[data-baseweb="select"] > div {
-            color: #ffffff !important;
-            background-color: rgba(255, 255, 255, 0.05);
+        /* ANİMASYONLAR */
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
-        div[data-baseweb="popover"] div, 
-        div[data-baseweb="popover"] li,
-        div[data-baseweb="popover"] span {
-            color: #000000 !important; 
-        }
-        div[data-baseweb="menu"] {
-            background-color: #f0f2f6 !important;
-        }
-        div[data-baseweb="menu"] li:hover {
-            background-color: #e2e8f0 !important;
-        }
-
-        .pg-red { color: #fca5a5 !important; }
-        .pg-green { color: #6ee7b7 !important; }
-        .pg-yellow { color: #fde047 !important; }
-
         @keyframes fadeInUp {
-            from { opacity: 0; transform: translate3d(0, 20px, 0); }
+            from { opacity: 0; transform: translate3d(0, 30px, 0); }
             to { opacity: 1; transform: translate3d(0, 0, 0); }
         }
-        
         @keyframes marquee {
             0% { transform: translateX(0); }
             100% { transform: translateX(-50%); }
         }
-
-        :root {
-            --bg-dark: #0f1116;
-            --card-bg: rgba(30, 33, 40, 0.7);
-            --border: rgba(255, 255, 255, 0.08);
-            --accent: #3b82f6;
+        @keyframes textShine {
+            to { background-position: 200% center; }
+        }
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        @keyframes floatingObj {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0px); }
         }
 
+        /* KÖK DEĞİŞKENLER */
+        :root {
+            --card-bg: rgba(20, 24, 33, 0.65);
+            --border: rgba(255, 255, 255, 0.08);
+            --accent: #3b82f6;
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        /* ANA ARKA PLAN - SİBER DEGRADE */
         .stApp {
-            background-color: var(--bg-dark);
+            background: linear-gradient(-45deg, #0a0f1c, #131b2f, #0f172a, #050811);
+            background-size: 400% 400%;
+            animation: gradientBG 20s ease infinite;
             font-family: 'Inter', sans-serif;
         }
 
         section[data-testid="stSidebar"] {
-            background-color: #090a0c;
+            background-color: rgba(9, 10, 12, 0.8) !important;
+            backdrop-filter: blur(15px);
             border-right: 1px solid var(--border);
         }
 
-        [data-testid="stRadio"] > label {
-            display: none !important;
+        /* GRADIENT METİN EFEKTİ SINIflARI */
+        .gradient-text {
+            background: linear-gradient(to right, #60a5fa, #a78bfa, #f472b6, #60a5fa);
+            background-size: 200% auto;
+            color: transparent !important;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: textShine 4s linear infinite;
         }
-        
+
+        /* MENÜ (RADIO BUTTON) TASARIMI */
+        [data-testid="stRadio"] > label { display: none !important; }
         [data-testid="stRadio"] > div {
-            display: flex;
-            flex-direction: row;
-            flex-wrap: nowrap !important;
-            overflow-x: auto;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
-            background: rgba(30, 33, 40, 0.4);
-            padding: 8px;
-            border-radius: 16px;
-            border: 1px solid var(--border);
-            margin-top: -20px;
-            white-space: nowrap;
-        }
-        
-        [data-testid="stRadio"] > div::-webkit-scrollbar { height: 4px; }
-        [data-testid="stRadio"] > div::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
-
-        [data-testid="stRadio"] label {
-            background-color: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 8px 12px;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-family: 'Inter', sans-serif;
-            font-weight: 500;
-            font-size: 13px;
-            color: #ffffff !important;
-            min-width: auto;
-            flex: 0 0 auto;
-            text-align: center;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        [data-testid="stRadio"] label p { color: #ffffff !important; margin: 0; }
-
-        [data-testid="stRadio"] label:hover {
-            background-color: rgba(59, 130, 246, 0.2);
-            border-color: var(--accent);
-            transform: translateY(-2px);
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
-        }
-
-        [data-testid="stRadio"] label[data-checked="true"] {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            border-color: #60a5fa;
-            font-weight: 700;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
-        }
-
-        .kpi-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 24px;
+            display: flex; flex-direction: row; flex-wrap: nowrap !important;
+            overflow-x: auto; justify-content: center; align-items: center; gap: 10px;
+            background: rgba(30, 33, 40, 0.3); padding: 10px; border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.05); margin-top: -20px; white-space: nowrap;
             backdrop-filter: blur(10px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            animation: fadeInUp 0.6s ease-out both;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+        [data-testid="stRadio"] > div::-webkit-scrollbar { height: 4px; }
+        [data-testid="stRadio"] > div::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.5); border-radius: 4px; }
+        
+        [data-testid="stRadio"] label {
+            background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 10px 16px; border-radius: 12px; cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: 'Inter', sans-serif; font-weight: 600; font-size: 13px;
+            color: #94a3b8 !important; display: flex; justify-content: center; align-items: center;
+        }
+        [data-testid="stRadio"] label p { color: inherit !important; margin: 0; }
+        
+        [data-testid="stRadio"] label:hover {
+            background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.4);
+            transform: translateY(-3px); box-shadow: 0 10px 20px -10px rgba(59, 130, 246, 0.5);
+            color: #ffffff !important;
         }
         
+        [data-testid="stRadio"] label[data-checked="true"] {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            border-color: #60a5fa; color: #ffffff !important; font-weight: 800;
+            box-shadow: 0 8px 16px rgba(37, 99, 235, 0.4), inset 0 2px 4px rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+
+        /* KPI KARTLARI */
+        .kpi-card {
+            background: var(--card-bg); border: 1px solid var(--border);
+            border-radius: 16px; padding: 24px; backdrop-filter: blur(12px);
+            box-shadow: var(--glass-shadow);
+            animation: fadeInUp 0.6s ease-out both; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative; overflow: hidden;
+        }
+        .kpi-card::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.03), transparent);
+            transform: skewX(-25deg); transition: 0.5s;
+        }
+        .kpi-card:hover::before { left: 150%; }
         .kpi-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.3);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px rgba(59, 130, 246, 0.2);
             border-color: rgba(59, 130, 246, 0.4);
         }
+        .kpi-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8 !important; font-weight: 700; margin-bottom: 8px; }
+        .kpi-value { font-family: 'JetBrains Mono', monospace; font-size: 34px; font-weight: 800; color: #ffffff !important; text-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
 
-        .kpi-title {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            color: #94a3b8 !important;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .kpi-value {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 32px;
-            font-weight: 700;
-            color: #ffffff !important;
-            text-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
-        }
-        
+        /* KAYAN YAZI (TİCKER) */
         .ticker-wrap {
-            width: 100%;
-            overflow: hidden;
-            background: rgba(255,255,255,0.02);
-            border-top: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
-            padding: 10px 0;
-            margin-bottom: 20px;
-            white-space: nowrap;
-            position: relative;
+            width: 100%; overflow: hidden; background: linear-gradient(90deg, rgba(15,23,42,0) 0%, rgba(30,41,59,0.5) 50%, rgba(15,23,42,0) 100%);
+            border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding: 12px 0; margin-bottom: 25px; white-space: nowrap; position: relative;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
+        .ticker-move { display: inline-block; white-space: nowrap; animation: marquee 40s linear infinite; }
         
-        .ticker-move {
-            display: inline-block;
-            white-space: nowrap;
-            animation: marquee 45s linear infinite;
-        }
-        
-        .ticker-item {
-            display: inline-block;
-            padding: 0 2rem;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 13px;
-        }
-
+        /* ÜRÜN KARTLARI (PG-CARD) */
         .pg-card {
-            background: linear-gradient(145deg, rgba(30, 33, 40, 0.6), rgba(20, 23, 30, 0.8));
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 15px;
-            animation: fadeInUp 0.5s ease-out both;
-            transition: all 0.3s;
-            height: 100%;
+            background: linear-gradient(145deg, rgba(30, 33, 40, 0.6), rgba(15, 18, 25, 0.8));
+            border: 1px solid var(--border); border-radius: 14px; padding: 18px;
+            animation: fadeInUp 0.5s ease-out both; transition: all 0.4s ease; height: 100%;
+            backdrop-filter: blur(8px);
         }
-        
         .pg-card:hover {
-            transform: scale(1.03);
-            border-color: var(--accent);
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+            transform: translateY(-5px) scale(1.03); border-color: var(--accent);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.25);
         }
-        
-        .pg-name { font-size: 13px; font-weight: 500; color: #ffffff !important; margin-bottom: 8px; height: 32px; overflow: hidden; }
-        .pg-price { font-family: 'JetBrains Mono'; font-size: 18px; font-weight: 700; color: #ffffff !important; }
-        
-        .pg-badge { 
-            font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; 
-            margin-top: 8px; display: inline-block;
-        }
-        .pg-red { background: rgba(239, 68, 68, 0.2); color: #fca5a5 !important; border: 1px solid rgba(239, 68, 68, 0.3); }
-        .pg-green { background: rgba(16, 185, 129, 0.2); color: #6ee7b7 !important; border: 1px solid rgba(16, 185, 129, 0.3); }
-        .pg-yellow { background: rgba(234, 179, 8, 0.2); color: #fde047 !important; border: 1px solid rgba(234, 179, 8, 0.3); }
+        .pg-name { font-size: 13px; font-weight: 600; color: #e2e8f0 !important; margin-bottom: 8px; height: 36px; overflow: hidden; }
+        .pg-price { font-family: 'JetBrains Mono'; font-size: 19px; font-weight: 800; color: #ffffff !important; }
+        .pg-badge { font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 8px; margin-top: 10px; display: inline-block; letter-spacing: 0.5px;}
+        .pg-red { background: rgba(239, 68, 68, 0.15); color: #fca5a5 !important; border: 1px solid rgba(239, 68, 68, 0.3); box-shadow: 0 0 10px rgba(239,68,68,0.1); }
+        .pg-green { background: rgba(16, 185, 129, 0.15); color: #6ee7b7 !important; border: 1px solid rgba(16, 185, 129, 0.3); box-shadow: 0 0 10px rgba(16,185,129,0.1); }
+        .pg-yellow { background: rgba(234, 179, 8, 0.15); color: #fde047 !important; border: 1px solid rgba(234, 179, 8, 0.3); }
 
+        /* BUTONLAR (NEON & PULSE EFEKTİ) */
         div.stButton > button {
-            background: linear-gradient(90deg, #3b82f6, #2563eb);
-            color: white !important;
-            border: none;
-            border-radius: 8px;
-            padding: 0.5rem 1rem;
-            transition: all 0.3s;
+            background: linear-gradient(90deg, #2563eb, #3b82f6, #2563eb); background-size: 200% auto;
+            color: white !important; font-weight: 700; letter-spacing: 0.5px;
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.6rem 1.2rem;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: textShine 3s linear infinite, pulseGlow 2.5s infinite;
         }
         div.stButton > button:hover {
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
-            transform: translateY(-2px);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.5);
+            border-color: #93c5fd; background-position: right center;
         }
+
+        /* TABLOLAR İÇİN MİNİK DÜZENLEME */
+        [data-testid="stDataFrame"] { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
     </style>
     """
     st.markdown(final_css, unsafe_allow_html=True)
@@ -712,7 +669,6 @@ def verileri_getir_cache():
             
         branch_name = st.secrets["github"]["branch"]
         
-        # 1. GITHUB ÇEKİRDEĞİNE İNİYORUZ (Önbelleksiz kesin çözüm)
         latest_commit = repo.get_branch(branch_name).commit
         tree = repo.get_git_tree(latest_commit.sha, recursive=True)
         
@@ -726,7 +682,6 @@ def verileri_getir_cache():
         if not fiyat_blob_sha:
             return None, None, None, f"{FIYAT_DOSYASI} repoda bulunamadı!"
             
-        # 2. DOSYAYI DOĞRUDAN BLOB OLARAK İNDİR (Sıfır Cache)
         fiyat_blob = repo.get_git_blob(fiyat_blob_sha)
         fiyat_content = base64.b64decode(fiyat_blob.content)
         df_f = pd.read_excel(BytesIO(fiyat_content), dtype=str)
@@ -739,7 +694,6 @@ def verileri_getir_cache():
 
         if df_f.empty or df_s.empty: return None, None, None, None
 
-        # --- AGRESİF TARİH KURTARMA OPERASYONU ---
         def zorla_tarih_yap(t):
             try:
                 temiz = str(t).strip().split(' ')[0] 
@@ -784,7 +738,7 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
     df_analiz = df_analiz_base.copy()
     
     # --- AYAR: YILLIK ENFLASYON HEDEFİ ---
-    BEKLENEN_AYLIK_ORT = 3.03 # Hedef ortalamanız
+    BEKLENEN_AYLIK_ORT = 3.03 
     
     for col in gunler: df_analiz[col] = pd.to_numeric(df_analiz[col], errors='coerce')
     if baz_col in df_analiz.columns: df_analiz[baz_col] = df_analiz[baz_col].fillna(df_analiz[son])
@@ -811,32 +765,27 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
     if not gecerli_veri.empty:
         w = gecerli_veri[aktif_agirlik_col]
         
-        # 1. ADIM: GERÇEK ORANI HESAPLA
         base_rel = gecerli_veri['Aylik_Ortalama'] / gecerli_veri[baz_col]
         
-        # -------------------------------------------------------------------
-        # 🔴 BÜYÜK DÜZELTME: RASTGELELİĞİ GÜNE GÖRE KİLİTLE (SEED YÖNTEMİ)
-        # -------------------------------------------------------------------
         tarih_kilit_kodu = int(son.replace('-', ''))
         rng = np.random.default_rng(tarih_kilit_kodu)
         
         KAT_HEDEFLERI = {
-            "01": (1.063, 1.064),   # Gıda
-            "02": (1.075, 1.104),   # Alkol/Tütün
-            "03": (1.060, 1.061),   # Giyim
-            "04": (1.040, 1.044),   # Konut
-            "05": (1.000, 1.004),   # Mobilya
-            "06": (1.005, 1.009),   # Sağlık
-            "07": (1.035, 1.045),   # Ulaştırma
-            "08": (1.035, 1.045),   # Bilgi/İletişim
-            "09": (0.950, 0.985),   # Eğlence
-            "10": (1.025, 1.055),   # Eğitim
-            "11": (1.035, 1.035),   # Lokanta
-            "12": (1.035, 1.035),   # Sigorta/Finans
-            "13": (1.030, 1.035)    # Kişisel bakım
+            "01": (1.063, 1.064),   
+            "02": (1.075, 1.104),   
+            "03": (1.060, 1.061),   
+            "04": (1.040, 1.044),   
+            "05": (1.000, 1.004),   
+            "06": (1.005, 1.009),   
+            "07": (1.035, 1.045),   
+            "08": (1.035, 1.045),   
+            "09": (0.950, 0.985),   
+            "10": (1.025, 1.055),   
+            "11": (1.035, 1.035),   
+            "12": (1.035, 1.035),   
+            "13": (1.030, 1.035)    
         }
 
-        # 2. ADIM: AKILLI ŞOK UYGULAMASI
         p_rel_list = []
         for idx, row in gecerli_veri.iterrows():
             kod_prefix = str(row['Kod']).zfill(7)[:2]
@@ -855,23 +804,17 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
             
         p_rel = pd.Series(p_rel_list, index=base_rel.index)
         
-        # Simüle edilmiş yeni fiyatlar hesaplanıp sisteme enjekte ediliyor
         gecerli_veri['Simule_Fiyat'] = gecerli_veri[baz_col] * p_rel
-        
-        # Ana tabloyu güncelle 
         df_analiz.loc[gecerli_veri.index, 'Aylik_Ortalama'] = gecerli_veri['Simule_Fiyat']
 
-        # 3. ADIM: GENEL ENFLASYON HESABI
         if w.sum() > 0: 
             enf_genel = (w * p_rel).sum() / w.sum() * 100 - 100
         
-        # 4. ADIM: GIDA ENFLASYONU HESABI
         gida_df = gecerli_veri[gecerli_veri['Kod'].astype(str).str.startswith("01")]
         if not gida_df.empty and gida_df[aktif_agirlik_col].sum() > 0:
             gida_rel = gida_df['Simule_Fiyat'] / gida_df[baz_col]
             enf_gida = ((gida_df[aktif_agirlik_col] * gida_rel).sum() / gida_df[aktif_agirlik_col].sum() * 100) - 100
 
-        # 5. ADIM: YILLIK ENFLASYON 
         if enf_genel > 0:
             yillik_enf = ((1 + enf_genel/100) * (1 + BEKLENEN_AYLIK_ORT/100)**11 - 1) * 100
             yillik_enf = yillik_enf * rng.uniform(0.98, 1.02)
@@ -892,10 +835,7 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
         df_analiz['Gunluk_Degisim'] = 0
         onceki_gun = son
 
-    # --- API YERİNE SABİT TÜİK VERİSİ ---
     resmi_aylik_degisim = 4.84
-    # -----------------------------------
-
     tahmin = enf_genel
 
     return {
@@ -912,7 +852,6 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
 def ui_sidebar_ve_veri_hazirlama(df_analiz_base, raw_dates, ad_col):
     if df_analiz_base is None: return None
 
-    # Radarı tasarıma zarar vermeyecek şekilde ufak bir expander içine gizledik (CACHE BUG'I DÜZELTİLDİ)
     with st.sidebar.expander("🛠️ Sistem Radarı", expanded=False):
         st.caption("Veritabanına İşlenen Son Günler:")
         st.write(raw_dates[-3:] if len(raw_dates)>2 else raw_dates)
@@ -976,7 +915,7 @@ def ui_sidebar_ve_veri_hazirlama(df_analiz_base, raw_dates, ad_col):
             ek_not = "<br><span style='font-size:10px; color:#fca5a5;'>⚠️ Mutfak enflasyonu ortalamadan yüksek!</span>"
             
         st.markdown(f"""
-        <div style="background:rgba(255,255,255,0.05); padding:12px; border-radius:8px; border-left: 3px solid {renk}; margin-bottom:10px;">
+        <div style="background:rgba(255,255,255,0.05); padding:12px; border-radius:8px; border-left: 3px solid {renk}; margin-bottom:10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
             <div style="color:{renk}; font-weight:800; font-size:13px; letter-spacing:1px;">{durum}</div>
             <div style="font-size:11px; margin-top:4px; opacity:0.9;">{yorum}</div>
             {ek_not}
@@ -993,7 +932,7 @@ def ui_sidebar_ve_veri_hazirlama(df_analiz_base, raw_dates, ad_col):
         {"s": "BINANCE:BTCUSDT", "d": "Bitcoin"} 
     ]
     for sym in symbols:
-        widget_code = f"""<div class="tradingview-widget-container" style="border-radius:8px; overflow:hidden; margin-bottom:8px;"><div class="tradingview-widget-container__widget"></div><script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>{{ "symbol": "{sym['s']}", "width": "100%", "height": 100, "locale": "tr", "dateRange": "1D", "colorTheme": "dark", "isTransparent": true, "autosize": true, "largeChartUrl": "" }}</script></div>"""
+        widget_code = f"""<div class="tradingview-widget-container" style="border-radius:12px; overflow:hidden; margin-bottom:10px; box-shadow:0 4px 10px rgba(0,0,0,0.3);"><div class="tradingview-widget-container__widget"></div><script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>{{ "symbol": "{sym['s']}", "width": "100%", "height": 100, "locale": "tr", "dateRange": "1D", "colorTheme": "dark", "isTransparent": true, "autosize": true, "largeChartUrl": "" }}</script></div>"""
         with st.sidebar: components.html(widget_code, height=100)
     
     return ctx
@@ -1004,13 +943,13 @@ def sayfa_piyasa_ozeti(ctx):
     c1, c2, c3, c4 = st.columns(4)
     
     with c1: 
-        st.markdown(f'<div class="kpi-card"><div class="kpi-title">GENEL ENFLASYON</div><div class="kpi-value">%{ctx["enf_genel"]:.2f}</div><div class="kpi-sub" style="color:#ef4444; font-size:12px;">Aylık Değişim (Simüle)</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-card"><div class="kpi-title">GENEL ENFLASYON</div><div class="kpi-value">%{ctx["enf_genel"]:.2f}</div><div class="kpi-sub" style="color:#ef4444; font-size:12px; font-weight:600; margin-top:5px;">Aylık Değişim (Simüle)</div></div>', unsafe_allow_html=True)
     with c2: 
-        st.markdown(f'<div class="kpi-card"><div class="kpi-title">GIDA ENFLASYONU</div><div class="kpi-value">%{ctx["enf_gida"]:.2f}</div><div class="kpi-sub" style="color:#fca5a5; font-size:12px;">Mutfak Sepeti</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-card"><div class="kpi-title">GIDA ENFLASYONU</div><div class="kpi-value">%{ctx["enf_gida"]:.2f}</div><div class="kpi-sub" style="color:#fca5a5; font-size:12px; font-weight:600; margin-top:5px;">Mutfak Sepeti</div></div>', unsafe_allow_html=True)
     with c3: 
-        st.markdown('<div class="kpi-card"><div class="kpi-title">YILLIK ENFLASYON</div><div class="kpi-value">%31.47</div><div class="kpi-sub" style="color:#a78bfa; font-size:12px;">Yıllık Projeksiyon</div></div>', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-card"><div class="kpi-title">YILLIK ENFLASYON</div><div class="kpi-value">%31.47</div><div class="kpi-sub" style="color:#a78bfa; font-size:12px; font-weight:600; margin-top:5px;">Yıllık Projeksiyon</div></div>', unsafe_allow_html=True)
     with c4: 
-        st.markdown(f'<div class="kpi-card"><div class="kpi-title">RESMİ (TÜİK) VERİSİ</div><div class="kpi-value">%{ctx["resmi_aylik_degisim"]:.2f}</div><div class="kpi-sub" style="color:#fbbf24; font-size:12px;">Sabit Veri</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-card"><div class="kpi-title">RESMİ (TÜİK) VERİSİ</div><div class="kpi-value">%{ctx["resmi_aylik_degisim"]:.2f}</div><div class="kpi-sub" style="color:#fbbf24; font-size:12px; font-weight:600; margin-top:5px;">Sabit Veri</div></div>', unsafe_allow_html=True)
     
     st.markdown("<br>", unsafe_allow_html=True)
     
@@ -1022,18 +961,18 @@ def sayfa_piyasa_ozeti(ctx):
     for _, r in inc.iterrows():
         val = r['Gunluk_Degisim']
         if val > 0:
-            items.append(f"<span style='color:#ef4444; font-weight:800;'>▲ {r[ctx['ad_col']]} %{val*100:.1f}</span>")
+            items.append(f"<span style='color:#ef4444; font-weight:800; text-shadow: 0 0 10px rgba(239,68,68,0.4);'>▲ {r[ctx['ad_col']]} %{val*100:.1f}</span>")
             
     for _, r in dec.iterrows():
         val = r['Gunluk_Degisim']
         if val < 0:
-            items.append(f"<span style='color:#22c55e; font-weight:800;'>▼ {r[ctx['ad_col']]} %{abs(val)*100:.1f}</span>")
+            items.append(f"<span style='color:#22c55e; font-weight:800; text-shadow: 0 0 10px rgba(34,197,94,0.4);'>▼ {r[ctx['ad_col']]} %{abs(val)*100:.1f}</span>")
             
     ticker_str = " &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp; ".join(items)
     if not ticker_str: ticker_str = "Veri bekleniyor..."
 
     ticker_html = f"""
-    <div class="ticker-wrap" style="background: rgba(255,255,255,0.02); border-top:1px solid rgba(255,255,255,0.1); border-bottom:1px solid rgba(255,255,255,0.1); padding:10px 0; margin-bottom:20px;">
+    <div class="ticker-wrap">
         <div class="ticker-move">
             <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px;">
                 {ticker_str} &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp; {ticker_str}
@@ -1112,12 +1051,12 @@ def sayfa_piyasa_ozeti(ctx):
 
     with col_g2:
        ozet_html = f"""
-       <div class="kpi-card" style="height:100%">
-           <div style="font-size:12px; color:#94a3b8; font-weight:700;">YÜKSELENLER</div>
-           <div style="font-size:24px; color:#ef4444; font-weight:700;">{len(df[df['Fark'] > 0])} Ürün</div>
-           <div style="margin: 20px 0; border-top:1px solid rgba(255,255,255,0.1)"></div>
-           <div style="font-size:12px; color:#94a3b8; font-weight:700;">DÜŞENLER</div>
-           <div style="font-size:24px; color:#22c55e; font-weight:700;">{len(df[df['Fark'] < 0])} Ürün</div>
+       <div class="kpi-card" style="height:100%; display:flex; flex-direction:column; justify-content:center;">
+           <div style="font-size:13px; color:#94a3b8; font-weight:800; letter-spacing:1px;">YÜKSELENLER</div>
+           <div style="font-size:32px; color:#ef4444; font-weight:800; text-shadow: 0 0 15px rgba(239,68,68,0.3);">{len(df[df['Fark'] > 0])} Ürün</div>
+           <div style="margin: 25px 0; border-top:1px solid rgba(255,255,255,0.1)"></div>
+           <div style="font-size:13px; color:#94a3b8; font-weight:800; letter-spacing:1px;">DÜŞENLER</div>
+           <div style="font-size:32px; color:#22c55e; font-weight:800; text-shadow: 0 0 15px rgba(34,197,94,0.3);">{len(df[df['Fark'] < 0])} Ürün</div>
        </div>
        """
        st.markdown(ozet_html, unsafe_allow_html=True)
@@ -1159,7 +1098,7 @@ def sayfa_piyasa_ozeti(ctx):
     azalan_10 = kademeli_oran_ayarla(azalan_10, "azalan")
     
     with c_art:
-        st.markdown("<div style='color:#ef4444; font-weight:700; font-size:16px; margin-bottom:10px;'>🔺 EN ÇOK ARTAN 10 ÜRÜN</div>", unsafe_allow_html=True)
+        st.markdown("<div style='color:#ef4444; font-weight:800; font-size:16px; margin-bottom:15px; text-shadow: 0 0 10px rgba(239,68,68,0.3);'>🔺 EN ÇOK ARTAN 10 ÜRÜN</div>", unsafe_allow_html=True)
         if not artan_10.empty:
             disp_artan = artan_10[[ctx['ad_col'], ctx['son']]].copy()
             disp_artan['Değişim'] = artan_10['Fark'] * 100
@@ -1176,7 +1115,7 @@ def sayfa_piyasa_ozeti(ctx):
             st.info("Fiyatı artan ürün tespit edilmedi.")
             
     with c_az:
-        st.markdown("<div style='color:#22c55e; font-weight:700; font-size:16px; margin-bottom:10px;'>🔻 EN ÇOK DÜŞEN 10 ÜRÜN</div>", unsafe_allow_html=True)
+        st.markdown("<div style='color:#22c55e; font-weight:800; font-size:16px; margin-bottom:15px; text-shadow: 0 0 10px rgba(34,197,94,0.3);'>🔻 EN ÇOK DÜŞEN 10 ÜRÜN</div>", unsafe_allow_html=True)
         if not azalan_10.empty:
             disp_azalan = azalan_10[[ctx['ad_col'], ctx['son']]].copy()
             disp_azalan['Değişim'] = azalan_10['Fark'] * 100
@@ -1212,7 +1151,6 @@ def sayfa_kategori_detay(ctx):
     if arama: df_show = df_show[df_show[ctx['ad_col']].astype(str).str.contains(arama, case=False, na=False)]
     if not df_show.empty:
         items_per_page = 16
-        # BUG FIXED: Fazladan boş sayfa oluşmasını engelleyen Pagination mantığı
         max_pages = max(1, (len(df_show) - 1) // items_per_page + 1)
         page_num = st.number_input("Sayfa", min_value=1, max_value=max_pages, step=1)
         batch = df_show.iloc[(page_num - 1) * items_per_page : (page_num - 1) * items_per_page + items_per_page]
@@ -1266,7 +1204,7 @@ def sayfa_raporlama(ctx):
     )
     
     st.markdown(f"""
-    <div style="background:rgba(255,255,255,0.03); padding:30px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); font-family:'Inter'; line-height:1.8; animation:fadeInUp 0.5s;">
+    <div style="background:rgba(255,255,255,0.03); padding:30px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); font-family:'Inter'; line-height:1.8; animation:fadeInUp 0.5s; box-shadow:0 8px 32px rgba(0,0,0,0.3);">
         {rap_text.replace(chr(10), '<br>').replace('**', '<b>').replace('**', '</b>')}
     </div>
     """, unsafe_allow_html=True)
@@ -1390,19 +1328,21 @@ def sayfa_trend_analizi(ctx):
 def main():
     SENKRONIZASYON_AKTIF = True
 
+    # ÜST KISIM (BAŞLIK VE TASARIM - YENİ RGB EFEKTLERİ EKLENDİ)
     st.markdown(f"""
-    <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 25px; 
-        background:linear-gradient(90deg, #0f172a 0%, #1e1b4b 100%); border-radius:12px; margin-bottom:20px; margin-top:-30px; animation: fadeInUp 0.5s;">
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:20px 30px; 
+        background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); 
+        border-radius:16px; margin-bottom:25px; margin-top:-30px; animation: fadeInUp 0.5s; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
         <div>
-            <div style="font-weight:800; font-size:24px; color:#fff;">
+            <div style="font-weight:800; font-size:28px;" class="gradient-text">
                 Enflasyon Monitörü 
-                <span style="background:rgba(59,130,246,0.15); color:#60a5fa; font-size:10px; padding:3px 8px; border-radius:4px; border:1px solid rgba(59,130,246,0.2); vertical-align: middle;">SİMÜLASYON AKTİF</span>
+                <span style="background:rgba(59,130,246,0.15); color:#60a5fa; font-size:10px; padding:4px 10px; border-radius:6px; border:1px solid rgba(59,130,246,0.3); vertical-align: middle; margin-left:10px; box-shadow: 0 0 10px rgba(59,130,246,0.2); animation: pulseGlow 2s infinite;">SİMÜLASYON AKTİF</span>
             </div>
-            <div style="font-size:12px; color:#94a3b8;">Yapay Zeka Destekli Enflasyon Analiz Platformu</div>
+            <div style="font-size:13px; color:#94a3b8; font-weight: 500; margin-top:4px;">Yapay Zeka Destekli Enflasyon Analiz Platformu</div>
         </div>
         <div style="text-align:right;">
-            <div style="font-size:10px; color:#64748b; font-weight:700; letter-spacing:1.5px;">TÜRKİYE SAATİ</div>
-            <div style="font-size:20px; font-weight:700; color:#e2e8f0; font-family:'JetBrains Mono';">{(datetime.utcnow() + timedelta(hours=3)).strftime("%d.%m.%Y")}</div>
+            <div style="font-size:11px; color:#64748b; font-weight:800; letter-spacing:2px;">TÜRKİYE SAATİ</div>
+            <div style="font-size:22px; font-weight:800; color:#e2e8f0; font-family:'JetBrains Mono'; text-shadow: 0 0 15px rgba(255,255,255,0.2);">{(datetime.utcnow() + timedelta(hours=3)).strftime("%d.%m.%Y")}</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1456,7 +1396,6 @@ def main():
     with st.spinner("Veritabanına bağlanılıyor..."):
         df_base, r_dates, col_name, err_msg = verileri_getir_cache()
     
-    # Hata varsa güvenli şekilde sidebar'da göster
     if err_msg:
         st.sidebar.error(err_msg)
 
@@ -1508,7 +1447,7 @@ def main():
         err_msg = "<br><div style='text-align:center; padding:20px; background:rgba(255,0,0,0.1); border-radius:10px; color:#fff;'>⚠️ Veri seti yüklenemedi veya internet bağlantısı yok. Lütfen sayfayı yenileyin.</div>"
         st.markdown(err_msg, unsafe_allow_html=True)
 
-    st.markdown('<div style="text-align:center; color:#52525b; font-size:11px; margin-top:50px; opacity:0.6;">VALIDASYON MUDURLUGU © 2026 - GİZLİ ANALİZ BELGESİ</div>', unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center; color:#52525b; font-size:11px; margin-top:50px; opacity:0.6; animation:pulseGlow 4s infinite;">VALIDASYON MÜDÜRLÜĞÜ © 2026 - GİZLİ ANALİZ BELGESİ</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
