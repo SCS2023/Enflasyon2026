@@ -1229,18 +1229,7 @@ def sayfa_piyasa_ozeti(ctx):
             st.info("Fiyatı düşen ürün tespit edilmedi.")
 
     st.markdown("---")
-    
-    # --- YENİ: GOOGLE SHEETS AKTARMA BUTONU ---
-    col_sheet_btn, _ = st.columns([1, 3])
-    with col_sheet_btn:
-        if st.button("📊 Verileri E-Tabloya Aktar", type="primary", use_container_width=True):
-            with st.spinner("Tablo güncelleniyor..."):
-                sonuc = google_sheets_guncelle(ctx, artan_10, azalan_10)
-                if sonuc is True:
-                    st.success("Google Sheets başarıyla güncellendi!")
-                else:
-                    st.error(f"Hata oluştu: {sonuc}")
-                    
+                        
     st.subheader("Sektörel Isı Haritası")
     fig_tree = px.treemap(df, path=[px.Constant("Enflasyon Sepeti"), 'Grup', ctx['ad_col']], values=ctx['agirlik_col'], color='Fark', color_continuous_scale='RdYlGn_r')
     st.plotly_chart(style_chart(fig_tree, is_sunburst=True), use_container_width=True)
@@ -1432,24 +1421,25 @@ def sayfa_trend_analizi(ctx):
         st.plotly_chart(style_chart(px.line(df_melted, x='Tarih', y='Yuzde_Degisim', color=ctx['ad_col'], title="Ürün Bazlı Kümülatif Değişim (%)", markers=True)), use_container_width=True)
 
 # --- ANA MAIN ---
+# --- ANA MAIN ---
 def main():
     SENKRONIZASYON_AKTIF = True
 
     st.markdown(f"""
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 25px; 
-            background:linear-gradient(90deg, #0f172a 0%, #1e1b4b 100%); border-radius:12px; margin-bottom:20px; margin-top:-30px; animation: fadeInUp 0.5s;">
-            <div>
-                <div style="font-weight:800; font-size:24px; color:#fff;">
-                    Enflasyon Monitörü 
-                    <span style="background:rgba(59,130,246,0.15); color:#60a5fa; font-size:10px; padding:3px 8px; border-radius:4px; border:1px solid rgba(59,130,246,0.2); vertical-align: middle;">SİMÜLASYON AKTİF</span>
-                </div>
-                <div style="font-size:12px; color:#94a3b8;">Yapay Zeka Destekli Enflasyon Analiz Platformu</div>
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 25px; 
+        background:linear-gradient(90deg, #0f172a 0%, #1e1b4b 100%); border-radius:12px; margin-bottom:20px; margin-top:-30px; animation: fadeInUp 0.5s;">
+        <div>
+            <div style="font-weight:800; font-size:24px; color:#fff;">
+                Enflasyon Monitörü 
+                <span style="background:rgba(59,130,246,0.15); color:#60a5fa; font-size:10px; padding:3px 8px; border-radius:4px; border:1px solid rgba(59,130,246,0.2); vertical-align: middle;">SİMÜLASYON AKTİF</span>
             </div>
-            <div style="text-align:right;">
-                <div style="font-size:10px; color:#64748b; font-weight:700; letter-spacing:1.5px;">TÜRKİYE SAATİ</div>
-                <div style="font-size:20px; font-weight:700; color:#e2e8f0; font-family:'JetBrains Mono';">{(datetime.utcnow() + timedelta(hours=3)).strftime("%d.%m.%Y")}</div>
-            </div>
+            <div style="font-size:12px; color:#94a3b8;">Yapay Zeka Destekli Enflasyon Analiz Platformu</div>
         </div>
+        <div style="text-align:right;">
+            <div style="font-size:10px; color:#64748b; font-weight:700; letter-spacing:1.5px;">TÜRKİYE SAATİ</div>
+            <div style="font-size:20px; font-weight:700; color:#e2e8f0; font-family:'JetBrains Mono';">{(datetime.utcnow() + timedelta(hours=3)).strftime("%d.%m.%Y")}</div>
+        </div>
+    </div>
     """, unsafe_allow_html=True)
 
     menu_items = {
@@ -1470,10 +1460,15 @@ def main():
     )
     secim = menu_items[secilen_etiket]
 
+    # --- YENİ: İKİ BUTON YAN YANA ---
+    export_clicked = False
     if SENKRONIZASYON_AKTIF:
-        col_empty, col_btn = st.columns([4, 1])
-        with col_btn:
+        # Sütunları bölüyoruz: 2 birim boşluk, 1 birim Senkronize, 1 birim E-Tablo
+        col_empty, col_sync, col_export = st.columns([2, 1, 1])
+        with col_sync:
             sync_clicked = st.button("SİSTEMİ SENKRONİZE ET ⚡", type="primary", use_container_width=True)
+        with col_export:
+            export_clicked = st.button("📊 Verileri E-Tabloya Aktar", type="primary", use_container_width=True)
 
         if sync_clicked:
             progress_bar = st.progress(0, text="Veri akışı sağlanıyor...")
@@ -1484,16 +1479,9 @@ def main():
             progress_bar.empty()
             
             if "OK" in res:
-                # --- GOOGLE SHEETS GÜNCELLEME ---
-                # ctx sözlüğünüzden son verileri alıp Sheets'e yolluyoruz
-                # (Sizin kodunuzda df_base hesaplandıktan sonra ctx oluşuyor,
-                # o yüzden bu işlemi ctx oluştuktan sonraki bir bloğa almanız gerekebilir)
-                
-                # google_sheets_guncelle(ctx["enf_genel"], ctx["enf_gida"], ctx["son"])
-                
                 st.cache_data.clear()
                 st.session_state.clear() 
-                st.success('Senkronize Edildi ve Sheets Güncellendi!', icon='🚀')
+                st.success('Sistem Senkronize Edildi! Sayfa yenileniyor...', icon='🚀')
                 time.sleep(1)
                 st.rerun()
                 
@@ -1509,6 +1497,41 @@ def main():
     if df_base is not None:
         ctx = ui_sidebar_ve_veri_hazirlama(df_base, r_dates, col_name)
 
+    # --- E-TABLOYA AKTAR İŞLEMİ (Eğer butona basıldıysa) ---
+    if export_clicked and ctx:
+        with st.spinner("Tablo güncelleniyor..."):
+            # Aktarım için artan/azalan 10 hesaplamasını burada yapıyoruz
+            df_fark = ctx["df_analiz"].dropna(subset=['Fark', ctx['son'], ctx['ad_col']]).copy()
+            artan_10 = df_fark[df_fark['Fark'] > 0].sort_values('Fark', ascending=False).head(10).copy()
+            azalan_10 = df_fark[df_fark['Fark'] < 0].sort_values('Fark', ascending=True).head(10).copy()
+
+            def kademeli_oran_ayarla(df_subset, yon="artan"):
+                if df_subset.empty: return df_subset
+                # Arayüzdeki simülasyon rakamlarıyla aynı olması için günlük seed kilitliyoruz
+                np.random.seed(int(ctx["son"].replace('-', '')))
+                guncel_oran = np.random.uniform(14.75, 14.95) 
+                yeni_farklar = []
+                for i in range(len(df_subset)):
+                    kusurat = np.random.uniform(-0.15, 0.15)
+                    final_oran = guncel_oran + kusurat
+                    if yon == "artan":
+                        yeni_farklar.append(final_oran / 100.0)
+                    else:
+                        yeni_farklar.append(-final_oran / 100.0)
+                    guncel_oran -= np.random.uniform(1.20, 1.60)
+                df_subset['Fark'] = yeni_farklar
+                return df_subset
+
+            artan_10 = kademeli_oran_ayarla(artan_10, "artan")
+            azalan_10 = kademeli_oran_ayarla(azalan_10, "azalan")
+
+            sonuc = google_sheets_guncelle(ctx, artan_10, azalan_10)
+            if sonuc is True:
+                st.success("Google Sheets başarıyla güncellendi!")
+            else:
+                st.error(f"Hata oluştu: {sonuc}")
+
+    # --- SAYFALARI RENDER ETME ---
     if ctx: 
         if secim == "Enflasyon Özeti": sayfa_piyasa_ozeti(ctx)
         elif secim == "Trendler": sayfa_trend_analizi(ctx)
@@ -1524,6 +1547,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
