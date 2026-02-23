@@ -325,72 +325,6 @@ def load_lottieurl(url: str):
     except:
         return None
 
-# --- 3. RAPOR MOTORU ---
-def create_word_report(text_content, tarih, df_analiz=None):
-    buffer = BytesIO()
-    try:
-        doc = Document()
-        style = doc.styles['Normal']
-        font = style.font
-        font.name = 'Arial'
-        font.size = Pt(11)
-
-        head = doc.add_heading(f'ENFLASYON GÖRÜNÜM RAPORU', 0)
-        head.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        
-        subhead = doc.add_paragraph(f'Rapor Tarihi: {tarih}')
-        subhead.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        doc.add_paragraph("-" * 50)
-
-        paragraphs = text_content.split('\n')
-        for p_text in paragraphs:
-            if not p_text.strip(): continue
-            p = doc.add_paragraph()
-            p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-            
-            parts = p_text.split('**')
-            for i, part in enumerate(parts):
-                run = p.add_run(part)
-                if i % 2 == 1: 
-                    run.bold = True
-                    run.font.color.rgb = RGBColor(0, 50, 100)
-        
-        if df_analiz is not None and not df_analiz.empty and 'Fark' in df_analiz.columns:
-            try:
-                doc.add_page_break()
-                doc.add_heading('EKLER: GÖRSEL ANALİZLER', 1)
-                
-                data = pd.to_numeric(df_analiz['Fark'], errors='coerce').dropna() * 100
-                if not data.empty:
-                    fig, ax = plt.subplots(figsize=(6, 4))
-                    ax.hist(data, bins=20, color='#3b82f6', edgecolor='black', alpha=0.7)
-                    ax.set_title(f"Fiyat Değişim Dağılımı (%)", fontsize=12)
-                    ax.set_xlabel("Değişim Oranı (%)")
-                    ax.set_ylabel("Ürün Sayısı")
-                    
-                    img_buffer = BytesIO()
-                    plt.savefig(img_buffer, format='png', dpi=100)
-                    plt.close(fig)
-                    img_buffer.seek(0)
-                    
-                    doc.add_picture(img_buffer, width=Inches(5.5))
-                    doc.add_paragraph("Grafik 1: Ürünlerin fiyat değişim oranlarına göre dağılımı.", style='Caption')
-            except Exception as img_err:
-                doc.add_paragraph(f"[Grafik oluşturulamadı: {str(img_err)}]")
-
-        doc.save(buffer)
-        buffer.seek(0)
-        return buffer
-
-    except Exception as e:
-        err_doc = Document()
-        err_doc.add_heading('HATA', 0)
-        err_doc.add_paragraph(f"Rapor oluşturulurken hata oluştu: {str(e)}")
-        buffer = BytesIO()
-        err_doc.save(buffer)
-        buffer.seek(0)
-        return buffer
-
 # --- 4. GITHUB İŞLEMLERİ ---
 def get_github_connection():
     try:
@@ -587,56 +521,6 @@ def html_isleyici(progress_callback):
         else: return "Veri bulunamadı (Manuel veya Web)."
             
     except Exception as e: return f"Genel Hata: {str(e)}"
-        
-# --- 7. STATİK ANALİZ MOTORU ---
-def generate_detailed_static_report(df_analiz, tarih, enf_genel, enf_gida, gun_farki, tahmin, ad_col, agirlik_col):
-    df_clean = df_analiz.dropna(subset=['Fark'])
-    toplam_urun = len(df_clean)
-    artanlar = df_clean[df_clean['Fark'] > 0]
-    dusenler = df_clean[df_clean['Fark'] < 0]
-    sabitler = df_clean[df_clean['Fark'] == 0]
-    artan_sayisi = len(artanlar)
-    yayilim_orani = (artan_sayisi / toplam_urun) * 100 if toplam_urun > 0 else 0
-    inc = df_clean.sort_values('Fark', ascending=False).head(5)
-    dec = df_clean.sort_values('Fark', ascending=True).head(5)
-    inc_str = "\n".join([f"   🔴 %{row['Fark']*100:5.2f} | {row[ad_col]}" for _, row in inc.iterrows()])
-    dec_str = "\n".join([f"   🟢 %{abs(row['Fark']*100):5.2f} | {row[ad_col]}" for _, row in dec.iterrows()])
-
-    text = f"""
-**ENFLASYON GÖRÜNÜM RAPORU**
-**Tarih:** {tarih}
-
-**1. 📊 ANA GÖSTERGELER**
------------------------------------------
-**GENEL ENFLASYON** : **%{enf_genel:.2f}**
-**GIDA ENFLASYONU** : **%{enf_gida:.2f}**
-**AY SONU TAHMİNİ** : **%{tahmin:.2f}**
------------------------------------------
-
-**2. 🔎 ENFLASYON RÖNTGENİ**
-**Fiyat Hareketleri:**
-   🔺 **Zamlanan Ürün:** {artan_sayisi} adet
-   🔻 **İndirimli Ürün:** {len(dusenler)} adet
-   ➖ **Fiyatı Değişmeyen:** {len(sabitler)} adet
-
-**Sepet Yayılımı:**
-   Her 100 üründen **{int(yayilim_orani)}** tanesinde fiyat artışı tespit edilmiştir.
-
-**3. ⚡ DİKKAT ÇEKEN ÜRÜNLER**
-
-**▲ Yüksek Artışlar (Cep Yakanlar)**
-{inc_str}
-
-**▼ Fiyat Düşüşleri (Fırsatlar)**
-{dec_str}
-
-**4. 💡 SONUÇ**
-Hesaplanan verilere göre ay sonu projeksiyonu **%{tahmin:.2f}** bandında seyretmektedir.
-
----
-*Otomatik Rapor Sistemi | Validasyon Müdürlüğü*
-"""
-    return text.strip()
 
 # --- GRAFİK STİLİ ---
 def style_chart(fig, is_pdf=False, is_sunburst=False):
@@ -1194,32 +1078,6 @@ def sayfa_tam_liste(ctx):
     with pd.ExcelWriter(output) as writer: df.to_excel(writer, index=False)
     st.download_button("📥 Excel Olarak İndir", data=output.getvalue(), file_name="Veri_Seti.xlsx")
 
-def sayfa_raporlama(ctx):
-    st.markdown("### 📝 Stratejik Enflasyon Raporu")
-    
-    rap_text = generate_detailed_static_report(
-        ctx["df_analiz"], ctx["son"], ctx["enf_genel"], 
-        ctx["enf_gida"], ctx["gun_farki"], ctx["tahmin"], 
-        ctx["ad_col"], ctx["agirlik_col"]
-    )
-    
-    st.markdown(f"""
-    <div style="background:rgba(255,255,255,0.03); padding:30px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); font-family:'Inter'; line-height:1.8; animation:fadeInUp 0.5s; box-shadow:0 8px 32px rgba(0,0,0,0.3);">
-        {rap_text.replace(chr(10), '<br>').replace('**', '<b>').replace('**', '</b>')}
-    </div>
-    """, unsafe_allow_html=True)
-    
-    word_buffer = create_word_report(rap_text, ctx["son"], ctx["df_analiz"])
-    
-    st.download_button(
-        label="📥 Word Raporu İndir",
-        data=word_buffer,
-        file_name=f"Enflasyon_Raporu_{ctx['son']}.docx",
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        type="primary",
-        key="download_word_btn"
-    )
-
 def sayfa_maddeler(ctx):
     df = ctx["df_analiz"]
     agirlik_col = ctx["agirlik_col"]
@@ -1352,8 +1210,7 @@ def main():
         "📈 Trendler": "Trendler",
         "📦 Maddeler": "Maddeler",
         "🏷️ Kategori Detay": "Kategori Detay",
-        "📋 Tam Liste": "Tam Liste",
-        "📝 Raporlama": "Raporlama"
+        "📋 Tam Liste": "Tam Liste"
     }
     
     secilen_etiket = st.radio(
@@ -1442,7 +1299,6 @@ def main():
         elif secim == "Maddeler": sayfa_maddeler(ctx)
         elif secim == "Kategori Detay": sayfa_kategori_detay(ctx)
         elif secim == "Tam Liste": sayfa_tam_liste(ctx)
-        elif secim == "Raporlama": sayfa_raporlama(ctx)
     else:
         err_msg = "<br><div style='text-align:center; padding:20px; background:rgba(255,0,0,0.1); border-radius:10px; color:#fff;'>⚠️ Veri seti yüklenemedi veya internet bağlantısı yok. Lütfen sayfayı yenileyin.</div>"
         st.markdown(err_msg, unsafe_allow_html=True)
