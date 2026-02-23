@@ -634,6 +634,7 @@ def style_chart(fig, is_pdf=False, is_sunburst=False):
 
 # --- 9. VERİ VE HESAPLAMA MOTORLARI ---
 
+@st.cache_data(ttl=3600, show_spinner=False) # EKLENEN SATIR
 def verileri_getir_cache():
     try:
         repo = get_github_repo()
@@ -1409,6 +1410,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
