@@ -225,7 +225,7 @@ def apply_theme():
             padding: 10px 16px; border-radius: 12px; cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             font-family: 'Inter', sans-serif; font-weight: 600; font-size: 13px;
-            color: #94a3b8 !important; display: flex; justify-content: center; align-items: center;
+            color: #ffffff !important; display: flex; justify-content: center; align-items: center;
         }
         [data-testid="stRadio"] label p { color: inherit !important; margin: 0; }
         
@@ -1451,3 +1451,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
