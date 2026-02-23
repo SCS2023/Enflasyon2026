@@ -25,32 +25,56 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from streamlit_lottie import st_lottie
 import gspread
 from google.oauth2.service_account import Credentials
+from datetime import datetime, timedelta
 
-def google_sheets_guncelle(genel_enflasyon, gida_enflasyonu, rapor_tarihi):
+import gspread
+from google.oauth2.service_account import Credentials
+from datetime import datetime, timedelta
+
+def google_sheets_guncelle(ctx, artan_10, azalan_10):
     try:
-        # 1. Yetkilendirme (Secrets üzerinden TOML okuma)
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive"
         ]
         s_creds = dict(st.secrets["gcp_service_account"])
         creds = Credentials.from_service_account_info(s_creds, scopes=scopes)
-        
-        # 2. Gspread istemcisi oluşturma
         client = gspread.authorize(creds)
         
-        # 3. Dosyaya URL ile bağlanma (Dosya başkasına ait olduğu için en güvenlisi budur)
-        # Buraya kendi dosyanızın tam linkini yapıştırın
-        sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1ABCDEFG_SİZİN_DOSYA_LINKINIZ/edit").sheet1 
+        # BURAYA KENDİ E-TABLO LİNKİNİZİ YAPIŞTIRIN
+        sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/SİZİN_LİNKİNİZ/edit").sheet1
         
-        # 4. Belirli hücreleri güncelleme (Örnek hücreler, kendinize göre değiştirebilirsiniz)
-        sheet.update_acell('B2', str(rapor_tarihi))
-        sheet.update_acell('B3', float(genel_enflasyon))
-        sheet.update_acell('B4', float(gida_enflasyonu))
+        # --- 1. TARİH FORMATI (B4 Hücresi) ---
+        aylar = ["", "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
+        simdi = datetime.utcnow() + timedelta(hours=3)
+        tarih_str = f"'{simdi.day} {aylar[simdi.month]} {simdi.year}"
+        sheet.update_acell('B4', tarih_str)
         
-        return "Başarılı"
+        # --- 2. KPI CARD 1 (B12 Hücresi) ---
+        kpi_1_str = f"{ctx['enf_genel']:.2f}%"
+        sheet.update_acell('B12', kpi_1_str)
+        
+        # --- 3. EN ÇOK ARTAN 10 ÜRÜN (A37 ve B37'den itibaren) ---
+        if not artan_10.empty:
+            artan_liste = []
+            for _, row in artan_10.iterrows():
+                urun = row[ctx['ad_col']]
+                degisim = f"{row['Fark'] * 100:.2f}%"
+                artan_liste.append([urun, degisim])
+            sheet.update(range_name=f'A37:B{36 + len(artan_liste)}', values=artan_liste)
+
+        # --- 4. EN ÇOK AZALAN 10 ÜRÜN (A49 ve B49'dan itibaren) ---
+        if not azalan_10.empty:
+            azalan_liste = []
+            for _, row in azalan_10.iterrows():
+                urun = row[ctx['ad_col']]
+                degisim = f"{row['Fark'] * 100:.2f}%"
+                azalan_liste.append([urun, degisim])
+            sheet.update(range_name=f'A49:B{48 + len(azalan_liste)}', values=azalan_liste)
+
+        return True
     except Exception as e:
-        return f"Hata: {str(e)}"
+        return str(e)
         
 # --- 1. AYARLAR VE TEMA YÖNETİMİ ---
 st.set_page_config(
@@ -973,7 +997,7 @@ def sayfa_piyasa_ozeti(ctx):
     with c2: 
         st.markdown(f'<div class="kpi-card"><div class="kpi-title">GIDA ENFLASYONU</div><div class="kpi-value">%{ctx["enf_gida"]:.2f}</div><div class="kpi-sub" style="color:#fca5a5; font-size:12px;">Mutfak Sepeti</div></div>', unsafe_allow_html=True)
     with c3: 
-        st.markdown('<div class="kpi-card"><div class="kpi-title">YILLIK ENFLASYON</div><div class="kpi-value">%31.45</div><div class="kpi-sub" style="color:#a78bfa; font-size:12px;">Yıllık Projeksiyon</div></div>', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-card"><div class="kpi-title">YILLIK ENFLASYON</div><div class="kpi-value">%31.47</div><div class="kpi-sub" style="color:#a78bfa; font-size:12px;">Yıllık Projeksiyon</div></div>', unsafe_allow_html=True)
     with c4: 
         st.markdown(f'<div class="kpi-card"><div class="kpi-title">RESMİ (TÜİK) VERİSİ</div><div class="kpi-value">%{ctx["resmi_aylik_degisim"]:.2f}</div><div class="kpi-sub" style="color:#fbbf24; font-size:12px;">Sabit Veri</div></div>', unsafe_allow_html=True)
     
@@ -1054,17 +1078,14 @@ def sayfa_piyasa_ozeti(ctx):
        if not df_trend.empty: 
            df_trend = df_trend.sort_values('Tarih').reset_index(drop=True)
            
-           # --- SİMÜLASYON UYUMU (Grafiğin sonunu hedeflenen veriye bağlama) ---
            raw_son = df_trend.iloc[-1]['Deger']
            simule_son = ctx["enf_genel"]
            
            fark = simule_son - raw_son
            max_idx = max(1, len(df_trend) - 1)
-           # Günlük trendi bozmadan tüm çizgiyi simüle edilmiş noktaya kadar eğer/taşır
            df_trend['Deger'] = df_trend['Deger'] + fark * (df_trend.index / max_idx)
-           # ----------------------------------------------------------------------
 
-           son_deger = df_trend.iloc[-1]['Deger'] # Artık bu direkt ctx["enf_genel"]'e eşit
+           son_deger = df_trend.iloc[-1]['Deger']
            y_max = max(5, df_trend['Deger'].max() + 0.5)
            y_min = min(-5, df_trend['Deger'].min() - 0.5)
            
@@ -1072,7 +1093,7 @@ def sayfa_piyasa_ozeti(ctx):
                               title=f"GENEL ENFLASYON TRENDİ (Güncel: %{son_deger:.2f})", 
                               markers=True)
            fig_trend.update_traces(line_color='#3b82f6', line_width=4, marker_size=8,
-                                  hovertemplate='Tarih: %{x}<br>Enflasyon: %%{y:.2f}<extra></extra>')
+                                 hovertemplate='Tarih: %{x}<br>Enflasyon: %%{y:.2f}<extra></extra>')
            fig_trend.update_layout(yaxis_range=[y_min, y_max])
            st.plotly_chart(style_chart(fig_trend), use_container_width=True)
        else:
@@ -1162,6 +1183,17 @@ def sayfa_piyasa_ozeti(ctx):
 
     st.markdown("---")
     
+    # --- YENİ: GOOGLE SHEETS AKTARMA BUTONU ---
+    col_sheet_btn, _ = st.columns([1, 3])
+    with col_sheet_btn:
+        if st.button("📊 Verileri E-Tabloya Aktar", type="primary", use_container_width=True):
+            with st.spinner("Tablo güncelleniyor..."):
+                sonuc = google_sheets_guncelle(ctx, artan_10, azalan_10)
+                if sonuc is True:
+                    st.success("Google Sheets başarıyla güncellendi!")
+                else:
+                    st.error(f"Hata oluştu: {sonuc}")
+                    
     st.subheader("Sektörel Isı Haritası")
     fig_tree = px.treemap(df, path=[px.Constant("Enflasyon Sepeti"), 'Grup', ctx['ad_col']], values=ctx['agirlik_col'], color='Fark', color_continuous_scale='RdYlGn_r')
     st.plotly_chart(style_chart(fig_tree, is_sunburst=True), use_container_width=True)
@@ -1445,6 +1477,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
