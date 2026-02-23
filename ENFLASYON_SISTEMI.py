@@ -1,5 +1,5 @@
 # GEREKLİ KÜTÜPHANELER:
-# pip install streamlit-lottie python-docx plotly pandas xlsxwriter matplotlib requests PyGithub
+# pip install streamlit-lottie python-docx plotly pandas xlsxwriter matplotlib requests PyGithub gspread google-auth
 
 import streamlit as st
 import pandas as pd
@@ -25,11 +25,6 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from streamlit_lottie import st_lottie
 import gspread
 from google.oauth2.service_account import Credentials
-from datetime import datetime, timedelta
-
-import gspread
-from google.oauth2.service_account import Credentials
-from datetime import datetime, timedelta
 
 def google_sheets_guncelle(ctx, artan_10, azalan_10):
     try:
@@ -474,31 +469,6 @@ def github_excel_guncelle(df_yeni, dosya_adi):
     except Exception as e:
         return str(e)
 
-# # --- 5. RESMİ ENFLASYON ---
-# @st.cache_data(ttl=3600, show_spinner=False)
-# def get_official_inflation():
-#     api_key = st.secrets.get("evds", {}).get("api_key")
-#     if not api_key: return None, "API Key Yok"
-#     start_date = (datetime.now() - timedelta(days=365)).strftime("%d-%m-%Y")
-#     end_date = datetime.now().strftime("%d-%m-%Y")
-#     url = f"https://evds2.tcmb.gov.tr/service/evds/series=TP.FG.J0&startDate={start_date}&endDate={end_date}&type=json"
-#     headers = {'User-Agent': 'Mozilla/5.0', 'key': api_key, 'Accept': 'application/json'}
-#     try:
-#         url_with_key = f"{url}&key={api_key}"
-#         res = requests.get(url_with_key, headers=headers, timeout=10, verify=False)
-#         if res.status_code == 200:
-#             data = res.json()
-#             if "items" in data:
-#                 df_evds = pd.DataFrame(data["items"])
-#                 df_evds = df_evds[['Tarih', 'TP_FG_J0']]
-#                 df_evds.columns = ['Tarih', 'Resmi_TUFE']
-#                 df_evds['Tarih'] = pd.to_datetime(df_evds['Tarih'] + "-01", format="%Y-%m-%d")
-#                 df_evds['Resmi_TUFE'] = pd.to_numeric(df_evds['Resmi_TUFE'], errors='coerce')
-#                 return df_evds, "OK"
-#         return None, "Hata"
-#     except Exception as e:
-#         return None, str(e)
-
 # --- 6. SCRAPER YARDIMCILARI ---
 def temizle_fiyat(t):
     if not t: return None
@@ -733,13 +703,12 @@ def style_chart(fig, is_pdf=False, is_sunburst=False):
 
 # --- 9. VERİ VE HESAPLAMA MOTORLARI ---
 
-@st.cache_data(ttl=3600, show_spinner=False) # EKLENEN SATIR
+@st.cache_data(ttl=3600, show_spinner=False)
 def verileri_getir_cache():
     try:
         repo = get_github_repo()
         if not repo: 
-            st.sidebar.error("Repo bağlantısı kurulamadı.")
-            return None, None, None
+            return None, None, None, "Repo bağlantısı kurulamadı."
             
         branch_name = st.secrets["github"]["branch"]
         
@@ -755,8 +724,7 @@ def verileri_getir_cache():
             elif item.path == EXCEL_DOSYASI: conf_blob_sha = item.sha
                 
         if not fiyat_blob_sha:
-            st.sidebar.error(f"{FIYAT_DOSYASI} repoda bulunamadı!")
-            return None, None, None
+            return None, None, None, f"{FIYAT_DOSYASI} repoda bulunamadı!"
             
         # 2. DOSYAYI DOĞRUDAN BLOB OLARAK İNDİR (Sıfır Cache)
         fiyat_blob = repo.get_git_blob(fiyat_blob_sha)
@@ -769,7 +737,7 @@ def verileri_getir_cache():
             df_s = pd.read_excel(BytesIO(conf_content), sheet_name=SAYFA_ADI, dtype=str)
         else: df_s = pd.DataFrame()
 
-        if df_f.empty or df_s.empty: return None, None, None
+        if df_f.empty or df_s.empty: return None, None, None, None
 
         # --- AGRESİF TARİH KURTARMA OPERASYONU ---
         def zorla_tarih_yap(t):
@@ -785,11 +753,6 @@ def verileri_getir_cache():
         df_f['Tarih_Str'] = df_f['Tarih_DT'].dt.strftime('%Y-%m-%d')
         raw_dates = df_f['Tarih_Str'].unique().tolist()
         
-        # Radarı tasarıma zarar vermeyecek şekilde ufak bir expander içine gizledik
-        with st.sidebar.expander("🛠️ Sistem Radarı", expanded=False):
-            st.caption("Veritabanına İşlenen Son Günler:")
-            st.write(raw_dates[-3:] if len(raw_dates)>2 else raw_dates)
-
         df_s.columns = df_s.columns.str.strip()
         kod_col = next((c for c in df_s.columns if c.lower() == 'kod'), 'Kod')
         ad_col = next((c for c in df_s.columns if 'ad' in c.lower()), 'Madde_Adi')
@@ -804,22 +767,18 @@ def verileri_getir_cache():
         
         pivot = df_f.pivot_table(index='Kod', columns='Tarih_Str', values='Fiyat', aggfunc='mean')
         pivot = pivot.ffill(axis=1).bfill(axis=1).reset_index()
-        if pivot.empty: return None, None, None
+        if pivot.empty: return None, None, None, None
 
         if 'Grup' not in df_s.columns:
             grup_map = {"01": "Gıda", "02": "Alkol-Tütün", "03": "Giyim", "04": "Konut"}
             df_s['Grup'] = df_s['Kod'].str[:2].map(grup_map).fillna("Diğer")
 
         df_analiz_base = pd.merge(df_s, pivot, on='Kod', how='left')
-        return df_analiz_base, raw_dates, ad_col
+        return df_analiz_base, raw_dates, ad_col, None
 
     except Exception as e:
-        st.sidebar.error(f"Veri Çekme Hatası: {str(e)}")
-        return None, None, None
+        return None, None, None, f"Veri Çekme Hatası: {str(e)}"
 
-# 2. HESAPLAMA YAP (SİMÜLASYON AKTİF EDİLDİ)
-# 2. HESAPLAMA YAP (SİMÜLASYON AKTİF VE SABİTLENDİ)
-# 2. HESAPLAMA YAP (KATEGORİ BAZLI AKILLI SİMÜLASYON AKTİF)
 # 2. HESAPLAMA YAP (KATEGORİ BAZLI AKILLI SİMÜLASYON AKTİF)
 def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, ad_col, agirlik_col, baz_col, aktif_agirlik_col, son):
     df_analiz = df_analiz_base.copy()
@@ -952,6 +911,11 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
 # 3. SIDEBAR UI
 def ui_sidebar_ve_veri_hazirlama(df_analiz_base, raw_dates, ad_col):
     if df_analiz_base is None: return None
+
+    # Radarı tasarıma zarar vermeyecek şekilde ufak bir expander içine gizledik (CACHE BUG'I DÜZELTİLDİ)
+    with st.sidebar.expander("🛠️ Sistem Radarı", expanded=False):
+        st.caption("Veritabanına İşlenen Son Günler:")
+        st.write(raw_dates[-3:] if len(raw_dates)>2 else raw_dates)
 
     ai_container = st.sidebar.container()
     st.sidebar.markdown("---")
@@ -1248,7 +1212,9 @@ def sayfa_kategori_detay(ctx):
     if arama: df_show = df_show[df_show[ctx['ad_col']].astype(str).str.contains(arama, case=False, na=False)]
     if not df_show.empty:
         items_per_page = 16
-        page_num = st.number_input("Sayfa", min_value=1, max_value=max(1, len(df_show)//items_per_page + 1), step=1)
+        # BUG FIXED: Fazladan boş sayfa oluşmasını engelleyen Pagination mantığı
+        max_pages = max(1, (len(df_show) - 1) // items_per_page + 1)
+        page_num = st.number_input("Sayfa", min_value=1, max_value=max_pages, step=1)
         batch = df_show.iloc[(page_num - 1) * items_per_page : (page_num - 1) * items_per_page + items_per_page]
         cols = st.columns(4)
         for idx, row in enumerate(batch.to_dict('records')):
@@ -1421,7 +1387,6 @@ def sayfa_trend_analizi(ctx):
         st.plotly_chart(style_chart(px.line(df_melted, x='Tarih', y='Yuzde_Degisim', color=ctx['ad_col'], title="Ürün Bazlı Kümülatif Değişim (%)", markers=True)), use_container_width=True)
 
 # --- ANA MAIN ---
-# --- ANA MAIN ---
 def main():
     SENKRONIZASYON_AKTIF = True
 
@@ -1460,10 +1425,8 @@ def main():
     )
     secim = menu_items[secilen_etiket]
 
-    # --- YENİ: İKİ BUTON YAN YANA ---
     export_clicked = False
     if SENKRONIZASYON_AKTIF:
-        # Sütunları bölüyoruz: 2 birim boşluk, 1 birim Senkronize, 1 birim E-Tablo
         col_empty, col_sync, col_export = st.columns([2, 1, 1])
         with col_sync:
             sync_clicked = st.button("SİSTEMİ SENKRONİZE ET ⚡", type="primary", use_container_width=True)
@@ -1491,8 +1454,12 @@ def main():
                 st.error(f"⚠️ Senkronizasyon sırasında hata oluştu: {res}")
 
     with st.spinner("Veritabanına bağlanılıyor..."):
-        df_base, r_dates, col_name = verileri_getir_cache()
+        df_base, r_dates, col_name, err_msg = verileri_getir_cache()
     
+    # Hata varsa güvenli şekilde sidebar'da göster
+    if err_msg:
+        st.sidebar.error(err_msg)
+
     ctx = None
     if df_base is not None:
         ctx = ui_sidebar_ve_veri_hazirlama(df_base, r_dates, col_name)
@@ -1500,14 +1467,12 @@ def main():
     # --- E-TABLOYA AKTAR İŞLEMİ (Eğer butona basıldıysa) ---
     if export_clicked and ctx:
         with st.spinner("Tablo güncelleniyor..."):
-            # Aktarım için artan/azalan 10 hesaplamasını burada yapıyoruz
             df_fark = ctx["df_analiz"].dropna(subset=['Fark', ctx['son'], ctx['ad_col']]).copy()
             artan_10 = df_fark[df_fark['Fark'] > 0].sort_values('Fark', ascending=False).head(10).copy()
             azalan_10 = df_fark[df_fark['Fark'] < 0].sort_values('Fark', ascending=True).head(10).copy()
 
             def kademeli_oran_ayarla(df_subset, yon="artan"):
                 if df_subset.empty: return df_subset
-                # Arayüzdeki simülasyon rakamlarıyla aynı olması için günlük seed kilitliyoruz
                 np.random.seed(int(ctx["son"].replace('-', '')))
                 guncel_oran = np.random.uniform(14.75, 14.95) 
                 yeni_farklar = []
@@ -1547,40 +1512,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
