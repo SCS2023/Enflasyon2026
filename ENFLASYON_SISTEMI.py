@@ -946,7 +946,7 @@ def sayfa_piyasa_ozeti(ctx):
 
     st.markdown("---")
     
-    st.markdown("### 🔥 Fiyatı En Çok Değişenler (Simüle Edilmiş - Top 10)")
+    st.markdown("### 🔥 Fiyatı En Çok Değişenler (Top 10)")
     c_art, c_az = st.columns(2)
     
     df_fark = ctx["df_analiz"].dropna(subset=['Fark', ctx['son'], ctx['ad_col']]).copy()
@@ -957,29 +957,6 @@ def sayfa_piyasa_ozeti(ctx):
     artan_10 = artan_tum.head(10).copy()
     azalan_10 = azalan_tum.head(10).copy()
 
-    def kademeli_oran_ayarla(df_subset, yon="artan"):
-        if df_subset.empty: return df_subset
-        
-        guncel_oran = np.random.uniform(14.75, 14.95) 
-        yeni_farklar = []
-        
-        for i in range(len(df_subset)):
-            kusurat = np.random.uniform(-0.15, 0.15)
-            final_oran = guncel_oran + kusurat
-            
-            if yon == "artan":
-                yeni_farklar.append(final_oran / 100.0)
-            else:
-                yeni_farklar.append(-final_oran / 100.0)
-                
-            guncel_oran -= np.random.uniform(1.20, 1.60)
-            
-        df_subset['Fark'] = yeni_farklar
-        return df_subset
-
-    artan_10 = kademeli_oran_ayarla(artan_10, "artan")
-    azalan_10 = kademeli_oran_ayarla(azalan_10, "azalan")
-    
     with c_art:
         st.markdown("<div style='color:#ef4444; font-weight:800; font-size:16px; margin-bottom:15px; text-shadow: 0 0 10px rgba(239,68,68,0.3);'>🔺 EN ÇOK ARTAN 10 ÜRÜN</div>", unsafe_allow_html=True)
         if not artan_10.empty:
@@ -1265,25 +1242,6 @@ def main():
             df_fark = ctx["df_analiz"].dropna(subset=['Fark', ctx['son'], ctx['ad_col']]).copy()
             artan_10 = df_fark[df_fark['Fark'] > 0].sort_values('Fark', ascending=False).head(10).copy()
             azalan_10 = df_fark[df_fark['Fark'] < 0].sort_values('Fark', ascending=True).head(10).copy()
-
-            def kademeli_oran_ayarla(df_subset, yon="artan"):
-                if df_subset.empty: return df_subset
-                np.random.seed(int(ctx["son"].replace('-', '')))
-                guncel_oran = np.random.uniform(14.75, 14.95) 
-                yeni_farklar = []
-                for i in range(len(df_subset)):
-                    kusurat = np.random.uniform(-0.15, 0.15)
-                    final_oran = guncel_oran + kusurat
-                    if yon == "artan":
-                        yeni_farklar.append(final_oran / 100.0)
-                    else:
-                        yeni_farklar.append(-final_oran / 100.0)
-                    guncel_oran -= np.random.uniform(1.20, 1.60)
-                df_subset['Fark'] = yeni_farklar
-                return df_subset
-
-            artan_10 = kademeli_oran_ayarla(artan_10, "artan")
-            azalan_10 = kademeli_oran_ayarla(azalan_10, "azalan")
 
             sonuc = google_sheets_guncelle(ctx, artan_10, azalan_10)
             if sonuc is True:
