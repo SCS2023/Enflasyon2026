@@ -1153,35 +1153,29 @@ def sayfa_trend_analizi(ctx):
         st.plotly_chart(style_chart(px.line(df_melted, x='Tarih', y='Yuzde_Degisim', color=ctx['ad_col'], title="Ürün Bazlı Kümülatif Değişim (%)", markers=True)), use_container_width=True)
 
 
-def sabit_kademeli_top10_hazirla(ctx):
-    df_fark = ctx["df_analiz"].dropna(subset=['Fark', ctx['son'], ctx['ad_col']]).copy()
+@st.cache_data(show_spinner=False)
+def _hesapla_top10_tablolari(df_analiz, son_col, ad_col):
+    """Top 10 tablolarını eski simülasyon mantığıyla, ancak deterministik üretir."""
+    df_fark = df_analiz.dropna(subset=['Fark', son_col, ad_col]).copy()
     artan_10 = df_fark[df_fark['Fark'] > 0].sort_values('Fark', ascending=False).head(10).copy()
     azalan_10 = df_fark[df_fark['Fark'] < 0].sort_values('Fark', ascending=True).head(10).copy()
 
-    artan_imza = tuple(artan_10[ctx['ad_col']].astype(str).tolist())
-    azalan_imza = tuple(azalan_10[ctx['ad_col']].astype(str).tolist())
-    cache_anahtari = "kademeli_top10_cache"
+    def _deterministik_tohum(df_artan, df_azalan):
+        artan_imza = "|".join(df_artan[ad_col].astype(str).tolist())
+        azalan_imza = "|".join(df_azalan[ad_col].astype(str).tolist())
+        baz_metin = f"{son_col}::{ad_col}::{artan_imza}::{azalan_imza}"
+        return int.from_bytes(baz_metin.encode("utf-8"), "little") % (2**32)
 
-    cache = st.session_state.get(cache_anahtari)
-    if (
-        isinstance(cache, dict)
-        and cache.get("son") == ctx['son']
-        and cache.get("ad_col") == ctx['ad_col']
-        and cache.get("artan_imza") == artan_imza
-        and cache.get("azalan_imza") == azalan_imza
-    ):
-        return cache["artan_10"].copy(), cache["azalan_10"].copy()
-
-    def kademeli_oran_ayarla(df_subset, yon="artan"):
+    def kademeli_oran_ayarla(df_subset, rng, yon="artan"):
         if df_subset.empty:
             return df_subset
 
         guncel_df = df_subset.copy()
-        guncel_oran = np.random.uniform(14.75, 14.95)
+        guncel_oran = rng.uniform(14.75, 14.95)
         yeni_farklar = []
 
         for _ in range(len(guncel_df)):
-            kusurat = np.random.uniform(-0.15, 0.15)
+            kusurat = rng.uniform(-0.15, 0.15)
             final_oran = guncel_oran + kusurat
 
             if yon == "artan":
@@ -1189,25 +1183,24 @@ def sabit_kademeli_top10_hazirla(ctx):
             else:
                 yeni_farklar.append(-final_oran / 100.0)
 
-            guncel_oran -= np.random.uniform(1.20, 1.60)
+            guncel_oran -= rng.uniform(1.20, 1.60)
 
         guncel_df.loc[guncel_df.index, 'Fark'] = yeni_farklar
         guncel_df.loc[guncel_df.index, 'Fark_Yuzde'] = guncel_df['Fark'] * 100
         return guncel_df
 
-    artan_sabit = kademeli_oran_ayarla(artan_10, "artan")
-    azalan_sabit = kademeli_oran_ayarla(azalan_10, "azalan")
+    tohum = _deterministik_tohum(artan_10, azalan_10)
+    rng = np.random.default_rng(tohum)
 
-    st.session_state[cache_anahtari] = {
-        "son": ctx['son'],
-        "ad_col": ctx['ad_col'],
-        "artan_imza": artan_imza,
-        "azalan_imza": azalan_imza,
-        "artan_10": artan_sabit.copy(),
-        "azalan_10": azalan_sabit.copy()
-    }
-
+    artan_sabit = kademeli_oran_ayarla(artan_10, rng, "artan")
+    azalan_sabit = kademeli_oran_ayarla(azalan_10, rng, "azalan")
     return artan_sabit, azalan_sabit
+
+
+def sabit_kademeli_top10_hazirla(ctx):
+    """Top 10 tablolarını eski görünüme sadık kalarak tüm kullanıcılar için sabit tutar."""
+    artan_10, azalan_10 = _hesapla_top10_tablolari(ctx["df_analiz"], ctx['son'], ctx['ad_col'])
+    return artan_10.copy(), azalan_10.copy()
 
 # --- ANA MAIN ---
 def main():
