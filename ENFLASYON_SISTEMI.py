@@ -946,7 +946,7 @@ def sayfa_piyasa_ozeti(ctx):
 
     st.markdown("---")
     
-    st.markdown("### 🔥 Fiyatı En Çok Değişenler (Top 10)")
+    st.markdown("### 🔥 Fiyatı En Çok Değişenler (Simüle Edilmiş - Top 10)")
     c_art, c_az = st.columns(2)
     
     artan_10, azalan_10 = sabit_kademeli_top10_hazirla(ctx)
@@ -1305,6 +1305,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
