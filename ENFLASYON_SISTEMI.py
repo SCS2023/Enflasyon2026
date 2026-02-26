@@ -954,7 +954,38 @@ def sayfa_tam_liste(ctx):
     output = BytesIO(); 
     with pd.ExcelWriter(output) as writer: df.to_excel(writer, index=False)
     st.download_button("📥 Excel Olarak İndir", data=output.getvalue(), file_name="Veri_Seti.xlsx")
+    # --- KATEGORİ BAZLI EXCEL ---
+    agirlik_col = ctx["agirlik_col"]
+    df_kat = df.copy()
+    df_kat[agirlik_col] = pd.to_numeric(df_kat[agirlik_col], errors='coerce').fillna(0)
 
+    def agirlikli_ort(x):
+        w = x[agirlik_col]
+        val = x['Fark_Yuzde']
+        if w.sum() == 0: return 0
+        return (w * val).sum() / w.sum()
+
+    df_kategori = df_kat.groupby('Grup').apply(agirlikli_ort).reset_index(name='Agirlikli_Ort')
+    df_kategori['Agirlikli_Ort'] = df_kategori['Agirlikli_Ort'].round(2)
+    df_kategori = df_kategori.sort_values('Agirlikli_Ort', ascending=False)
+    df_kategori.columns = ['Kategori', 'Ağırlıklı Ortalama Değişim (%)']
+
+    df_urun = df[[ctx['ad_col'], 'Fark_Yuzde']].copy()
+    df_urun.columns = ['Ürün Adı', 'Ay Başına Göre Değişim (%)']
+    df_urun['Ay Başına Göre Değişim (%)'] = df_urun['Ay Başına Göre Değişim (%)'].round(2)
+    df_urun = df_urun.sort_values('Ay Başına Göre Değişim (%)', ascending=False)
+
+    output2 = BytesIO()
+    with pd.ExcelWriter(output2, engine='openpyxl') as writer:
+        df_urun.to_excel(writer, index=False, sheet_name='Ürün_Bazlı')
+        df_kategori.to_excel(writer, index=False, sheet_name='Kategori_Bazlı')
+
+    st.download_button(
+        "📥 Ürün & Kategori Raporu İndir",
+        data=output2.getvalue(),
+        file_name="Urun_Kategori_Raporu.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 def sayfa_maddeler(ctx):
     df = ctx["df_analiz"]
     agirlik_col = ctx["agirlik_col"]
@@ -1203,6 +1234,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
