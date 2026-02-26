@@ -679,9 +679,8 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
             if kod_prefix in ['03', '06'] or gercek_degisim > 1.15 or gercek_degisim < 0.90:
                 yeni_rel = rng.uniform(alt_lim, ust_lim)
             else:
-                noise = rng.uniform(-0.02, 0.02)
-                yeni_rel = gercek_degisim + noise
-                yeni_rel = max(min(yeni_rel, ust_lim + 0.015), alt_lim - 0.015)
+                    noise = rng.uniform(-0.02, 0.02)
+                    yeni_rel = gercek_degisim + noise
                 
             p_rel_list.append(yeni_rel)
             
@@ -1305,6 +1304,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
