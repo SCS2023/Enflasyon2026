@@ -13,3 +13,4 @@ PyGithub
 gspread
 google-auth
 playwright
+uvicorn
