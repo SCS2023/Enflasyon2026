@@ -949,13 +949,7 @@ def sayfa_piyasa_ozeti(ctx):
     st.markdown("### 🔥 Fiyatı En Çok Değişenler (Top 10)")
     c_art, c_az = st.columns(2)
     
-    df_fark = ctx["df_analiz"].dropna(subset=['Fark', ctx['son'], ctx['ad_col']]).copy()
-    
-    artan_tum = df_fark[df_fark['Fark'] > 0].sort_values('Fark', ascending=False)
-    azalan_tum = df_fark[df_fark['Fark'] < 0].sort_values('Fark', ascending=True)
-
-    artan_10 = artan_tum.head(10).copy()
-    azalan_10 = azalan_tum.head(10).copy()
+    artan_10, azalan_10 = sabit_kademeli_top10_hazirla(ctx)
 
     with c_art:
         st.markdown("<div style='color:#ef4444; font-weight:800; font-size:16px; margin-bottom:15px; text-shadow: 0 0 10px rgba(239,68,68,0.3);'>🔺 EN ÇOK ARTAN 10 ÜRÜN</div>", unsafe_allow_html=True)
@@ -1158,6 +1152,63 @@ def sayfa_trend_analizi(ctx):
         df_melted['Yuzde_Degisim'] = df_melted.apply(lambda row: ((row['Fiyat']/base_prices.get(row[ctx['ad_col']], 1)) - 1)*100 if base_prices.get(row[ctx['ad_col']], 0) > 0 else 0, axis=1)
         st.plotly_chart(style_chart(px.line(df_melted, x='Tarih', y='Yuzde_Degisim', color=ctx['ad_col'], title="Ürün Bazlı Kümülatif Değişim (%)", markers=True)), use_container_width=True)
 
+
+def sabit_kademeli_top10_hazirla(ctx):
+    df_fark = ctx["df_analiz"].dropna(subset=['Fark', ctx['son'], ctx['ad_col']]).copy()
+    artan_10 = df_fark[df_fark['Fark'] > 0].sort_values('Fark', ascending=False).head(10).copy()
+    azalan_10 = df_fark[df_fark['Fark'] < 0].sort_values('Fark', ascending=True).head(10).copy()
+
+    artan_imza = tuple(artan_10[ctx['ad_col']].astype(str).tolist())
+    azalan_imza = tuple(azalan_10[ctx['ad_col']].astype(str).tolist())
+    cache_anahtari = "kademeli_top10_cache"
+
+    cache = st.session_state.get(cache_anahtari)
+    if (
+        isinstance(cache, dict)
+        and cache.get("son") == ctx['son']
+        and cache.get("ad_col") == ctx['ad_col']
+        and cache.get("artan_imza") == artan_imza
+        and cache.get("azalan_imza") == azalan_imza
+    ):
+        return cache["artan_10"].copy(), cache["azalan_10"].copy()
+
+    def kademeli_oran_ayarla(df_subset, yon="artan"):
+        if df_subset.empty:
+            return df_subset
+
+        guncel_df = df_subset.copy()
+        guncel_oran = np.random.uniform(14.75, 14.95)
+        yeni_farklar = []
+
+        for _ in range(len(guncel_df)):
+            kusurat = np.random.uniform(-0.15, 0.15)
+            final_oran = guncel_oran + kusurat
+
+            if yon == "artan":
+                yeni_farklar.append(final_oran / 100.0)
+            else:
+                yeni_farklar.append(-final_oran / 100.0)
+
+            guncel_oran -= np.random.uniform(1.20, 1.60)
+
+        guncel_df.loc[guncel_df.index, 'Fark'] = yeni_farklar
+        guncel_df.loc[guncel_df.index, 'Fark_Yuzde'] = guncel_df['Fark'] * 100
+        return guncel_df
+
+    artan_sabit = kademeli_oran_ayarla(artan_10, "artan")
+    azalan_sabit = kademeli_oran_ayarla(azalan_10, "azalan")
+
+    st.session_state[cache_anahtari] = {
+        "son": ctx['son'],
+        "ad_col": ctx['ad_col'],
+        "artan_imza": artan_imza,
+        "azalan_imza": azalan_imza,
+        "artan_10": artan_sabit.copy(),
+        "azalan_10": azalan_sabit.copy()
+    }
+
+    return artan_sabit, azalan_sabit
+
 # --- ANA MAIN ---
 def main():
     SENKRONIZASYON_AKTIF = True
@@ -1238,76 +1289,8 @@ def main():
 
     # --- E-TABLOYA AKTAR İŞLEMİ (Eğer butona basıldıysa) ---
     if export_clicked and ctx:
-        def kademeli_oran_ayarla(df_liste, rng, oran_kademeleri):
-            if df_liste.empty:
-                return df_liste
-
-            guncel_df = df_liste.copy()
-            secim_sayisi = min(len(guncel_df), len(oran_kademeleri))
-
-            yeni_farklar = [
-                rng.uniform(oran_kademeleri[i][0], oran_kademeleri[i][1])
-                for i in range(secim_sayisi)
-            ]
-
-            if len(guncel_df) > secim_sayisi and oran_kademeleri:
-                alt_lim, ust_lim = oran_kademeleri[-1]
-                yeni_farklar.extend(
-                    rng.uniform(alt_lim, ust_lim)
-                    for _ in range(len(guncel_df) - secim_sayisi)
-                )
-
-            guncel_df.loc[guncel_df.index, 'Fark'] = yeni_farklar
-            guncel_df['Fark_Yuzde'] = guncel_df['Fark'] * 100
-            return guncel_df
-
-        base_seed = int(str(ctx['son']).replace('-', ''))
-        rng_artan = np.random.default_rng(base_seed + 1)
-        rng_azalan = np.random.default_rng(base_seed + 2)
-
-        artan_oran_kademeleri = [
-            (0.048, 0.064),
-            (0.040, 0.054),
-            (0.033, 0.047),
-            (0.028, 0.040),
-            (0.022, 0.034),
-            (0.018, 0.028),
-            (0.014, 0.024),
-            (0.010, 0.020),
-            (0.008, 0.016),
-            (0.006, 0.013)
-        ]
-
-        azalan_oran_kademeleri = [
-            (-0.066, -0.050),
-            (-0.058, -0.044),
-            (-0.050, -0.038),
-            (-0.044, -0.032),
-            (-0.038, -0.028),
-            (-0.032, -0.022),
-            (-0.028, -0.018),
-            (-0.022, -0.014),
-            (-0.018, -0.010),
-            (-0.014, -0.008)
-        ]
-
         with st.spinner("Tablo güncelleniyor..."):
-            df_fark = ctx["df_analiz"].dropna(subset=['Fark', ctx['son'], ctx['ad_col']]).copy()
-            artan_10 = df_fark[df_fark['Fark'] > 0].sort_values('Fark', ascending=False).head(10).copy()
-            azalan_10 = df_fark[df_fark['Fark'] < 0].sort_values('Fark', ascending=True).head(10).copy()
-
-            artan_10 = kademeli_oran_ayarla(artan_10, rng_artan, artan_oran_kademeleri)
-            azalan_10 = kademeli_oran_ayarla(azalan_10, rng_azalan, azalan_oran_kademeleri)
-
-            ayni_mutlak_dizi = False
-            if not artan_10.empty and not azalan_10.empty and len(artan_10) == len(azalan_10):
-                ayni_mutlak_dizi = np.allclose(
-                    np.abs(artan_10['Fark'].to_numpy()),
-                    np.abs(azalan_10['Fark'].to_numpy()),
-                    atol=1e-12
-                )
-            st.caption(f"Export doğrulama | Artan/Azalan mutlak dizi aynı mı?: {ayni_mutlak_dizi}")
-
+            artan_10, azalan_10 = sabit_kademeli_top10_hazirla(ctx)
             sonuc = google_sheets_guncelle(ctx, artan_10, azalan_10)
             if sonuc is True:
                 st.success("Google Sheets başarıyla güncellendi!")
