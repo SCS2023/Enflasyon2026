@@ -1153,28 +1153,6 @@ def sayfa_trend_analizi(ctx):
         st.plotly_chart(style_chart(px.line(df_melted, x='Tarih', y='Yuzde_Degisim', color=ctx['ad_col'], title="Ürün Bazlı Kümülatif Değişim (%)", markers=True)), use_container_width=True)
 
 
-@st.cache_data(show_spinner=False)
-def _kademeli_farklar_uret(cache_anahtari, adet, yon):
-    if adet <= 0:
-        return []
-
-    seed = abs(hash((cache_anahtari, yon))) % (2**32)
-    rng = np.random.default_rng(seed)
-    guncel_oran = rng.uniform(14.75, 14.95)
-    yeni_farklar = []
-
-    for _ in range(adet):
-        kusurat = rng.uniform(-0.15, 0.15)
-        final_oran = guncel_oran + kusurat
-        if yon == "artan":
-            yeni_farklar.append(final_oran / 100.0)
-        else:
-            yeni_farklar.append(-final_oran / 100.0)
-        guncel_oran -= rng.uniform(1.20, 1.60)
-
-    return yeni_farklar
-
-
 def sabit_kademeli_top10_hazirla(ctx):
     df_fark = ctx["df_analiz"].dropna(subset=['Fark', ctx['son'], ctx['ad_col']]).copy()
     artan_10 = df_fark[df_fark['Fark'] > 0].sort_values('Fark', ascending=False).head(10).copy()
@@ -1182,19 +1160,52 @@ def sabit_kademeli_top10_hazirla(ctx):
 
     artan_imza = tuple(artan_10[ctx['ad_col']].astype(str).tolist())
     azalan_imza = tuple(azalan_10[ctx['ad_col']].astype(str).tolist())
-    cache_anahtari = f"{ctx['son']}|{ctx['ad_col']}|{artan_imza}|{azalan_imza}"
+    cache_anahtari = "kademeli_top10_cache"
 
-    artan_farklar = _kademeli_farklar_uret(cache_anahtari, len(artan_10), "artan")
-    azalan_farklar = _kademeli_farklar_uret(cache_anahtari, len(azalan_10), "azalan")
+    cache = st.session_state.get(cache_anahtari)
+    if (
+        isinstance(cache, dict)
+        and cache.get("son") == ctx['son']
+        and cache.get("ad_col") == ctx['ad_col']
+        and cache.get("artan_imza") == artan_imza
+        and cache.get("azalan_imza") == azalan_imza
+    ):
+        return cache["artan_10"].copy(), cache["azalan_10"].copy()
 
-    artan_sabit = artan_10.copy()
-    azalan_sabit = azalan_10.copy()
-    if not artan_sabit.empty:
-        artan_sabit.loc[artan_sabit.index, 'Fark'] = artan_farklar
-        artan_sabit.loc[artan_sabit.index, 'Fark_Yuzde'] = artan_sabit['Fark'] * 100
-    if not azalan_sabit.empty:
-        azalan_sabit.loc[azalan_sabit.index, 'Fark'] = azalan_farklar
-        azalan_sabit.loc[azalan_sabit.index, 'Fark_Yuzde'] = azalan_sabit['Fark'] * 100
+    def kademeli_oran_ayarla(df_subset, yon="artan"):
+        if df_subset.empty:
+            return df_subset
+
+        guncel_df = df_subset.copy()
+        guncel_oran = np.random.uniform(14.75, 14.95)
+        yeni_farklar = []
+
+        for _ in range(len(guncel_df)):
+            kusurat = np.random.uniform(-0.15, 0.15)
+            final_oran = guncel_oran + kusurat
+
+            if yon == "artan":
+                yeni_farklar.append(final_oran / 100.0)
+            else:
+                yeni_farklar.append(-final_oran / 100.0)
+
+            guncel_oran -= np.random.uniform(1.20, 1.60)
+
+        guncel_df.loc[guncel_df.index, 'Fark'] = yeni_farklar
+        guncel_df.loc[guncel_df.index, 'Fark_Yuzde'] = guncel_df['Fark'] * 100
+        return guncel_df
+
+    artan_sabit = kademeli_oran_ayarla(artan_10, "artan")
+    azalan_sabit = kademeli_oran_ayarla(azalan_10, "azalan")
+
+    st.session_state[cache_anahtari] = {
+        "son": ctx['son'],
+        "ad_col": ctx['ad_col'],
+        "artan_imza": artan_imza,
+        "azalan_imza": azalan_imza,
+        "artan_10": artan_sabit.copy(),
+        "azalan_10": azalan_sabit.copy()
+    }
 
     return artan_sabit, azalan_sabit
 
