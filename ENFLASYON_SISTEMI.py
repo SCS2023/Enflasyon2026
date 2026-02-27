@@ -558,41 +558,10 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
         
         base_rel = gecerli_veri['Aylik_Ortalama'] / gecerli_veri[baz_col]
         
-        tarih_kilit_kodu = int(son.replace('-', ''))
-        rng = np.random.default_rng(tarih_kilit_kodu)
-        
-        KAT_HEDEFLERI = {
-            "01": (1.063, 1.064),   
-            "02": (1.075, 1.104),   
-            "03": (1.060, 1.061),   
-            "04": (1.040, 1.044),   
-            "05": (1.000, 1.004),   
-            "06": (1.005, 1.009),   
-            "07": (1.035, 1.045),   
-            "08": (1.035, 1.045),   
-            "09": (0.950, 0.985),   
-            "10": (1.025, 1.055),   
-            "11": (1.035, 1.035),   
-            "12": (1.035, 1.035),   
-            "13": (1.030, 1.035)    
-        }
+      
 
-        p_rel_list = []
-        for idx, row in gecerli_veri.iterrows():
-            kod_prefix = str(row['Kod']).zfill(7)[:2]
-            alt_lim, ust_lim = KAT_HEDEFLERI.get(kod_prefix, (1.01, 1.04))
-            
-            gercek_degisim = base_rel[idx]
-            
-            if kod_prefix in ['03', '06'] or gercek_degisim > 1.15 or gercek_degisim < 0.90:
-                yeni_rel = rng.uniform(alt_lim, ust_lim)
-            else:
-                    noise = rng.uniform(-0.02, 0.02)
-                    yeni_rel = gercek_degisim + noise
-                
-            p_rel_list.append(yeni_rel)
-            
-        p_rel = pd.Series(p_rel_list, index=base_rel.index)
+
+        p_rel = base_rel.copy()
         
         gecerli_veri['Simule_Fiyat'] = gecerli_veri[baz_col] * p_rel
         df_analiz.loc[gecerli_veri.index, 'Aylik_Ortalama'] = gecerli_veri['Simule_Fiyat']
@@ -607,7 +576,7 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
 
         if enf_genel > 0:
             yillik_enf = ((1 + enf_genel/100) * (1 + BEKLENEN_AYLIK_ORT/100)**11 - 1) * 100
-            yillik_enf = yillik_enf * rng.uniform(0.98, 1.02)
+        
         else:
             yillik_enf = 0.0
 
@@ -1097,42 +1066,8 @@ def _hesapla_top10_tablolari(df_analiz, son_col, ad_col):
     df_fark = df_analiz.dropna(subset=['Fark', son_col, ad_col]).copy()
     artan_10 = df_fark[df_fark['Fark'] > 0].sort_values('Fark', ascending=False).head(10).copy()
     azalan_10 = df_fark[df_fark['Fark'] < 0].sort_values('Fark', ascending=True).head(10).copy()
+    return artan_10, azalan_10
 
-    def _deterministik_tohum(df_artan, df_azalan):
-        artan_imza = "|".join(df_artan[ad_col].astype(str).tolist())
-        azalan_imza = "|".join(df_azalan[ad_col].astype(str).tolist())
-        baz_metin = f"{son_col}::{ad_col}::{artan_imza}::{azalan_imza}"
-        return int.from_bytes(baz_metin.encode("utf-8"), "little") % (2**32)
-
-    def kademeli_oran_ayarla(df_subset, rng, yon="artan"):
-        if df_subset.empty:
-            return df_subset
-
-        guncel_df = df_subset.copy()
-        guncel_oran = rng.uniform(14.75, 14.95)
-        yeni_farklar = []
-
-        for _ in range(len(guncel_df)):
-            kusurat = rng.uniform(-0.15, 0.15)
-            final_oran = guncel_oran + kusurat
-
-            if yon == "artan":
-                yeni_farklar.append(final_oran / 100.0)
-            else:
-                yeni_farklar.append(-final_oran / 100.0)
-
-            guncel_oran -= rng.uniform(1.20, 1.60)
-
-        guncel_df.loc[guncel_df.index, 'Fark'] = yeni_farklar
-        guncel_df.loc[guncel_df.index, 'Fark_Yuzde'] = guncel_df['Fark'] * 100
-        return guncel_df
-
-    tohum = _deterministik_tohum(artan_10, azalan_10)
-    rng = np.random.default_rng(tohum)
-
-    artan_sabit = kademeli_oran_ayarla(artan_10, rng, "artan")
-    azalan_sabit = kademeli_oran_ayarla(azalan_10, rng, "azalan")
-    return artan_sabit, azalan_sabit
 
 
 def sabit_kademeli_top10_hazirla(ctx):
@@ -1234,6 +1169,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
