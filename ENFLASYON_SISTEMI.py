@@ -830,12 +830,13 @@ def sayfa_piyasa_ozeti(ctx):
     with c_art:
         st.markdown("<div style='color:#ef4444; font-weight:800; font-size:16px; margin-bottom:15px; text-shadow: 0 0 10px rgba(239,68,68,0.3);'>🔺 EN ÇOK ARTAN 10 ÜRÜN</div>", unsafe_allow_html=True)
         if not artan_10.empty:
-            disp_artan = artan_10[[ctx['ad_col'], ctx['son']]].copy()
+            disp_artan = artan_10[[ctx['ad_col'], ctx['baz_col'], ctx['son']]].copy()
             disp_artan['Değişim'] = artan_10['Fark'] * 100
             st.dataframe(
                 disp_artan,
                 column_config={
                     ctx['ad_col']: "Ürün Adı",
+                    ctx['baz_col']: st.column_config.NumberColumn("İlk Fiyat", format="%.2f ₺"),
                     ctx['son']: st.column_config.NumberColumn("Son Fiyat", format="%.2f ₺"),
                     "Değişim": st.column_config.NumberColumn("% Değişim", format="+%.2f %%")
                 },
@@ -847,12 +848,13 @@ def sayfa_piyasa_ozeti(ctx):
     with c_az:
         st.markdown("<div style='color:#22c55e; font-weight:800; font-size:16px; margin-bottom:15px; text-shadow: 0 0 10px rgba(34,197,94,0.3);'>🔻 EN ÇOK DÜŞEN 10 ÜRÜN</div>", unsafe_allow_html=True)
         if not azalan_10.empty:
-            disp_azalan = azalan_10[[ctx['ad_col'], ctx['son']]].copy()
+            disp_azalan = azalan_10[[ctx['ad_col'], ctx['baz_col'], ctx['son']]].copy()
             disp_azalan['Değişim'] = azalan_10['Fark'] * 100
             st.dataframe(
                 disp_azalan,
                 column_config={
                     ctx['ad_col']: "Ürün Adı",
+                    ctx['baz_col']: st.column_config.NumberColumn("İlk Fiyat", format="%.2f ₺"),
                     ctx['son']: st.column_config.NumberColumn("Son Fiyat", format="%.2f ₺"),
                     "Değişim": st.column_config.NumberColumn("% Değişim", format="%.2f %%")
                 },
@@ -1060,19 +1062,19 @@ def sayfa_trend_analizi(ctx):
         st.plotly_chart(style_chart(px.line(df_melted, x='Tarih', y='Yuzde_Degisim', color=ctx['ad_col'], title="Ürün Bazlı Kümülatif Değişim (%)", markers=True)), use_container_width=True)
 
 
+# SONRA:
 @st.cache_data(show_spinner=False)
-def _hesapla_top10_tablolari(df_analiz, son_col, ad_col):
-    """Top 10 tablolarını eski simülasyon mantığıyla, ancak deterministik üretir."""
-    df_fark = df_analiz.dropna(subset=['Fark', son_col, ad_col]).copy()
+def _hesapla_top10_tablolari(df_analiz, son_col, ad_col, baz_col):
+    df_fark = df_analiz.dropna(subset=['Fark', son_col, ad_col, baz_col]).copy()
     artan_10 = df_fark[df_fark['Fark'] > 0].sort_values('Fark', ascending=False).head(10).copy()
     azalan_10 = df_fark[df_fark['Fark'] < 0].sort_values('Fark', ascending=True).head(10).copy()
     return artan_10, azalan_10
 
 
 
+# SONRA:
 def sabit_kademeli_top10_hazirla(ctx):
-    """Top 10 tablolarını eski görünüme sadık kalarak tüm kullanıcılar için sabit tutar."""
-    artan_10, azalan_10 = _hesapla_top10_tablolari(ctx["df_analiz"], ctx['son'], ctx['ad_col'])
+    artan_10, azalan_10 = _hesapla_top10_tablolari(ctx["df_analiz"], ctx['son'], ctx['ad_col'], ctx['baz_col'])
     return artan_10.copy(), azalan_10.copy()
 
 # --- ANA MAIN ---
@@ -1169,6 +1171,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
