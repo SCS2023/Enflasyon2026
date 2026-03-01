@@ -883,13 +883,15 @@ def sayfa_piyasa_ozeti(ctx):
     with c_art:
         st.markdown("<div style='color:#ef4444; font-weight:800; font-size:16px; margin-bottom:15px; text-shadow: 0 0 10px rgba(239,68,68,0.3);'>🔺 EN ÇOK ARTAN 10 ÜRÜN</div>", unsafe_allow_html=True)
         if not artan_10.empty:
-            disp_artan = artan_10[[ctx['ad_col'], ctx['son']]].copy()
+            disp_artan = artan_10[[ctx['ad_col'], ctx['baz_col'], ctx['son']]].copy()
+            disp_artan.columns = [ctx['ad_col'], 'İlk Fiyat', 'Son Fiyat']
             disp_artan['Değişim'] = artan_10['Fark'] * 100
             st.dataframe(
                 disp_artan,
                 column_config={
                     ctx['ad_col']: "Ürün Adı",
-                    ctx['son']: st.column_config.NumberColumn("Son Fiyat", format="%.2f ₺"),
+                    'İlk Fiyat': st.column_config.NumberColumn("İlk Fiyat", format="%.2f ₺"),
+                    'Son Fiyat': st.column_config.NumberColumn("Son Fiyat", format="%.2f ₺"),
                     "Değişim": st.column_config.NumberColumn("% Değişim", format="+%.2f %%")
                 },
                 hide_index=True, use_container_width=True
@@ -900,13 +902,15 @@ def sayfa_piyasa_ozeti(ctx):
     with c_az:
         st.markdown("<div style='color:#22c55e; font-weight:800; font-size:16px; margin-bottom:15px; text-shadow: 0 0 10px rgba(34,197,94,0.3);'>🔻 EN ÇOK DÜŞEN 10 ÜRÜN</div>", unsafe_allow_html=True)
         if not azalan_10.empty:
-            disp_azalan = azalan_10[[ctx['ad_col'], ctx['son']]].copy()
+            disp_azalan = azalan_10[[ctx['ad_col'], ctx['baz_col'], ctx['son']]].copy()
+            disp_azalan.columns = [ctx['ad_col'], 'İlk Fiyat', 'Son Fiyat']
             disp_azalan['Değişim'] = azalan_10['Fark'] * 100
             st.dataframe(
                 disp_azalan,
                 column_config={
                     ctx['ad_col']: "Ürün Adı",
-                    ctx['son']: st.column_config.NumberColumn("Son Fiyat", format="%.2f ₺"),
+                    'İlk Fiyat': st.column_config.NumberColumn("İlk Fiyat", format="%.2f ₺"),
+                    'Son Fiyat': st.column_config.NumberColumn("Son Fiyat", format="%.2f ₺"),
                     "Değişim": st.column_config.NumberColumn("% Değişim", format="%.2f %%")
                 },
                 hide_index=True, use_container_width=True
@@ -1234,6 +1238,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
