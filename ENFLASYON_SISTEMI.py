@@ -16,19 +16,13 @@ import zipfile
 import base64
 import requests
 import streamlit.components.v1 as components
-import hashlib
-import numpy as np
-import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 from docx import Document
-from github.GithubException import GithubException
 from docx.shared import Pt, RGBColor, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from streamlit_lottie import st_lottie
-import numpy as np
-import streamlit as st
 
 
 # --- 1. AYARLAR VE TEMA YÖNETİMİ ---
@@ -248,32 +242,19 @@ def get_github_repo():
     g = get_github_connection()
     if g: return g.get_repo(st.secrets["github"]["repo_name"])
     return None
-    
-def github_file_to_bytes(content_file, repo=None):
-    try:
-        return content_file.decoded_content
-    except Exception:
-        if repo and getattr(content_file, "sha", None):
-            blob = repo.get_git_blob(content_file.sha)
-            return base64.b64decode(blob.content)
-        raise
 
 def github_excel_guncelle(df_yeni, dosya_adi):
     repo = get_github_repo()
     if not repo: return "Repo Yok"
     try:
-        c = None
         try:
             c = repo.get_contents(dosya_adi, ref=st.secrets["github"]["branch"])
-            old = pd.read_excel(BytesIO(github_file_to_bytes(c, repo)), dtype=str)
+            old = pd.read_excel(BytesIO(c.decoded_content), dtype=str)
             yeni_tarih = str(df_yeni['Tarih'].iloc[0])
             old = old[~((old['Tarih'].astype(str) == yeni_tarih) & (old['Kod'].isin(df_yeni['Kod'])))]
             final = pd.concat([old, df_yeni], ignore_index=True)
-        except GithubException as e:
-            if e.status == 404:
-                final = df_yeni
-            else:
-                raise
+        except:
+            c = None; final = df_yeni
         out = BytesIO()
         with pd.ExcelWriter(out, engine='openpyxl') as w:
             final.to_excel(w, index=False, sheet_name='Fiyat_Log')
@@ -362,7 +343,7 @@ def html_isleyici(progress_callback):
     try:
         df_conf = pd.DataFrame() 
         c = repo.get_contents(EXCEL_DOSYASI, ref=st.secrets["github"]["branch"])
-        df_conf = pd.read_excel(BytesIO(github_file_to_bytes(c, repo)), sheet_name=SAYFA_ADI, dtype=str)
+        df_conf = pd.read_excel(BytesIO(c.decoded_content), sheet_name=SAYFA_ADI, dtype=str)
         df_conf.columns = df_conf.columns.str.strip()
         
         kod_col = next((c for c in df_conf.columns if c.lower() == 'kod'), 'Kod')
@@ -577,42 +558,10 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
         
         base_rel = gecerli_veri['Aylik_Ortalama'] / gecerli_veri[baz_col]
         
-        tarih_kilit_kodu = int(son.replace('-', ''))
-        rng = np.random.default_rng(tarih_kilit_kodu)
-        
-        KAT_HEDEFLERI = {
-            "01": (1.063, 1.064),   
-            "02": (1.075, 1.104),   
-            "03": (1.060, 1.061),   
-            "04": (1.040, 1.044),   
-            "05": (1.000, 1.004),   
-            "06": (1.005, 1.009),   
-            "07": (1.035, 1.045),   
-            "08": (1.035, 1.045),   
-            "09": (0.950, 0.985),   
-            "10": (1.025, 1.055),   
-            "11": (1.035, 1.035),   
-            "12": (1.035, 1.035),   
-            "13": (1.030, 1.035)    
-        }
+      
 
-        p_rel_list = []
-        for idx, row in gecerli_veri.iterrows():
-            kod_prefix = str(row['Kod']).zfill(7)[:2]
-            alt_lim, ust_lim = KAT_HEDEFLERI.get(kod_prefix, (1.01, 1.04))
-            
-            gercek_degisim = base_rel[idx]
-            
-            if kod_prefix in ['03', '06'] or gercek_degisim > 1.15 or gercek_degisim < 0.90:
-                yeni_rel = rng.uniform(alt_lim, ust_lim)
-            else:
-                noise = rng.uniform(-0.02, 0.02)
-                yeni_rel = gercek_degisim + noise
-                yeni_rel = max(min(yeni_rel, ust_lim + 0.015), alt_lim - 0.015)
-                
-            p_rel_list.append(yeni_rel)
-            
-        p_rel = pd.Series(p_rel_list, index=base_rel.index)
+
+        p_rel = base_rel.copy()
         
         gecerli_veri['Simule_Fiyat'] = gecerli_veri[baz_col] * p_rel
         df_analiz.loc[gecerli_veri.index, 'Aylik_Ortalama'] = gecerli_veri['Simule_Fiyat']
@@ -627,7 +576,7 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
 
         if enf_genel > 0:
             yillik_enf = ((1 + enf_genel/100) * (1 + BEKLENEN_AYLIK_ORT/100)**11 - 1) * 100
-            yillik_enf = yillik_enf * rng.uniform(0.98, 1.02)
+        
         else:
             yillik_enf = 0.0
 
@@ -637,11 +586,13 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
     
     df_analiz['Fark_Yuzde'] = df_analiz['Fark'] * 100
     
-    # Günlük değişim: Son gün / Önceki gün (baz_col = önceki ayın son günü)
-    df_analiz['Gunluk_Degisim'] = (df_analiz[son] / df_analiz[baz_col].replace(0, np.nan)) - 1
-    df_analiz['Gunluk_Degisim'] = df_analiz['Gunluk_Degisim'].replace([np.inf, -np.inf], np.nan).fillna(0)
     gun_farki = 0
-    onceki_gun = baz_col
+    if len(gunler) >= 2:
+        onceki_gun = gunler[-2]
+        df_analiz['Gunluk_Degisim'] = (df_analiz[son] / df_analiz[onceki_gun].replace(0, np.nan)) - 1
+    else:
+        df_analiz['Gunluk_Degisim'] = 0
+        onceki_gun = son
 
     resmi_aylik_degisim = 4.84
     tahmin = enf_genel
@@ -696,17 +647,13 @@ def ui_sidebar_ve_veri_hazirlama(df_analiz_base, raw_dates, ad_col):
     son = gunler[-1]; dt_son = datetime.strptime(son, '%Y-%m-%d')
     col_w25, col_w26 = 'Agirlik_2025', 'Agirlik_2026'
     ZINCIR_TARIHI = datetime(2026, 2, 4)
-
-    # BAZ TARİH - Her zaman önceki ayın son günü baz alınır
-    onceki_ay = f"{dt_son.year}-{dt_son.month-1:02d}"
-    onceki_ay_gunleri = [d for d in tum_gunler_sirali if d.startswith(onceki_ay)]
-    baz_col = max(onceki_ay_gunleri) if onceki_ay_gunleri else tum_gunler_sirali[0]
-
-    # Ağırlık sütunu belirle
+    
     if dt_son >= ZINCIR_TARIHI:
         aktif_agirlik_col = col_w26
+        gunler_2026 = [c for c in tum_gunler_sirali if c >= "2026-01-01"]
+        baz_col = gunler_2026[0] if gunler_2026 else gunler[0]
     else:
-        aktif_agirlik_col = col_w25
+        aktif_agirlik_col = col_w25; baz_col = gunler[0]
 
     ctx = hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, ad_col, agirlik_col=None, baz_col=baz_col, aktif_agirlik_col=aktif_agirlik_col, son=son)
 
@@ -884,14 +831,13 @@ def sayfa_piyasa_ozeti(ctx):
         st.markdown("<div style='color:#ef4444; font-weight:800; font-size:16px; margin-bottom:15px; text-shadow: 0 0 10px rgba(239,68,68,0.3);'>🔺 EN ÇOK ARTAN 10 ÜRÜN</div>", unsafe_allow_html=True)
         if not artan_10.empty:
             disp_artan = artan_10[[ctx['ad_col'], ctx['baz_col'], ctx['son']]].copy()
-            disp_artan.columns = [ctx['ad_col'], 'İlk Fiyat', 'Son Fiyat']
             disp_artan['Değişim'] = artan_10['Fark'] * 100
             st.dataframe(
                 disp_artan,
                 column_config={
                     ctx['ad_col']: "Ürün Adı",
-                    'İlk Fiyat': st.column_config.NumberColumn("İlk Fiyat", format="%.2f ₺"),
-                    'Son Fiyat': st.column_config.NumberColumn("Son Fiyat", format="%.2f ₺"),
+                    ctx['baz_col']: st.column_config.NumberColumn("İlk Fiyat", format="%.2f ₺"),
+                    ctx['son']: st.column_config.NumberColumn("Son Fiyat", format="%.2f ₺"),
                     "Değişim": st.column_config.NumberColumn("% Değişim", format="+%.2f %%")
                 },
                 hide_index=True, use_container_width=True
@@ -903,14 +849,13 @@ def sayfa_piyasa_ozeti(ctx):
         st.markdown("<div style='color:#22c55e; font-weight:800; font-size:16px; margin-bottom:15px; text-shadow: 0 0 10px rgba(34,197,94,0.3);'>🔻 EN ÇOK DÜŞEN 10 ÜRÜN</div>", unsafe_allow_html=True)
         if not azalan_10.empty:
             disp_azalan = azalan_10[[ctx['ad_col'], ctx['baz_col'], ctx['son']]].copy()
-            disp_azalan.columns = [ctx['ad_col'], 'İlk Fiyat', 'Son Fiyat']
             disp_azalan['Değişim'] = azalan_10['Fark'] * 100
             st.dataframe(
                 disp_azalan,
                 column_config={
                     ctx['ad_col']: "Ürün Adı",
-                    'İlk Fiyat': st.column_config.NumberColumn("İlk Fiyat", format="%.2f ₺"),
-                    'Son Fiyat': st.column_config.NumberColumn("Son Fiyat", format="%.2f ₺"),
+                    ctx['baz_col']: st.column_config.NumberColumn("İlk Fiyat", format="%.2f ₺"),
+                    ctx['son']: st.column_config.NumberColumn("Son Fiyat", format="%.2f ₺"),
                     "Değişim": st.column_config.NumberColumn("% Değişim", format="%.2f %%")
                 },
                 hide_index=True, use_container_width=True
@@ -980,7 +925,38 @@ def sayfa_tam_liste(ctx):
     output = BytesIO(); 
     with pd.ExcelWriter(output) as writer: df.to_excel(writer, index=False)
     st.download_button("📥 Excel Olarak İndir", data=output.getvalue(), file_name="Veri_Seti.xlsx")
+    # --- KATEGORİ BAZLI EXCEL ---
+    agirlik_col = ctx["agirlik_col"]
+    df_kat = df.copy()
+    df_kat[agirlik_col] = pd.to_numeric(df_kat[agirlik_col], errors='coerce').fillna(0)
 
+    def agirlikli_ort(x):
+        w = x[agirlik_col]
+        val = x['Fark_Yuzde']
+        if w.sum() == 0: return 0
+        return (w * val).sum() / w.sum()
+
+    df_kategori = df_kat.groupby('Grup').apply(agirlikli_ort).reset_index(name='Agirlikli_Ort')
+    df_kategori['Agirlikli_Ort'] = df_kategori['Agirlikli_Ort'].round(2)
+    df_kategori = df_kategori.sort_values('Agirlikli_Ort', ascending=False)
+    df_kategori.columns = ['Kategori', 'Ağırlıklı Ortalama Değişim (%)']
+
+    df_urun = df[[ctx['ad_col'], 'Fark_Yuzde']].copy()
+    df_urun.columns = ['Ürün Adı', 'Ay Başına Göre Değişim (%)']
+    df_urun['Ay Başına Göre Değişim (%)'] = df_urun['Ay Başına Göre Değişim (%)'].round(2)
+    df_urun = df_urun.sort_values('Ay Başına Göre Değişim (%)', ascending=False)
+
+    output2 = BytesIO()
+    with pd.ExcelWriter(output2, engine='openpyxl') as writer:
+        df_urun.to_excel(writer, index=False, sheet_name='Ürün_Bazlı')
+        df_kategori.to_excel(writer, index=False, sheet_name='Kategori_Bazlı')
+
+    st.download_button(
+        "📥 Ürün & Kategori Raporu İndir",
+        data=output2.getvalue(),
+        file_name="Urun_Kategori_Raporu.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 def sayfa_maddeler(ctx):
     df = ctx["df_analiz"]
     agirlik_col = ctx["agirlik_col"]
@@ -1086,64 +1062,20 @@ def sayfa_trend_analizi(ctx):
         st.plotly_chart(style_chart(px.line(df_melted, x='Tarih', y='Yuzde_Degisim', color=ctx['ad_col'], title="Ürün Bazlı Kümülatif Değişim (%)", markers=True)), use_container_width=True)
 
 
-
-
-
-
-def sabit_kademeli_top10_hazirla(ctx):
-    """Top 10 tablolarını veriye göre değişen ama aynı veri için sabit tutar."""
-    df_analiz = ctx["df_analiz"]
-    son_col = ctx['son']
-    ad_col = ctx['ad_col']
-    
-    # Veriyi filtrele
-    df_fark = df_analiz.dropna(subset=['Fark', son_col, ad_col]).copy()
+# SONRA:
+@st.cache_data(show_spinner=False)
+def _hesapla_top10_tablolari(df_analiz, son_col, ad_col, baz_col):
+    df_fark = df_analiz.dropna(subset=['Fark', son_col, ad_col, baz_col]).copy()
     artan_10 = df_fark[df_fark['Fark'] > 0].sort_values('Fark', ascending=False).head(10).copy()
     azalan_10 = df_fark[df_fark['Fark'] < 0].sort_values('Fark', ascending=True).head(10).copy()
+    return artan_10, azalan_10
 
-    def _deterministik_tohum(df_artan, df_azalan):
-        # ❌ ESKİ: Sadece isimlere bakıyordu
-        # artan_imza = "|".join(df_artan[ad_col].astype(str).tolist())
-        
-        # ✅ YENİ: İsimler + Fark değerleri + son_col değerlerini hash'le
-        artan_veri = df_artan[[ad_col, 'Fark', son_col]].to_json()
-        azalan_veri = df_azalan[[ad_col, 'Fark', son_col]].to_json()
-        baz_metin = f"{son_col}::{ad_col}::{artan_veri}::{azalan_veri}"
-        
-        # MD5 ile stabil hash üret (Python'un built-in hash()'i oturumlar arası değişir)
-        return int(hashlib.md5(baz_metin.encode()).hexdigest(), 16) % (2**32)
 
-    def kademeli_oran_ayarla(df_subset, rng, yon="artan"):
-        if df_subset.empty:
-            return df_subset
 
-        guncel_df = df_subset.copy()
-        guncel_oran = rng.uniform(14.75, 14.95)
-        yeni_farklar = []
-
-        for _ in range(len(guncel_df)):
-            kusurat = rng.uniform(-0.15, 0.15)
-            final_oran = guncel_oran + kusurat
-
-            if yon == "artan":
-                yeni_farklar.append(final_oran / 100.0)
-            else:
-                yeni_farklar.append(-final_oran / 100.0)
-
-            guncel_oran -= rng.uniform(1.20, 1.60)
-
-        guncel_df.loc[guncel_df.index, 'Fark'] = yeni_farklar
-        guncel_df.loc[guncel_df.index, 'Fark_Yuzde'] = guncel_df['Fark'] * 100
-        return guncel_df
-
-    # Veriye özgü deterministik tohum
-    tohum = _deterministik_tohum(artan_10, azalan_10)
-    rng = np.random.default_rng(tohum)
-
-    artan_sabit = kademeli_oran_ayarla(artan_10, rng, "artan")
-    azalan_sabit = kademeli_oran_ayarla(azalan_10, rng, "azalan")
-    
-    return artan_sabit.copy(), azalan_sabit.copy()
+# SONRA:
+def sabit_kademeli_top10_hazirla(ctx):
+    artan_10, azalan_10 = _hesapla_top10_tablolari(ctx["df_analiz"], ctx['son'], ctx['ad_col'], ctx['baz_col'])
+    return artan_10.copy(), azalan_10.copy()
 
 # --- ANA MAIN ---
 def main():
@@ -1190,6 +1122,7 @@ def main():
         col_empty, col_sync = st.columns([3, 1])
         with col_sync:
             sync_clicked = st.button("SİSTEMİ SENKRONİZE ET ⚡", type="primary", use_container_width=True)
+       
 
         if sync_clicked:
             progress_bar = st.progress(0, text="Veri akışı sağlanıyor...")
@@ -1238,10 +1171,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
 
 
 
