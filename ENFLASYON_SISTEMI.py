@@ -243,6 +243,7 @@ def get_github_repo():
     if g: return g.get_repo(st.secrets["github"]["repo_name"])
     return None
 
+# ÖNCE:
 def github_excel_guncelle(df_yeni, dosya_adi):
     repo = get_github_repo()
     if not repo: return "Repo Yok"
@@ -263,6 +264,39 @@ def github_excel_guncelle(df_yeni, dosya_adi):
             repo.update_file(c.path, msg, out.getvalue(), c.sha, branch=st.secrets["github"]["branch"])
         else:
             repo.create_file(dosya_adi, msg, out.getvalue(), branch=st.secrets["github"]["branch"])
+        return "OK"
+    except Exception as e:
+        return str(e)
+
+# SONRA:
+def github_excel_guncelle(df_yeni, dosya_adi):
+    repo = get_github_repo()
+    if not repo: return "Repo Yok"
+    try:
+        branch = st.secrets["github"]["branch"]
+        c = None
+        sha = None
+        try:
+            c = repo.get_contents(dosya_adi, ref=branch)
+            sha = c.sha
+            old = pd.read_excel(BytesIO(c.decoded_content), dtype=str)
+            yeni_tarih = str(df_yeni['Tarih'].iloc[0])
+            old = old[~((old['Tarih'].astype(str) == yeni_tarih) & (old['Kod'].isin(df_yeni['Kod'])))]
+            final = pd.concat([old, df_yeni], ignore_index=True)
+        except Exception as e:
+            if "404" in str(e):
+                final = df_yeni  # Dosya yok, yeni oluştur
+            else:
+                return f"Dosya Okuma Hatası: {str(e)}"
+        
+        out = BytesIO()
+        with pd.ExcelWriter(out, engine='openpyxl') as w:
+            final.to_excel(w, index=False, sheet_name='Fiyat_Log')
+        
+        if sha:
+            repo.update_file(dosya_adi, "Data Update", out.getvalue(), sha, branch=branch)
+        else:
+            repo.create_file(dosya_adi, "Data Update", out.getvalue(), branch=branch)
         return "OK"
     except Exception as e:
         return str(e)
@@ -1175,6 +1209,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
