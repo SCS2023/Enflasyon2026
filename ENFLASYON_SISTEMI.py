@@ -244,26 +244,70 @@ def get_github_repo():
     return None
 
 # ÖNCE:
+# ÖNCE:
 def github_excel_guncelle(df_yeni, dosya_adi):
     repo = get_github_repo()
     if not repo: return "Repo Yok"
     try:
+        branch = st.secrets["github"]["branch"]
+        c = None
+        sha = None
         try:
-            c = repo.get_contents(dosya_adi, ref=st.secrets["github"]["branch"])
+            c = repo.get_contents(dosya_adi, ref=branch)
+            sha = c.sha
             old = pd.read_excel(BytesIO(c.decoded_content), dtype=str)
             yeni_tarih = str(df_yeni['Tarih'].iloc[0])
             old = old[~((old['Tarih'].astype(str) == yeni_tarih) & (old['Kod'].isin(df_yeni['Kod'])))]
             final = pd.concat([old, df_yeni], ignore_index=True)
-        except:
-            c = None; final = df_yeni
+        except Exception as e:
+            if "404" in str(e):
+                final = df_yeni
+            else:
+                return f"Dosya Okuma Hatası: {str(e)}"
+        
         out = BytesIO()
         with pd.ExcelWriter(out, engine='openpyxl') as w:
             final.to_excel(w, index=False, sheet_name='Fiyat_Log')
-        msg = f"Data Update"
-        if c:
-            repo.update_file(c.path, msg, out.getvalue(), c.sha, branch=st.secrets["github"]["branch"])
+        
+        if sha:
+            repo.update_file(dosya_adi, "Data Update", out.getvalue(), sha, branch=branch)
         else:
-            repo.create_file(dosya_adi, msg, out.getvalue(), branch=st.secrets["github"]["branch"])
+            repo.create_file(dosya_adi, "Data Update", out.getvalue(), branch=branch)
+        return "OK"
+    except Exception as e:
+        return str(e)
+
+# SONRA:
+def github_excel_guncelle(df_yeni, dosya_adi):
+    repo = get_github_repo()
+    if not repo: return "Repo Yok"
+    try:
+        branch = st.secrets["github"]["branch"]
+        sha = None
+        final = df_yeni
+
+        try:
+            c = repo.get_contents(dosya_adi, ref=branch)
+            sha = c.sha
+            try:
+                raw_content = base64.b64decode(c.content)
+                old = pd.read_excel(BytesIO(raw_content), dtype=str)
+                yeni_tarih = str(df_yeni['Tarih'].iloc[0])
+                old = old[~((old['Tarih'].astype(str) == yeni_tarih) & (old['Kod'].isin(df_yeni['Kod'])))]
+                final = pd.concat([old, df_yeni], ignore_index=True)
+            except:
+                final = df_yeni  # Mevcut dosya okunamadı, sıfırdan yaz
+        except:
+            sha = None  # Dosya yok, create_file kullan
+
+        out = BytesIO()
+        with pd.ExcelWriter(out, engine='openpyxl') as w:
+            final.to_excel(w, index=False, sheet_name='Fiyat_Log')
+
+        if sha:
+            repo.update_file(dosya_adi, "Data Update", out.getvalue(), sha, branch=branch)
+        else:
+            repo.create_file(dosya_adi, "Data Update", out.getvalue(), branch=branch)
         return "OK"
     except Exception as e:
         return str(e)
@@ -1209,6 +1253,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
