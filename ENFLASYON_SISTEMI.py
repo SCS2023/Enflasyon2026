@@ -22,6 +22,7 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
+ matplotlib.use('Agg')
 from docx import Document
 from github.GithubException import GithubException
 from docx.shared import Pt, RGBColor, Inches
@@ -1234,6 +1235,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
