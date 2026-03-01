@@ -24,103 +24,10 @@ from github.GithubException import GithubException
 from docx.shared import Pt, RGBColor, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from streamlit_lottie import st_lottie
-import gspread
-from google.oauth2.service_account import Credentials
-import hashlib
 import numpy as np
 import streamlit as st
 
-def google_sheets_guncelle(ctx, artan_10, azalan_10):
-    try:
-        scopes = [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive"
-        ]
-        s_creds = dict(st.secrets["gcp_service_account"])
-        creds = Credentials.from_service_account_info(s_creds, scopes=scopes)
-        client = gspread.authorize(creds)
-        
-        # Linkinizi buraya tam olarak yerleştirdik
-        sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1EU5GHrkjrxnRvPVJDRWmYwNhuPs5e1E7C_YFYEYwxDQ/edit").worksheet("veri")
-        
-        # --- 1. TARİH FORMATI (B4 Hücresi) ---
-        aylar = ["", "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
-        simdi = datetime.utcnow() + timedelta(hours=3)
-        tarih_str = f"'{simdi.day} {aylar[simdi.month]} {simdi.year}"
-        sheet.update_acell('B4', tarih_str)
-        
-        # --- 2. KPI CARD 1 (B12 Hücresi) ---
-        kpi_1_str = f"{ctx['enf_genel']:.2f}%"
-        sheet.update_acell('B12', kpi_1_str)
-        
-        # --- 3. EN ÇOK ARTAN 10 ÜRÜN (A37 ve B37'den itibaren) ---
-        if not artan_10.empty:
-            artan_liste = []
-            for _, row in artan_10.iterrows():
-                urun = row[ctx['ad_col']]
-                degisim = f"{row['Fark'] * 100:.2f}%"
-                artan_liste.append([urun, degisim])
-            sheet.update(range_name=f'A37:B{36 + len(artan_liste)}', values=artan_liste)
 
-        # --- 4. EN ÇOK AZALAN 10 ÜRÜN (A49 ve B49'dan itibaren) ---
-        if not azalan_10.empty:
-            azalan_liste = []
-            for _, row in azalan_10.iterrows():
-                urun = row[ctx['ad_col']]
-                degisim = f"{row['Fark'] * 100:.2f}%"
-                azalan_liste.append([urun, degisim])
-            sheet.update(range_name=f'A49:B{48 + len(azalan_liste)}', values=azalan_liste)
-
-        # --- 5. SEKTÖREL ENFLASYON (Kategori Bazlı Aktarım) ---
-        df = ctx["df_analiz"]
-        agirlik_col = ctx["agirlik_col"]
-        
-        # Kategorilerin ağırlıklı ortalamasını (Maddeler sayfasındaki gibi) hesaplıyoruz
-        def agirlikli_ort(x):
-            w = pd.to_numeric(x[agirlik_col], errors='coerce').fillna(0)
-            val = pd.to_numeric(x['Fark_Yuzde'], errors='coerce').fillna(0)
-            if w.sum() == 0: return 0
-            return (w * val).sum() / w.sum()
-
-        df_cat_summary = df.groupby('Grup').apply(agirlikli_ort).reset_index(name='Ortalama_Degisim')
-        
-        # Kategorileri tam isabetle exceldeki hücrelere bağlayan sözlük yapısı
-        hucre_haritasi = {
-            "Gıda": "B22", 
-            "Alkol": "B23", "Tütün": "B23",
-            "Giyim": "B24", "Ayakkabı": "B24",
-            "Konut": "B25",
-            "Ev Eşyası": "B26", "Mobilya": "B26",
-            "Sağlık": "B27",
-            "Ulaştırma": "B28",
-            "Haberleşme": "B29", "İletişim": "B29", "Bilgi": "B29",
-            "Eğlence": "B30", "Kültür": "B30",
-            "Eğitim": "B31",
-            "Lokanta": "B32", "Otel": "B32",
-            "Sigorta": "B33", "Finans": "B33",
-            "Kişisel": "B34", "Diğer": "B34"
-        }
-        
-        # Google API kotasını harcamamak için tüm güncellemeleri tek sepette (batch) yolluyoruz
-        toplu_guncelleme = []
-        
-        for _, row in df_cat_summary.iterrows():
-            grup_adi = str(row['Grup'])
-            deger = row['Ortalama_Degisim']
-            formatli_deger = f"{deger:.2f}%" # İstediğiniz 6.02% formatı
-            
-            for anahtar, hucre in hucre_haritasi.items():
-                if anahtar.lower() in grup_adi.lower():
-                    toplu_guncelleme.append({'range': hucre, 'values': [[formatli_deger]]})
-                    break # Doğru hücreyi bulunca diğer kelimeleri aramaya gerek kalmıyor
-                    
-        # Tek seferde tüm kategorileri tabloya basıyoruz
-        if toplu_guncelleme:
-            sheet.batch_update(toplu_guncelleme)
-
-        return True
-    except Exception as e:
-        return str(e)
 # --- 1. AYARLAR VE TEMA YÖNETİMİ ---
 st.set_page_config(
     page_title="Enflasyon Monitörü | Pro Analytics",
@@ -1305,13 +1212,11 @@ def main():
     )
     secim = menu_items[secilen_etiket]
 
-    export_clicked = False
+    
     if SENKRONIZASYON_AKTIF:
-        col_empty, col_sync, col_export = st.columns([2, 1, 1])
-        with col_sync:
-            sync_clicked = st.button("SİSTEMİ SENKRONİZE ET ⚡", type="primary", use_container_width=True)
-        with col_export:
-            export_clicked = st.button("📊 Verileri E-Tabloya Aktar", type="primary", use_container_width=True)
+      col_empty, col_sync = st.columns([3, 1])
+      with col_sync:
+         sync_clicked = st.button("SİSTEMİ SENKRONİZE ET ⚡", type="primary", use_container_width=True)
 
         if sync_clicked:
             progress_bar = st.progress(0, text="Veri akışı sağlanıyor...")
@@ -1343,15 +1248,7 @@ def main():
     if df_base is not None:
         ctx = ui_sidebar_ve_veri_hazirlama(df_base, r_dates, col_name)
 
-    # --- E-TABLOYA AKTAR İŞLEMİ (Eğer butona basıldıysa) ---
-    if export_clicked and ctx:
-        with st.spinner("Tablo güncelleniyor..."):
-            artan_10, azalan_10 = sabit_kademeli_top10_hazirla(ctx)
-            sonuc = google_sheets_guncelle(ctx, artan_10, azalan_10)
-            if sonuc is True:
-                st.success("Google Sheets başarıyla güncellendi!")
-            else:
-                st.error(f"Hata oluştu: {sonuc}")
+
 
     # --- SAYFALARI RENDER ETME ---
     if ctx: 
@@ -1368,6 +1265,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
