@@ -538,30 +538,37 @@ def verileri_getir_cache():
 # 2. HESAPLAMA YAP (KATEGORİ BAZLI AKILLI SİMÜLASYON AKTİF)
 def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, ad_col, agirlik_col, baz_col, aktif_agirlik_col, son):
     df_analiz = df_analiz_base.copy()
-    
-    # --- AYAR: YILLIK ENFLASYON HEDEFİ ---
     BEKLENEN_AYLIK_ORT = 3.03 
     
-    for col in gunler: df_analiz[col] = pd.to_numeric(df_analiz[col], errors='coerce')
-    if baz_col in df_analiz.columns: df_analiz[baz_col] = df_analiz[baz_col].fillna(df_analiz[son])
+    # Sayısal dönüşümler
+    for col in gunler: 
+        df_analiz[col] = pd.to_numeric(df_analiz[col], errors='coerce')
     
+    df_analiz[baz_col] = pd.to_numeric(df_analiz.get(baz_col), errors='coerce').fillna(df_analiz[son])
     df_analiz[aktif_agirlik_col] = pd.to_numeric(df_analiz.get(aktif_agirlik_col, 0), errors='coerce').fillna(0)
-    gecerli_veri = df_analiz[df_analiz[aktif_agirlik_col] > 0].copy()
-    
-    def geo_mean(row):
-        vals = [x for x in row if isinstance(x, (int, float)) and x > 0]
-        return np.exp(np.mean(np.log(vals))) if vals else np.nan
 
-    dt_son = datetime.strptime(son, '%Y-%m-%d')
-    bu_ay_str = f"{dt_son.year}-{dt_son.month:02d}"
-    bu_ay_cols = [c for c in gunler if c.startswith(bu_ay_str)]
-    if not bu_ay_cols: bu_ay_cols = [son]
-    
-    gecerli_veri['Aylik_Ortalama'] = gecerli_veri[bu_ay_cols].apply(geo_mean, axis=1)
-    gecerli_veri = gecerli_veri.dropna(subset=['Aylik_Ortalama', baz_col])
+    # Geçerli ağırlığa sahip ürünleri filtrele
+    mask = (df_analiz[aktif_agirlik_col] > 0) & (df_analiz[son] > 0) & (df_analiz[baz_col] > 0)
+    gecerli_veri = df_analiz[mask].copy()
 
-    enf_genel = 0.0
-    enf_gida = 0.0
+    if not gecerli_veri.empty:
+        # Fiyat Oranı (Endeks Değişimi)
+        gecerli_veri['oran'] = gecerli_veri[son] / gecerli_veri[baz_col]
+        
+        toplam_agirlik = gecerli_veri[aktif_agirlik_col].sum()
+        # Ağırlıklı Ortalama Fiyat Artışı
+        enf_genel = ((gecerli_veri['oran'] * gecerli_veri[aktif_agirlik_col]).sum() / toplam_agirlik - 1) * 100
+        
+        # Gıda Enflasyonu (01 ile başlayan kodlar)
+        gida_mask = gecerli_veri['Kod'].str.startswith("01")
+        if gida_mask.any():
+            gida_df = gecerli_veri[gida_mask]
+            enf_gida = ((gida_df['oran'] * gida_df[aktif_agirlik_col]).sum() / gida_df[aktif_agirlik_col].sum() - 1) * 100
+        else:
+            enf_gida = 0
+    else:
+        enf_genel = 0
+        enf_gida = 0
     yillik_enf = 0.0
     
     if not gecerli_veri.empty:
@@ -1186,6 +1193,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
