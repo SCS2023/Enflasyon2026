@@ -654,6 +654,8 @@ def ui_sidebar_ve_veri_hazirlama(df_analiz_base, raw_dates, ad_col):
         # Her zaman bir önceki ayın son günü baz alınır
         onceki_ay_gunleri = [c for c in tum_gunler_sirali if c < f"{dt_son.year}-{dt_son.month:02d}-01"]
         baz_col = onceki_ay_gunleri[-1] if onceki_ay_gunleri else gunler[0]
+        if baz_col not in gunler:
+            gunler = [baz_col] + gunler
     else:
         aktif_agirlik_col = col_w25; baz_col = gunler[0]
 
@@ -1173,6 +1175,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
