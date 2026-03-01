@@ -16,6 +16,9 @@ import zipfile
 import base64
 import requests
 import streamlit.components.v1 as components
+import hashlib
+import numpy as np
+import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -1180,9 +1183,9 @@ def main():
 
     
     if SENKRONIZASYON_AKTIF:
-      col_empty, col_sync = st.columns([3, 1])
-      with col_sync:
-         sync_clicked = st.button("SİSTEMİ SENKRONİZE ET ⚡", type="primary", use_container_width=True)
+        col_empty, col_sync = st.columns([3, 1])
+        with col_sync:
+            sync_clicked = st.button("SİSTEMİ SENKRONİZE ET ⚡", type="primary", use_container_width=True)
 
         if sync_clicked:
             progress_bar = st.progress(0, text="Veri akışı sağlanıyor...")
@@ -1231,6 +1234,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
