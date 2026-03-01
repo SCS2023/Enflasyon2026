@@ -1080,41 +1080,7 @@ def sayfa_trend_analizi(ctx):
 
 
 
-    def _deterministik_tohum(df_artan, df_azalan):
-        artan_imza = "|".join(df_artan[ad_col].astype(str).tolist())
-        azalan_imza = "|".join(df_azalan[ad_col].astype(str).tolist())
-        baz_metin = f"{son_col}::{ad_col}::{artan_imza}::{azalan_imza}"
-        return int.from_bytes(baz_metin.encode("utf-8"), "little") % (2**32)
 
-    def kademeli_oran_ayarla(df_subset, rng, yon="artan"):
-        if df_subset.empty:
-            return df_subset
-
-        guncel_df = df_subset.copy()
-        guncel_oran = rng.uniform(14.75, 14.95)
-        yeni_farklar = []
-
-        for _ in range(len(guncel_df)):
-            kusurat = rng.uniform(-0.15, 0.15)
-            final_oran = guncel_oran + kusurat
-
-            if yon == "artan":
-                yeni_farklar.append(final_oran / 100.0)
-            else:
-                yeni_farklar.append(-final_oran / 100.0)
-
-            guncel_oran -= rng.uniform(1.20, 1.60)
-
-        guncel_df.loc[guncel_df.index, 'Fark'] = yeni_farklar
-        guncel_df.loc[guncel_df.index, 'Fark_Yuzde'] = guncel_df['Fark'] * 100
-        return guncel_df
-
-    tohum = _deterministik_tohum(artan_10, azalan_10)
-    rng = np.random.default_rng(tohum)
-
-    artan_sabit = kademeli_oran_ayarla(artan_10, rng, "artan")
-    azalan_sabit = kademeli_oran_ayarla(azalan_10, rng, "azalan")
-    return artan_sabit, azalan_sabit
 
 
 def sabit_kademeli_top10_hazirla(ctx):
@@ -1265,6 +1231,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
