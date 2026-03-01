@@ -23,6 +23,7 @@ from docx import Document
 from docx.shared import Pt, RGBColor, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from streamlit_lottie import st_lottie
+from github.GithubException import GithubException
 
 
 # --- 1. AYARLAR VE TEMA YÖNETİMİ ---
@@ -244,26 +245,56 @@ def get_github_repo():
     return None
 
 def github_excel_guncelle(df_yeni, dosya_adi):
+    """
+    Güvenli GitHub Excel güncelleme:
+    - sha ayrıca saklanır (c nesnesi kaybolsa bile sha erişilebilir)
+    - Büyük dosyalarda decoded_content yerine blob API kullanılır
+    - GithubException 404 dışındaki hatalar yükseltilir (422 sha hatası görünür olur)
+    """
     repo = get_github_repo()
     if not repo: return "Repo Yok"
+
+    branch = st.secrets["github"]["branch"]
+    sha = None
+    final = df_yeni
+
     try:
         try:
-            c = repo.get_contents(dosya_adi, ref=st.secrets["github"]["branch"])
-            old = pd.read_excel(BytesIO(c.decoded_content), dtype=str)
+            c = repo.get_contents(dosya_adi, ref=branch)
+            sha = c.sha  # sha'yı hemen ayrı değişkene al
+
+            # Büyük dosyalarda decoded_content "encoding: none" hatası verebilir
+            # Güvenli okuma: önce decoded_content, hata alırsa blob API
+            try:
+                raw = c.decoded_content
+            except Exception:
+                blob = repo.get_git_blob(sha)
+                raw = base64.b64decode(blob.content)
+
+            old = pd.read_excel(BytesIO(raw), dtype=str)
             yeni_tarih = str(df_yeni['Tarih'].iloc[0])
             old = old[~((old['Tarih'].astype(str) == yeni_tarih) & (old['Kod'].isin(df_yeni['Kod'])))]
             final = pd.concat([old, df_yeni], ignore_index=True)
-        except:
-            c = None; final = df_yeni
+
+        except GithubException as e:
+            if e.status == 404:
+                # Dosya henüz yok, sıfırdan oluşturulacak
+                sha = None
+                final = df_yeni
+            else:
+                raise  # 422 veya diğer GitHub hatalarını üste taşı
+
         out = BytesIO()
         with pd.ExcelWriter(out, engine='openpyxl') as w:
             final.to_excel(w, index=False, sheet_name='Fiyat_Log')
-        msg = f"Data Update"
-        if c:
-            repo.update_file(c.path, msg, out.getvalue(), c.sha, branch=st.secrets["github"]["branch"])
+
+        if sha:
+            repo.update_file(dosya_adi, "Data Update", out.getvalue(), sha, branch=branch)
         else:
-            repo.create_file(dosya_adi, msg, out.getvalue(), branch=st.secrets["github"]["branch"])
+            repo.create_file(dosya_adi, "Data Update", out.getvalue(), branch=branch)
+
         return "OK"
+
     except Exception as e:
         return str(e)
 
@@ -343,7 +374,13 @@ def html_isleyici(progress_callback):
     try:
         df_conf = pd.DataFrame() 
         c = repo.get_contents(EXCEL_DOSYASI, ref=st.secrets["github"]["branch"])
-        df_conf = pd.read_excel(BytesIO(c.decoded_content), sheet_name=SAYFA_ADI, dtype=str)
+        # Konfig dosyasını da güvenli şekilde oku
+        try:
+            conf_raw = c.decoded_content
+        except Exception:
+            blob = repo.get_git_blob(c.sha)
+            conf_raw = base64.b64decode(blob.content)
+        df_conf = pd.read_excel(BytesIO(conf_raw), sheet_name=SAYFA_ADI, dtype=str)
         df_conf.columns = df_conf.columns.str.strip()
         
         kod_col = next((c for c in df_conf.columns if c.lower() == 'kod'), 'Kod')
@@ -524,11 +561,10 @@ def verileri_getir_cache():
     except Exception as e:
         return None, None, None, f"Veri Çekme Hatası: {str(e)}"
 
-# 2. HESAPLAMA YAP (KATEGORİ BAZLI AKILLI SİMÜLASYON AKTİF)
+# 2. HESAPLAMA YAP
 def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, ad_col, agirlik_col, baz_col, aktif_agirlik_col, son):
     df_analiz = df_analiz_base.copy()
     
-    # --- AYAR: YILLIK ENFLASYON HEDEFİ ---
     BEKLENEN_AYLIK_ORT = 3.03 
     
     for col in gunler: df_analiz[col] = pd.to_numeric(df_analiz[col], errors='coerce')
@@ -555,12 +591,7 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
     
     if not gecerli_veri.empty:
         w = gecerli_veri[aktif_agirlik_col]
-        
         base_rel = gecerli_veri['Aylik_Ortalama'] / gecerli_veri[baz_col]
-        
-      
-
-
         p_rel = base_rel.copy()
         
         gecerli_veri['Simule_Fiyat'] = gecerli_veri[baz_col] * p_rel
@@ -576,7 +607,6 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler, tum_gunler_sirali, 
 
         if enf_genel > 0:
             yillik_enf = ((1 + enf_genel/100) * (1 + BEKLENEN_AYLIK_ORT/100)**11 - 1) * 100
-        
         else:
             yillik_enf = 0.0
 
@@ -822,7 +852,7 @@ def sayfa_piyasa_ozeti(ctx):
 
     st.markdown("---")
     
-    st.markdown("### 🔥 Fiyatı En Çok Değişenler (Simüle Edilmiş - Top 10)")
+    st.markdown("### 🔥 Fiyatı En Çok Değişenler (Top 10)")
     c_art, c_az = st.columns(2)
     
     artan_10, azalan_10 = sabit_kademeli_top10_hazirla(ctx)
@@ -830,14 +860,17 @@ def sayfa_piyasa_ozeti(ctx):
     with c_art:
         st.markdown("<div style='color:#ef4444; font-weight:800; font-size:16px; margin-bottom:15px; text-shadow: 0 0 10px rgba(239,68,68,0.3);'>🔺 EN ÇOK ARTAN 10 ÜRÜN</div>", unsafe_allow_html=True)
         if not artan_10.empty:
-            disp_artan = artan_10[[ctx['ad_col'], ctx['baz_col'], ctx['son']]].copy()
-            disp_artan['Değişim'] = artan_10['Fark'] * 100
+            disp_artan = artan_10[[ctx['ad_col'], ctx['baz_col']]].copy()
+            disp_artan.columns = [ctx['ad_col'], 'İlk Fiyat']
+            # Son fiyat = İlk Fiyat × (1 + Fark) → simüle edilen değerle tutarlı
+            disp_artan['Son Fiyat'] = artan_10[ctx['baz_col']].values * (1 + artan_10['Fark'].values)
+            disp_artan['Değişim'] = artan_10['Fark'].values * 100
             st.dataframe(
                 disp_artan,
                 column_config={
                     ctx['ad_col']: "Ürün Adı",
-                    ctx['baz_col']: st.column_config.NumberColumn("İlk Fiyat", format="%.2f ₺"),
-                    ctx['son']: st.column_config.NumberColumn("Son Fiyat", format="%.2f ₺"),
+                    'İlk Fiyat': st.column_config.NumberColumn("İlk Fiyat", format="%.2f ₺"),
+                    'Son Fiyat': st.column_config.NumberColumn("Son Fiyat", format="%.2f ₺"),
                     "Değişim": st.column_config.NumberColumn("% Değişim", format="+%.2f %%")
                 },
                 hide_index=True, use_container_width=True
@@ -848,14 +881,17 @@ def sayfa_piyasa_ozeti(ctx):
     with c_az:
         st.markdown("<div style='color:#22c55e; font-weight:800; font-size:16px; margin-bottom:15px; text-shadow: 0 0 10px rgba(34,197,94,0.3);'>🔻 EN ÇOK DÜŞEN 10 ÜRÜN</div>", unsafe_allow_html=True)
         if not azalan_10.empty:
-            disp_azalan = azalan_10[[ctx['ad_col'], ctx['baz_col'], ctx['son']]].copy()
-            disp_azalan['Değişim'] = azalan_10['Fark'] * 100
+            disp_azalan = azalan_10[[ctx['ad_col'], ctx['baz_col']]].copy()
+            disp_azalan.columns = [ctx['ad_col'], 'İlk Fiyat']
+            # Son fiyat = İlk Fiyat × (1 + Fark) → simüle edilen değerle tutarlı
+            disp_azalan['Son Fiyat'] = azalan_10[ctx['baz_col']].values * (1 + azalan_10['Fark'].values)
+            disp_azalan['Değişim'] = azalan_10['Fark'].values * 100
             st.dataframe(
                 disp_azalan,
                 column_config={
                     ctx['ad_col']: "Ürün Adı",
-                    ctx['baz_col']: st.column_config.NumberColumn("İlk Fiyat", format="%.2f ₺"),
-                    ctx['son']: st.column_config.NumberColumn("Son Fiyat", format="%.2f ₺"),
+                    'İlk Fiyat': st.column_config.NumberColumn("İlk Fiyat", format="%.2f ₺"),
+                    'Son Fiyat': st.column_config.NumberColumn("Son Fiyat", format="%.2f ₺"),
                     "Değişim": st.column_config.NumberColumn("% Değişim", format="%.2f %%")
                 },
                 hide_index=True, use_container_width=True
@@ -925,7 +961,7 @@ def sayfa_tam_liste(ctx):
     output = BytesIO(); 
     with pd.ExcelWriter(output) as writer: df.to_excel(writer, index=False)
     st.download_button("📥 Excel Olarak İndir", data=output.getvalue(), file_name="Veri_Seti.xlsx")
-    # --- KATEGORİ BAZLI EXCEL ---
+
     agirlik_col = ctx["agirlik_col"]
     df_kat = df.copy()
     df_kat[agirlik_col] = pd.to_numeric(df_kat[agirlik_col], errors='coerce').fillna(0)
@@ -957,6 +993,7 @@ def sayfa_tam_liste(ctx):
         file_name="Urun_Kategori_Raporu.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
 def sayfa_maddeler(ctx):
     df = ctx["df_analiz"]
     agirlik_col = ctx["agirlik_col"]
@@ -1062,26 +1099,27 @@ def sayfa_trend_analizi(ctx):
         st.plotly_chart(style_chart(px.line(df_melted, x='Tarih', y='Yuzde_Degisim', color=ctx['ad_col'], title="Ürün Bazlı Kümülatif Değişim (%)", markers=True)), use_container_width=True)
 
 
-# SONRA:
-@st.cache_data(show_spinner=False)
-def _hesapla_top10_tablolari(df_analiz, son_col, ad_col, baz_col):
+def sabit_kademeli_top10_hazirla(ctx):
+    """Top 10 artan ve azalan ürünleri gerçek Fark değerlerine göre döndürür."""
+    df_analiz = ctx["df_analiz"]
+    son_col = ctx['son']
+    ad_col = ctx['ad_col']
+    baz_col = ctx['baz_col']
+
+    # baz_col sütununu sayısala çevir, sıfır veya NaN olanları çıkar
     df_fark = df_analiz.dropna(subset=['Fark', son_col, ad_col, baz_col]).copy()
+    df_fark[baz_col] = pd.to_numeric(df_fark[baz_col], errors='coerce')
+    df_fark = df_fark[df_fark[baz_col] > 0]
+
     artan_10 = df_fark[df_fark['Fark'] > 0].sort_values('Fark', ascending=False).head(10).copy()
     azalan_10 = df_fark[df_fark['Fark'] < 0].sort_values('Fark', ascending=True).head(10).copy()
+
     return artan_10, azalan_10
-
-
-
-# SONRA:
-def sabit_kademeli_top10_hazirla(ctx):
-    artan_10, azalan_10 = _hesapla_top10_tablolari(ctx["df_analiz"], ctx['son'], ctx['ad_col'], ctx['baz_col'])
-    return artan_10.copy(), azalan_10.copy()
 
 # --- ANA MAIN ---
 def main():
     SENKRONIZASYON_AKTIF = True
 
-    # ÜST KISIM (BAŞLIK VE TASARIM - YENİ RGB EFEKTLERİ EKLENDİ)
     st.markdown(f"""
     <div style="display:flex; justify-content:space-between; align-items:center; padding:20px 30px; 
         background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); 
@@ -1117,12 +1155,10 @@ def main():
     )
     secim = menu_items[secilen_etiket]
 
-    
     if SENKRONIZASYON_AKTIF:
         col_empty, col_sync = st.columns([3, 1])
         with col_sync:
             sync_clicked = st.button("SİSTEMİ SENKRONİZE ET ⚡", type="primary", use_container_width=True)
-       
 
         if sync_clicked:
             progress_bar = st.progress(0, text="Veri akışı sağlanıyor...")
@@ -1138,7 +1174,6 @@ def main():
                 st.success('Sistem Senkronize Edildi! Sayfa yenileniyor...', icon='🚀')
                 time.sleep(1)
                 st.rerun()
-                
             elif "Veri bulunamadı" in res:
                 st.warning("⚠️ Yeni veri akışı yok. Güncellenecek yeni fiyat veya ZIP dosyası bulunamadı.")
             else:
@@ -1154,9 +1189,6 @@ def main():
     if df_base is not None:
         ctx = ui_sidebar_ve_veri_hazirlama(df_base, r_dates, col_name)
 
-
-
-    # --- SAYFALARI RENDER ETME ---
     if ctx: 
         if secim == "Enflasyon Özeti": sayfa_piyasa_ozeti(ctx)
         elif secim == "Trendler": sayfa_trend_analizi(ctx)
@@ -1171,11 +1203,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
