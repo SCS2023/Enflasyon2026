@@ -283,7 +283,35 @@ def kod_standartlastir(k):
 
 
 # ─────────────────────────────────────────────
-# 4. GITHUB EXCEL GÜNCELLE
+# 4. GITHUB DOSYA OKUMA (GÜVENLİ)
+# ─────────────────────────────────────────────
+def github_dosya_icerik_oku(repo, dosya_adi, branch):
+    """
+    Büyük dosyalarda GitHub API 'unsupported encoding: none' hatası verebilir.
+    Önce get_contents dener, encoding None ise git blob API'ye geçer.
+    (sha, bytes) döner. Dosya yoksa (None, None) döner.
+    """
+    try:
+        c = repo.get_contents(dosya_adi, ref=branch)
+        if c.encoding and c.encoding.lower() not in ("none", ""):
+            return c.sha, c.decoded_content
+        file_sha = c.sha
+    except Exception as e:
+        if "404" not in str(e):
+            raise
+        return None, None   # dosya yok
+
+    # encoding None → git blob ile oku
+    try:
+        blob = repo.get_git_blob(file_sha)
+        raw  = base64.b64decode(blob.content)
+        return file_sha, raw
+    except Exception as e:
+        raise RuntimeError(f"Blob okuma hatası: {e}")
+
+
+# ─────────────────────────────────────────────
+# 5. GITHUB EXCEL GÜNCELLE
 # ─────────────────────────────────────────────
 def github_excel_guncelle(df_yeni, dosya_adi):
     repo = get_github_repo()
@@ -291,21 +319,21 @@ def github_excel_guncelle(df_yeni, dosya_adi):
         return "Repo Yok"
     try:
         branch = st.secrets["github"]["branch"]
-        sha = None
-        try:
-            c = repo.get_contents(dosya_adi, ref=branch)
-            sha = c.sha
-            old = pd.read_excel(BytesIO(c.decoded_content), dtype=str)
-            yeni_tarih = str(df_yeni['Tarih'].iloc[0])
-            old = old[~(
-                (old['Tarih'].astype(str) == yeni_tarih) &
-                (old['Kod'].isin(df_yeni['Kod']))
-            )]
-            final = pd.concat([old, df_yeni], ignore_index=True)
-        except Exception as e:
-            if "404" in str(e):
-                final = df_yeni
-            else:
+
+        sha, raw_bytes = github_dosya_icerik_oku(repo, dosya_adi, branch)
+
+        if sha is None:
+            final = df_yeni
+        else:
+            try:
+                old = pd.read_excel(BytesIO(raw_bytes), dtype=str)
+                yeni_tarih = str(df_yeni['Tarih'].iloc[0])
+                old = old[~(
+                    (old['Tarih'].astype(str) == yeni_tarih) &
+                    (old['Kod'].isin(df_yeni['Kod']))
+                )]
+                final = pd.concat([old, df_yeni], ignore_index=True)
+            except Exception as e:
                 return f"Dosya Okuma Hatası: {e}"
 
         out = BytesIO()
@@ -322,7 +350,7 @@ def github_excel_guncelle(df_yeni, dosya_adi):
 
 
 # ─────────────────────────────────────────────
-# 5. SCRAPER
+# 6. SCRAPER
 # ─────────────────────────────────────────────
 def fiyat_bul_siteye_gore(soup, kaynak_tipi):
     kaynak_tipi = str(kaynak_tipi).lower()
@@ -373,7 +401,7 @@ def fiyat_bul_siteye_gore(soup, kaynak_tipi):
 
 
 # ─────────────────────────────────────────────
-# 6. ANA İŞLEYİCİ
+# 7. ANA İŞLEYİCİ
 # ─────────────────────────────────────────────
 def html_isleyici(progress_callback):
     repo = get_github_repo()
@@ -384,8 +412,10 @@ def html_isleyici(progress_callback):
     try:
         branch = st.secrets["github"]["branch"]
 
-        c = repo.get_contents(EXCEL_DOSYASI, ref=branch)
-        df_conf = pd.read_excel(BytesIO(c.decoded_content), sheet_name=SAYFA_ADI, dtype=str)
+        _, conf_bytes = github_dosya_icerik_oku(repo, EXCEL_DOSYASI, branch)
+        if conf_bytes is None:
+            return f"Yapılandırma dosyası bulunamadı: {EXCEL_DOSYASI}"
+        df_conf = pd.read_excel(BytesIO(conf_bytes), sheet_name=SAYFA_ADI, dtype=str)
         df_conf.columns = df_conf.columns.str.strip()
 
         kod_col    = next((x for x in df_conf.columns if x.lower() == 'kod'), 'Kod')
@@ -402,7 +432,7 @@ def html_isleyici(progress_callback):
         if manuel_col:
             for _, row in df_conf.iterrows():
                 try:
-                    kod  = kod_standartlastir(row[kod_col])
+                    kod   = kod_standartlastir(row[kod_col])
                     fiyat = temizle_fiyat(row[manuel_col])
                     if fiyat and fiyat > 0:
                         veri_havuzu.setdefault(kod, []).append(fiyat)
@@ -431,10 +461,10 @@ def html_isleyici(progress_callback):
                             continue
 
                         with z.open(fname) as f:
-                            raw     = f.read().decode("utf-8", errors="ignore")
-                            kaynak  = "migros" if "migros" in fl else "cimri"
-                            soup    = BeautifulSoup(raw, 'html.parser')
-                            fiyat   = fiyat_bul_siteye_gore(soup, kaynak)
+                            raw    = f.read().decode("utf-8", errors="ignore")
+                            kaynak = "migros" if "migros" in fl else "cimri"
+                            soup   = BeautifulSoup(raw, 'html.parser')
+                            fiyat  = fiyat_bul_siteye_gore(soup, kaynak)
                             if fiyat > 0:
                                 veri_havuzu.setdefault(dosya_kodu, []).append(fiyat)
             except Exception:
@@ -476,7 +506,7 @@ def html_isleyici(progress_callback):
 
 
 # ─────────────────────────────────────────────
-# 7. GRAFİK STİLİ
+# 8. GRAFİK STİLİ
 # ─────────────────────────────────────────────
 def style_chart(fig, is_pdf=False, is_sunburst=False):
     if is_pdf:
@@ -495,7 +525,6 @@ def style_chart(fig, is_pdf=False, is_sunburst=False):
                     showgrid=False, zeroline=False, showline=True,
                     linecolor="rgba(255,255,255,0.1)",
                     gridcolor='rgba(255,255,255,0.05)',
-                    # dtick="M1"  ← kaldırıldı: tarih ekseni değilse hata verir
                 ),
                 yaxis=dict(
                     showgrid=True, gridcolor="rgba(255,255,255,0.03)",
@@ -507,7 +536,7 @@ def style_chart(fig, is_pdf=False, is_sunburst=False):
 
 
 # ─────────────────────────────────────────────
-# 8. VERİ ÇEKME (ÖNBELLEKLI)
+# 9. VERİ ÇEKME (ÖNBELLEKLİ)
 # ─────────────────────────────────────────────
 @st.cache_data(ttl=3600, show_spinner=False)
 def verileri_getir_cache():
@@ -522,8 +551,8 @@ def verileri_getir_cache():
 
         fiyat_sha = conf_sha = None
         for item in tree.tree:
-            if item.path == FIYAT_DOSYASI:  fiyat_sha = item.sha
-            elif item.path == EXCEL_DOSYASI: conf_sha  = item.sha
+            if item.path == FIYAT_DOSYASI:   fiyat_sha = item.sha
+            elif item.path == EXCEL_DOSYASI:  conf_sha  = item.sha
 
         if not fiyat_sha:
             return None, None, None, f"{FIYAT_DOSYASI} repoda bulunamadı!"
@@ -585,7 +614,7 @@ def verileri_getir_cache():
 
 
 # ─────────────────────────────────────────────
-# 9. HESAPLAMA
+# 10. HESAPLAMA
 # ─────────────────────────────────────────────
 def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler,
                       tum_gunler_sirali, ad_col, agirlik_col,
@@ -595,7 +624,6 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler,
 
     df_analiz = df_analiz_base.copy()
 
-    # Sayısal dönüşümler
     for col in gunler:
         if col in df_analiz.columns:
             df_analiz[col] = pd.to_numeric(df_analiz[col], errors='coerce')
@@ -605,12 +633,12 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler,
     if aktif_agirlik_col not in df_analiz.columns:
         df_analiz[aktif_agirlik_col] = 0
 
-    df_analiz[baz_col]          = pd.to_numeric(df_analiz[baz_col], errors='coerce').fillna(0)
+    df_analiz[baz_col]           = pd.to_numeric(df_analiz[baz_col], errors='coerce').fillna(0)
     df_analiz[aktif_agirlik_col] = pd.to_numeric(df_analiz[aktif_agirlik_col], errors='coerce').fillna(0)
 
-    # Aylık ortalama (mevcut ay günlerinin geometrik ortalaması)
+    # Aylık ortalama (geometrik)
     ay_prefix    = son[:7]
-    bu_ay_gunler = [g for g in gunler if g.startswith(ay_prefix)]
+    bu_ay_gunler = [g for g in gunler if g.startswith(ay_prefix) and g in df_analiz.columns]
     if bu_ay_gunler:
         vals = df_analiz[bu_ay_gunler].replace(0, np.nan)
         df_analiz['Aylik_Ortalama'] = np.exp(np.log(vals).mean(axis=1))
@@ -632,15 +660,15 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler,
         gecerli['oran'] = gecerli['Aylik_Ortalama'] / gecerli[baz_col]
         gecerli['oran'] = gecerli['oran'].replace([np.inf, -np.inf], np.nan).fillna(1)
 
-        w          = gecerli[aktif_agirlik_col]
-        toplam_w   = w.sum()
-        enf_genel  = ((gecerli['oran'] * w).sum() / toplam_w - 1) * 100 if toplam_w > 0 else 0
+        w        = gecerli[aktif_agirlik_col]
+        toplam_w = w.sum()
+        enf_genel = ((gecerli['oran'] * w).sum() / toplam_w - 1) * 100 if toplam_w > 0 else 0
 
-        gida_mask  = gecerli['Kod'].astype(str).str.startswith("01")
+        gida_mask = gecerli['Kod'].astype(str).str.startswith("01")
         if gida_mask.any():
-            gdf       = gecerli[gida_mask]
-            gw        = gdf[aktif_agirlik_col].sum()
-            enf_gida  = ((gdf['oran'] * gdf[aktif_agirlik_col]).sum() / gw - 1) * 100 if gw > 0 else 0
+            gdf      = gecerli[gida_mask]
+            gw       = gdf[aktif_agirlik_col].sum()
+            enf_gida = ((gdf['oran'] * gdf[aktif_agirlik_col]).sum() / gw - 1) * 100 if gw > 0 else 0
 
         if enf_genel > 0:
             yillik_enf = ((1 + enf_genel / 100) * (1 + BEKLENEN_AYLIK_ORT / 100) ** 11 - 1) * 100
@@ -649,11 +677,9 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler,
     else:
         df_analiz['Simule_Fiyat'] = df_analiz[son]
 
-    # Fark hesabı
     df_analiz['Fark'] = 0.0
     valid_idx = df_analiz.index[
-        (df_analiz[baz_col] > 0) &
-        df_analiz['Simule_Fiyat'].notna()
+        (df_analiz[baz_col] > 0) & df_analiz['Simule_Fiyat'].notna()
     ]
     df_analiz.loc[valid_idx, 'Fark'] = (
         df_analiz.loc[valid_idx, 'Simule_Fiyat'] /
@@ -661,12 +687,11 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler,
     ) - 1
     df_analiz['Fark_Yuzde'] = df_analiz['Fark'] * 100
 
-    # Günlük değişim
     if len(gunler) >= 2:
         onceki_gun = gunler[-2]
+        prev_col   = onceki_gun if onceki_gun in df_analiz.columns else son
         df_analiz['Gunluk_Degisim'] = (
-            df_analiz[son] /
-            df_analiz[onceki_gun].replace(0, np.nan)
+            df_analiz[son] / df_analiz[prev_col].replace(0, np.nan)
         ) - 1
     else:
         onceki_gun = son
@@ -675,24 +700,24 @@ def hesapla_metrikler(df_analiz_base, secilen_tarih, gunler,
     df_analiz['Gunluk_Degisim'] = df_analiz['Gunluk_Degisim'].replace([np.inf, -np.inf], 0).fillna(0)
 
     return {
-        "df_analiz":            df_analiz,
-        "enf_genel":            enf_genel,
-        "enf_gida":             enf_gida,
-        "yillik_enf":           yillik_enf,
-        "resmi_aylik_degisim":  4.84,
-        "son":                  son,
-        "onceki_gun":           onceki_gun,
-        "gunler":               gunler,
-        "ad_col":               ad_col,
-        "agirlik_col":          aktif_agirlik_col,
-        "baz_col":              baz_col,
-        "gun_farki":            0,
-        "tahmin":               enf_genel,
+        "df_analiz":           df_analiz,
+        "enf_genel":           enf_genel,
+        "enf_gida":            enf_gida,
+        "yillik_enf":          yillik_enf,
+        "resmi_aylik_degisim": 4.84,
+        "son":                 son,
+        "onceki_gun":          onceki_gun,
+        "gunler":              gunler,
+        "ad_col":              ad_col,
+        "agirlik_col":         aktif_agirlik_col,
+        "baz_col":             baz_col,
+        "gun_farki":           0,
+        "tahmin":              enf_genel,
     }
 
 
 # ─────────────────────────────────────────────
-# 10. SIDEBAR
+# 11. SIDEBAR
 # ─────────────────────────────────────────────
 def ui_sidebar_ve_veri_hazirlama(df_analiz_base, raw_dates, ad_col):
     if df_analiz_base is None:
@@ -706,7 +731,6 @@ def ui_sidebar_ve_veri_hazirlama(df_analiz_base, raw_dates, ad_col):
     st.sidebar.markdown("---")
     st.sidebar.markdown("### ⚙️ Veri Ayarları")
 
-    # Lottie animasyonu (opsiyonel)
     if LOTTIE_OK:
         try:
             lottie_json = load_lottieurl(
@@ -737,7 +761,7 @@ def ui_sidebar_ve_veri_hazirlama(df_analiz_base, raw_dates, ad_col):
     ])
 
     if secilen_tarih in tum_gunler_sirali:
-        idx   = tum_gunler_sirali.index(secilen_tarih)
+        idx    = tum_gunler_sirali.index(secilen_tarih)
         gunler = tum_gunler_sirali[: idx + 1]
     else:
         gunler = tum_gunler_sirali
@@ -745,11 +769,11 @@ def ui_sidebar_ve_veri_hazirlama(df_analiz_base, raw_dates, ad_col):
     if not gunler:
         return None
 
-    son      = gunler[-1]
-    dt_son   = datetime.strptime(son, '%Y-%m-%d')
-    col_w25  = 'Agirlik_2025'
-    col_w26  = 'Agirlik_2026'
-    ZINCIR   = datetime(2026, 2, 4)
+    son    = gunler[-1]
+    dt_son = datetime.strptime(son, '%Y-%m-%d')
+    col_w25 = 'Agirlik_2025'
+    col_w26 = 'Agirlik_2026'
+    ZINCIR  = datetime(2026, 2, 4)
 
     if dt_son >= ZINCIR:
         aktif_agirlik_col = col_w26
@@ -771,7 +795,6 @@ def ui_sidebar_ve_veri_hazirlama(df_analiz_base, raw_dates, ad_col):
         aktif_agirlik_col=aktif_agirlik_col, son=son
     )
 
-    # AI görüşü
     with ai_container:
         st.markdown("### 🧠 AI Görüşü")
         genel = ctx["enf_genel"]
@@ -797,15 +820,14 @@ def ui_sidebar_ve_veri_hazirlama(df_analiz_base, raw_dates, ad_col):
         </div>
         """, unsafe_allow_html=True)
 
-    # TradingView widget'ları
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 🌍 Piyasalar")
     symbols = [
-        {"s": "FX_IDC:USDTRY",    "d": "Dolar"},
-        {"s": "FX_IDC:EURTRY",    "d": "Euro"},
-        {"s": "FX_IDC:XAUTRYG",   "d": "Gram Altın"},
-        {"s": "TVC:UKOIL",        "d": "Brent Petrol"},
-        {"s": "BINANCE:BTCUSDT",  "d": "Bitcoin"},
+        {"s": "FX_IDC:USDTRY",   "d": "Dolar"},
+        {"s": "FX_IDC:EURTRY",   "d": "Euro"},
+        {"s": "FX_IDC:XAUTRYG",  "d": "Gram Altın"},
+        {"s": "TVC:UKOIL",       "d": "Brent Petrol"},
+        {"s": "BINANCE:BTCUSDT", "d": "Bitcoin"},
     ]
     for sym in symbols:
         widget_code = (
@@ -826,11 +848,10 @@ def ui_sidebar_ve_veri_hazirlama(df_analiz_base, raw_dates, ad_col):
 
 
 # ─────────────────────────────────────────────
-# 11. TOP-10 YARDIMCILARI
+# 12. TOP-10 YARDIMCILARI
 # ─────────────────────────────────────────────
 @st.cache_data(show_spinner=False)
 def _hesapla_top10_tablolari(df_analiz_json: str, son_col, ad_col, baz_col):
-    """df_analiz'i JSON string olarak alır (cache uyumlu)."""
     df = pd.read_json(df_analiz_json)
     df_fark = df.dropna(subset=['Fark', son_col, ad_col, baz_col]).copy()
     artan  = df_fark[df_fark['Fark'] > 0].sort_values('Fark', ascending=False).head(10)
@@ -852,15 +873,15 @@ def sabit_kademeli_top10_hazirla(ctx):
 
 
 # ─────────────────────────────────────────────
-# 12. SAYFA: ENFLASYONa ÖZETİ
+# 13. SAYFA: ENFLASYONa ÖZETİ
 # ─────────────────────────────────────────────
 def sayfa_piyasa_ozeti(ctx):
     c1, c2, c3, c4 = st.columns(4)
     cards = [
-        (c1, "GENEL ENFLASYON",   f"%{ctx['enf_genel']:.2f}", "#ef4444",  "Aylık Değişim (Simüle)"),
-        (c2, "GIDA ENFLASYONU",   f"%{ctx['enf_gida']:.2f}",  "#fca5a5",  "Mutfak Sepeti"),
-        (c3, "YILLIK PROJ.",      "%31.47",                   "#a78bfa",  "Yıllık Projeksiyon"),
-        (c4, "RESMİ (TÜİK)",     f"%{ctx['resmi_aylik_degisim']:.2f}", "#fbbf24", "Sabit Veri"),
+        (c1, "GENEL ENFLASYON",  f"%{ctx['enf_genel']:.2f}", "#ef4444", "Aylık Değişim (Simüle)"),
+        (c2, "GIDA ENFLASYONU",  f"%{ctx['enf_gida']:.2f}",  "#fca5a5", "Mutfak Sepeti"),
+        (c3, "YILLIK PROJ.",     "%31.47",                   "#a78bfa", "Yıllık Projeksiyon"),
+        (c4, "RESMİ (TÜİK)",    f"%{ctx['resmi_aylik_degisim']:.2f}", "#fbbf24", "Sabit Veri"),
     ]
     for col, title, val, color, sub in cards:
         with col:
@@ -875,24 +896,24 @@ def sayfa_piyasa_ozeti(ctx):
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    df      = ctx["df_analiz"]
-    ad_col  = ctx['ad_col']
-    inc     = df.sort_values('Gunluk_Degisim', ascending=False).head(15)
-    dec     = df.sort_values('Gunluk_Degisim', ascending=True).head(15)
+    df     = ctx["df_analiz"]
+    ad_col = ctx['ad_col']
+    inc    = df.sort_values('Gunluk_Degisim', ascending=False).head(15)
+    dec    = df.sort_values('Gunluk_Degisim', ascending=True).head(15)
 
     items = []
     for _, r in inc.iterrows():
         val = r['Gunluk_Degisim']
         if val > 0:
             items.append(
-                f"<span style='color:#ef4444;font-weight:800;text-shadow:0 0 10px rgba(239,68,68,0.4);'>"
+                f"<span style='color:#ef4444;font-weight:800;'>"
                 f"▲ {r[ad_col]} %{val*100:.1f}</span>"
             )
     for _, r in dec.iterrows():
         val = r['Gunluk_Degisim']
         if val < 0:
             items.append(
-                f"<span style='color:#22c55e;font-weight:800;text-shadow:0 0 10px rgba(34,197,94,0.4);'>"
+                f"<span style='color:#22c55e;font-weight:800;'>"
                 f"▼ {r[ad_col]} %{abs(val)*100:.1f}</span>"
             )
 
@@ -909,12 +930,12 @@ def sayfa_piyasa_ozeti(ctx):
     col_g1, col_g2 = st.columns([2, 1])
 
     with col_g1:
-        df_ana        = ctx["df_analiz"].copy()
-        df_ana        = df_ana.loc[:, ~df_ana.columns.duplicated()]
-        baz_col       = ctx["baz_col"]
-        agirlik_col   = ctx["agirlik_col"]
-        gunler        = ctx["gunler"]
-        son_gun       = ctx["son"]
+        df_ana      = ctx["df_analiz"].copy()
+        df_ana      = df_ana.loc[:, ~df_ana.columns.duplicated()]
+        baz_col     = ctx["baz_col"]
+        agirlik_col = ctx["agirlik_col"]
+        gunler      = ctx["gunler"]
+        son_gun     = ctx["son"]
 
         df_ana[agirlik_col] = pd.to_numeric(df_ana[agirlik_col], errors='coerce').fillna(0)
         df_ana = df_ana[df_ana[agirlik_col] > 0]
@@ -922,24 +943,21 @@ def sayfa_piyasa_ozeti(ctx):
         df_ana = df_ana[df_ana[baz_col] > 0]
 
         hedef_ay        = son_gun[:7]
-        bu_ayin_gunleri = [g for g in gunler if g.startswith(hedef_ay) and g <= son_gun]
+        bu_ayin_gunleri = [g for g in gunler if g.startswith(hedef_ay) and g <= son_gun and g in df_ana.columns]
         trend_verisi    = []
 
         for gun in bu_ayin_gunleri:
-            gecerli_k = [g for g in bu_ayin_gunleri if g <= gun]
+            gecerli_k = [g for g in bu_ayin_gunleri if g <= gun and g in df_ana.columns]
             if not gecerli_k:
                 continue
-            mevcut = [g for g in gecerli_k if g in df_ana.columns]
-            if not mevcut:
-                continue
 
-            vals = df_ana[mevcut].replace(0, np.nan)
+            vals = df_ana[gecerli_k].replace(0, np.nan)
             df_ana['_ort'] = np.exp(np.log(vals).mean(axis=1))
             temp = df_ana.dropna(subset=['_ort'])
             if temp.empty:
                 continue
 
-            w  = temp[agirlik_col]
+            w = temp[agirlik_col]
             if w.sum() == 0:
                 continue
             p_rel = temp['_ort'] / temp[baz_col]
@@ -950,8 +968,7 @@ def sayfa_piyasa_ozeti(ctx):
         df_trend = pd.DataFrame(trend_verisi)
 
         if not df_trend.empty:
-            df_trend = df_trend.sort_values('Tarih').reset_index(drop=True)
-            # Simüle değeri ile son noktayı hizala
+            df_trend   = df_trend.sort_values('Tarih').reset_index(drop=True)
             raw_son    = df_trend.iloc[-1]['Deger']
             simule_son = ctx["enf_genel"]
             fark       = simule_son - raw_son
@@ -980,12 +997,10 @@ def sayfa_piyasa_ozeti(ctx):
         st.markdown(
             f'<div class="kpi-card" style="height:100%;display:flex;flex-direction:column;justify-content:center;">'
             f'<div style="font-size:13px;color:#94a3b8;font-weight:800;letter-spacing:1px;">YÜKSELENLER</div>'
-            f'<div style="font-size:32px;color:#ef4444;font-weight:800;text-shadow:0 0 15px rgba(239,68,68,0.3);">'
-            f'{len(df[df["Fark"] > 0])} Ürün</div>'
+            f'<div style="font-size:32px;color:#ef4444;font-weight:800;">{len(df[df["Fark"] > 0])} Ürün</div>'
             f'<div style="margin:25px 0;border-top:1px solid rgba(255,255,255,0.1)"></div>'
             f'<div style="font-size:13px;color:#94a3b8;font-weight:800;letter-spacing:1px;">DÜŞENLER</div>'
-            f'<div style="font-size:32px;color:#22c55e;font-weight:800;text-shadow:0 0 15px rgba(34,197,94,0.3);">'
-            f'{len(df[df["Fark"] < 0])} Ürün</div>'
+            f'<div style="font-size:32px;color:#22c55e;font-weight:800;">{len(df[df["Fark"] < 0])} Ürün</div>'
             f'</div>',
             unsafe_allow_html=True
         )
@@ -995,25 +1010,26 @@ def sayfa_piyasa_ozeti(ctx):
     c_art, c_az = st.columns(2)
     artan_10, azalan_10 = sabit_kademeli_top10_hazirla(ctx)
 
-    for col_widget, df10, title, color, col_config_sign in [
+    for col_widget, df10, title, color, fmt in [
         (c_art, artan_10, "🔺 EN ÇOK ARTAN 10 ÜRÜN",  "#ef4444", "+%.2f %%"),
-        (c_az,  azalan_10,"🔻 EN ÇOK DÜŞEN 10 ÜRÜN",  "#22c55e", "%.2f %%"),
+        (c_az,  azalan_10,"🔻 EN ÇOK DÜŞEN 10 ÜRÜN",   "#22c55e", "%.2f %%"),
     ]:
         with col_widget:
             st.markdown(
-                f"<div style='color:{color};font-weight:800;font-size:16px;"
-                f"margin-bottom:15px;text-shadow:0 0 10px rgba(0,0,0,0.2);'>{title}</div>",
+                f"<div style='color:{color};font-weight:800;font-size:16px;margin-bottom:15px;'>{title}</div>",
                 unsafe_allow_html=True
             )
             if not df10.empty:
-                # baz_col ve son sütunlarının varlığını kontrol et
                 cols_to_show = [ctx['ad_col']]
                 if ctx['baz_col'] in df10.columns: cols_to_show.append(ctx['baz_col'])
-                if ctx['son'] in df10.columns:     cols_to_show.append(ctx['son'])
+                if ctx['son']     in df10.columns: cols_to_show.append(ctx['son'])
                 disp = df10[cols_to_show].copy()
                 disp['Değişim'] = df10['Fark'] * 100
 
-                col_cfg = {ctx['ad_col']: "Ürün Adı", "Değişim": st.column_config.NumberColumn("% Değişim", format=col_config_sign)}
+                col_cfg = {
+                    ctx['ad_col']: "Ürün Adı",
+                    "Değişim": st.column_config.NumberColumn("% Değişim", format=fmt)
+                }
                 if ctx['baz_col'] in disp.columns:
                     col_cfg[ctx['baz_col']] = st.column_config.NumberColumn("İlk Fiyat", format="%.2f ₺")
                 if ctx['son'] in disp.columns:
@@ -1025,10 +1041,10 @@ def sayfa_piyasa_ozeti(ctx):
 
     st.markdown("---")
     st.subheader("Sektörel Isı Haritası")
-    ag = ctx['agirlik_col']
-    df_tree = df[df[ag].notna()].copy()
+    ag       = ctx['agirlik_col']
+    df_tree  = df[df[ag].notna()].copy()
     df_tree[ag] = pd.to_numeric(df_tree[ag], errors='coerce').fillna(0)
-    df_tree = df_tree[df_tree[ag] > 0]
+    df_tree  = df_tree[df_tree[ag] > 0]
 
     if not df_tree.empty:
         fig_tree = px.treemap(
@@ -1042,16 +1058,16 @@ def sayfa_piyasa_ozeti(ctx):
 
 
 # ─────────────────────────────────────────────
-# 13. SAYFA: KATEGORİ DETAY
+# 14. SAYFA: KATEGORİ DETAY
 # ─────────────────────────────────────────────
 def sayfa_kategori_detay(ctx):
-    df     = ctx["df_analiz"].dropna(subset=[ctx['son'], ctx['ad_col']])
+    df = ctx["df_analiz"].dropna(subset=[ctx['son'], ctx['ad_col']])
     st.markdown("### 🔍 Kategori Bazlı Fiyat Takibi")
 
     col_sel, col_src = st.columns([1, 2])
-    kategoriler  = ["Tümü"] + sorted(df['Grup'].unique().tolist())
-    secilen_kat  = col_sel.selectbox("Kategori Seç:", kategoriler)
-    arama        = col_src.text_input("Ürün Ara:", placeholder="Örn: Süt...")
+    kategoriler = ["Tümü"] + sorted(df['Grup'].unique().tolist())
+    secilen_kat = col_sel.selectbox("Kategori Seç:", kategoriler)
+    arama       = col_src.text_input("Ürün Ara:", placeholder="Örn: Süt...")
 
     df_show = df.copy()
     if secilen_kat != "Tümü":
@@ -1063,9 +1079,7 @@ def sayfa_kategori_detay(ctx):
         items_per_page = 16
         max_pages      = max(1, (len(df_show) - 1) // items_per_page + 1)
         page_num       = st.number_input("Sayfa", min_value=1, max_value=max_pages, step=1)
-        batch          = df_show.iloc[
-            (page_num - 1) * items_per_page: page_num * items_per_page
-        ]
+        batch          = df_show.iloc[(page_num-1)*items_per_page : page_num*items_per_page]
         cols = st.columns(4)
         for idx, row in enumerate(batch.to_dict('records')):
             fiyat = row[ctx['son']]
@@ -1090,12 +1104,12 @@ def sayfa_kategori_detay(ctx):
 
 
 # ─────────────────────────────────────────────
-# 14. SAYFA: TAM LİSTE
+# 15. SAYFA: TAM LİSTE
 # ─────────────────────────────────────────────
 def sayfa_tam_liste(ctx):
     st.markdown("### 📋 Detaylı Veri Seti")
     df     = ctx["df_analiz"].dropna(subset=[ctx['son'], ctx['ad_col']])
-    gunler = ctx["gunler"]
+    gunler = [g for g in ctx["gunler"] if g in df.columns]
 
     def fix_sparkline(row):
         vals = row.tolist()
@@ -1103,18 +1117,16 @@ def sayfa_tam_liste(ctx):
             vals[-1] += 0.00001
         return vals
 
-    # Yalnızca var olan gün sütunlarını kullan
-    gun_cols  = [g for g in gunler if g in df.columns]
-    df['Fiyat_Trendi'] = df[gun_cols].apply(fix_sparkline, axis=1)
+    df['Fiyat_Trendi'] = df[gunler].apply(fix_sparkline, axis=1)
 
     cols_show = ['Grup', ctx['ad_col'], 'Fiyat_Trendi', 'Gunluk_Degisim']
     if ctx['baz_col'] in df.columns: cols_show.insert(3, ctx['baz_col'])
     if ctx['son']     in df.columns: cols_show.insert(4, ctx['son'])
 
     col_config = {
-        'Fiyat_Trendi':       st.column_config.LineChartColumn("Trend", width="small", y_min=0),
-        ctx['ad_col']:        "Ürün Adı",
-        'Gunluk_Degisim':     st.column_config.ProgressColumn("Değişim", format="%.2f%%", min_value=-0.5, max_value=0.5),
+        'Fiyat_Trendi':   st.column_config.LineChartColumn("Trend", width="small", y_min=0),
+        ctx['ad_col']:    "Ürün Adı",
+        'Gunluk_Degisim': st.column_config.ProgressColumn("Değişim", format="%.2f%%", min_value=-0.5, max_value=0.5),
     }
     if ctx['baz_col'] in df.columns:
         col_config[ctx['baz_col']] = st.column_config.NumberColumn("Baz Fiyat", format="%.2f ₺")
@@ -1127,16 +1139,14 @@ def sayfa_tam_liste(ctx):
         hide_index=True,
         use_container_width=True,
         height=600,
-        disabled=True,          # ← düzenlemeyi kapat
+        disabled=True,
     )
 
-    # İndir: tam veri
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.drop(columns=['Fiyat_Trendi'], errors='ignore').to_excel(writer, index=False)
     st.download_button("📥 Excel Olarak İndir", data=output.getvalue(), file_name="Veri_Seti.xlsx")
 
-    # İndir: ürün & kategori raporu
     ag = ctx["agirlik_col"]
     df_kat = df.copy()
     df_kat[ag] = pd.to_numeric(df_kat[ag], errors='coerce').fillna(0)
@@ -1173,7 +1183,7 @@ def sayfa_tam_liste(ctx):
 
 
 # ─────────────────────────────────────────────
-# 15. SAYFA: MADDELER
+# 16. SAYFA: MADDELER
 # ─────────────────────────────────────────────
 def sayfa_maddeler(ctx):
     df          = ctx["df_analiz"]
@@ -1251,7 +1261,7 @@ def sayfa_maddeler(ctx):
 
 
 # ─────────────────────────────────────────────
-# 16. SAYFA: TRENDLER
+# 17. SAYFA: TRENDLER
 # ─────────────────────────────────────────────
 def sayfa_trend_analizi(ctx):
     st.markdown("### 📈 Trend Analizleri")
@@ -1261,10 +1271,7 @@ def sayfa_trend_analizi(ctx):
     st.info("ℹ️ Genel Enflasyon Trendi için 'Enflasyon Özeti' sayfasına bakınız.")
     st.subheader("Ürün Bazlı Fiyat Trendleri")
 
-    default_urunler = (
-        df.sort_values('Fark_Yuzde', ascending=False)
-        .head(3)[ctx['ad_col']].tolist()
-    )
+    default_urunler = df.sort_values('Fark_Yuzde', ascending=False).head(3)[ctx['ad_col']].tolist()
     secilen_urunler = st.multiselect(
         "Grafiğe eklenecek ürünleri seçin:",
         options=df[ctx['ad_col']].unique().tolist(),
@@ -1297,7 +1304,7 @@ def sayfa_trend_analizi(ctx):
 
 
 # ─────────────────────────────────────────────
-# 17. ANA FONKSİYON
+# 18. ANA FONKSİYON
 # ─────────────────────────────────────────────
 def main():
     SENKRONIZASYON_AKTIF = True
@@ -1314,9 +1321,7 @@ def main():
                 Enflasyon Monitörü
                 <span style="background:rgba(59,130,246,0.15);color:#60a5fa;font-size:10px;
                     padding:4px 10px;border-radius:6px;border:1px solid rgba(59,130,246,0.3);
-                    vertical-align:middle;margin-left:10px;
-                    box-shadow:0 0 10px rgba(59,130,246,0.2);
-                    animation:pulseGlow 2s infinite;">SİMÜLASYON AKTİF</span>
+                    vertical-align:middle;margin-left:10px;">SİMÜLASYON AKTİF</span>
             </div>
             <div style="font-size:13px;color:#94a3b8;font-weight:500;margin-top:4px;">
                 Yapay Zeka Destekli Enflasyon Analiz Platformu
@@ -1324,8 +1329,7 @@ def main():
         </div>
         <div style="text-align:right;">
             <div style="font-size:11px;color:#64748b;font-weight:800;letter-spacing:2px;">TÜRKİYE SAATİ</div>
-            <div style="font-size:22px;font-weight:800;color:#e2e8f0;
-                font-family:'JetBrains Mono';text-shadow:0 0 15px rgba(255,255,255,0.2);">{now_tr}</div>
+            <div style="font-size:22px;font-weight:800;color:#e2e8f0;font-family:'JetBrains Mono';">{now_tr}</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1356,9 +1360,7 @@ def main():
         if sync_clicked:
             progress_bar = st.progress(0, text="Veri akışı sağlanıyor...")
             res = html_isleyici(
-                lambda p: progress_bar.progress(
-                    min(1.0, max(0.0, p)), text="Senkronizasyon sürüyor..."
-                )
+                lambda p: progress_bar.progress(min(1.0, max(0.0, p)), text="Senkronizasyon sürüyor...")
             )
             progress_bar.progress(1.0, text="Tamamlandı!")
             time.sleep(0.5)
@@ -1401,8 +1403,8 @@ def main():
         )
 
     st.markdown(
-        '<div style="text-align:center;color:#52525b;font-size:11px;'
-        'margin-top:50px;opacity:0.6;">VALIDASYON MÜDÜRLÜĞÜ © 2026</div>',
+        '<div style="text-align:center;color:#52525b;font-size:11px;margin-top:50px;opacity:0.6;">'
+        'VALIDASYON MÜDÜRLÜĞÜ © 2026</div>',
         unsafe_allow_html=True
     )
 
